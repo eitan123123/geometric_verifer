@@ -1,0 +1,74 @@
+DESCRIPTION:
+As shown in the diagram, ∠DCE=70°, BA and CD are opposite sides of the parallelogram ABCD. Find the measure of ∠DAB.
+CONSTRUCTION_CDL:
+Shape(AB,BC,CD,DA)
+Shape(DC,CE)
+Collinear(BCE)
+TEXT_CDL:
+Equal(MeasureOfAngle(DCE),70)
+Parallelogram(ABCD)
+GOAL_CDL:
+Value(MeasureOfAngle(DAB))
+CONSTRUCTION_CDL_EXTENDED:
+Shape(BC,CD,DA,AB)
+Shape(CD,DA,AB,BC)
+Shape(DA,AB,BC,CD)
+Point(B)
+Point(C)
+Point(A)
+Point(D)
+Line(BE)
+Line(EB)
+Line(BC)
+Line(CB)
+Line(CE)
+Line(EC)
+Line(AB)
+Line(BA)
+Line(CD)
+Line(DC)
+Line(DA)
+Line(AD)
+Angle(BCE)
+Angle(ECB)
+Angle(ABC)
+Angle(BCD)
+Angle(CDA)
+Angle(DAB)
+Angle(ECD)
+Angle(DCB)
+Angle(ABE)
+Angle(CBA)
+Angle(ADC)
+Angle(BAD)
+Angle(EBA)
+Polygon(ABCD)
+Polygon(BCDA)
+Polygon(CDAB)
+Polygon(DABC)
+Parallelogram(BCDA)
+Parallelogram(CDAB)
+Parallelogram(DABC)
+ParallelBetweenLine(AD,BC)
+ParallelBetweenLine(CB,DA)
+ParallelBetweenLine(BA,CD)
+ParallelBetweenLine(DC,AB)
+SYMBOLS_AND_VALUES:
+MeasureOfAngle(DAB);ma_dab;110
+MeasureOfAngle(DCE);ma_dce;None
+
+EQUATIONS:
+ma_dce=70
+GOAL_SYMBOL:
+ma_dab
+ANSWER:
+110
+THEOREM_SEQUENCE:
+Step 1:
+	Theorem: parallelogram_property_opposite_angle_equal(1, ABCD)
+	Premise: Parallelogram(ABCD)
+	Conclusion: ["Equal(MeasureOfAngle(DAB), MeasureOfAngle(BCD))"]
+Step 2:
+	Theorem: adjacent_complementary_angle(1, BCD, DCE)
+	Premise: Collinear(BCE) & Angle(BCD) & Angle(DCE)
+	Conclusion: ["Equal(Add(MeasureOfAngle(BCD), MeasureOfAngle(DCE)), 180)"]
