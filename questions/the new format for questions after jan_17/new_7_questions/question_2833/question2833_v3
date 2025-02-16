@@ -1,0 +1,57 @@
+DESCRIPTION:
+As shown in the diagram, ∠WZY=a+2°, ∠XWZ=a/2+8°, ∠YXW=a°, ∠ZYX=a-28°. Find the measure of ∠ZYX.
+CONSTRUCTION_CDL:
+Shape(XW,WZ,ZY,YX)
+TEXT_CDL:
+Equal(MeasureOfAngle(WZY),a+2)
+Equal(MeasureOfAngle(XWZ),a/2+8)
+Equal(MeasureOfAngle(YXW),a)
+Equal(MeasureOfAngle(ZYX),a-28)
+GOAL_CDL:
+Value(MeasureOfAngle(ZYX))
+CONSTRUCTION_CDL_EXTENDED:
+Shape(WZ,ZY,YX,XW)
+Shape(ZY,YX,XW,WZ)
+Shape(YX,XW,WZ,ZY)
+Point(X)
+Point(W)
+Point(Z)
+Point(Y)
+Line(XW)
+Line(WX)
+Line(WZ)
+Line(ZW)
+Line(ZY)
+Line(YZ)
+Line(YX)
+Line(XY)
+Angle(XWZ)
+Angle(WZY)
+Angle(ZYX)
+Angle(YXW)
+Angle(ZWX)
+Angle(YZW)
+Angle(XYZ)
+Angle(WXY)
+Polygon(XWZY)
+Polygon(WZYX)
+Polygon(ZYXW)
+Polygon(YXWZ)
+SYMBOLS_AND_VALUES:
+MeasureOfAngle(ABM);ma_abm;140
+MeasureOfAngle(BCA);ma_bca;None
+
+Outputs:
+Outputs for Problem B:
+
+EQUATIONS:
+(a+2) + (a/2 + 8) + a + (a-28) = 360
+
+GOAL_SYMBOL:
+MeasureOfAngle(ZYX)
+
+ANSWER:
+80
+
+THEOREM_SEQUENCE:
+1; quadrilateral_property_angle_sum(WZYX); Polygon(WZYX); ["Equal(Add(MeasureOfAngle(WZY),MeasureOfAngle(ZYX),MeasureOfAngle(YXW),MeasureOfAngle(XWZ)),360)"]

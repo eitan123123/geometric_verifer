@@ -1329,5 +1329,5 @@ def verify_geometric_proof(filename: str) -> bool:
 
 
 if __name__ == "__main__":
-    result = verify_geometric_proof("/Users/eitan/Desktop/lean/lean_python/questions/question2/question2_13")
+    result = verify_geometric_proof("/questions/the new format for questions after jan_17/question2/question2_13")
     print(f"Verification {'succeeded' if result else 'failed'}")
