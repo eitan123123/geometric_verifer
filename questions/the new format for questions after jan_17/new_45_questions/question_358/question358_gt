@@ -51,7 +51,7 @@ ma_bac=45
 ma_acb=90
 GOAL_SYMBOL:
 h
-GT_ANSWER:
+ANSWER:
 3*sqrt(2)
 THEOREM_SEQUENCE:
 1;triangle_property_angle_sum(1,ACB);Polygon(ACB);["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]

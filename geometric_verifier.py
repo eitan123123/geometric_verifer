@@ -38,9 +38,20 @@ class GeometricTheorem:
         self.perpendicular_pairs = set()
         self.collinear_facts = []
 
+        self.altitude_facts = set()
+        self.trapezoids = set()
+        self.altitudes = {}
+        self.quad_areas = {}
+        self.quad_heights = {}
+
         # For handling both algebraic and numeric expressions
         self.variables = {}
         self.found_tier_1_or_2_error = False
+
+
+        self.quadrilateral_diagonals = set()
+        self.quadrilateral_right_angles = set()
+
 
         # Add these new attributes for length handling
         self.lengths = {}  # Store line lengths
@@ -104,6 +115,8 @@ class GeometricTheorem:
             # Constrain the angle to be between 0 and 180.
             self.solver.add(self.angles[angle_name] >= 0, self.angles[angle_name] <= 180)
         return self.angles[angle_name]
+
+
 
     def add_length(self, p1: str, p2: str) -> Real:
         """Return the Z3 variable for the length of the segment between p1 and p2.
@@ -281,7 +294,7 @@ class GeometricTheorem:
             print(f"Created ratio variable: {var_name}")
 
         # Optionally, add the side ratio constraints immediately.
-        self.add_all_side_ratios_for_similar_triangles(tri1, tri2)
+
 
     def calculate_perimeter(self, triangle: str) -> Optional[Real]:
         """Calculate perimeter of a triangle"""
@@ -415,69 +428,71 @@ class GeometricTheorem:
         if len(points) < 3:
             return
 
-            # Join points to string and normalize
+        # Join points to string and normalize
         points_str = ''.join(points)
         normalized = self.normalize_collinear_points(points_str)
         points = list(normalized)  # Convert back to list
-        # For each three consecutive points
-        for i in range(len(points) - 2):
-            p1, v, p2 = points[i:i + 3]
 
-            # Add points if they don't exist
-            for p in [p1, v, p2]:
-                if p not in self.points:
-                    self.add_point(p)
+        # Also create reversed points
+        reversed_points = points[::-1]
 
-            # Add straight angle constraint (180°) - use normalized angle
-            straight_angle = self.normalize_angle_name(p1 + v + p2)
-            angle_var = self.add_angle(straight_angle[0], straight_angle[1], straight_angle[2])
+        # Process both orders
+        for point_order in [points, reversed_points]:
+            # For each three consecutive points
+            for i in range(len(point_order) - 2):
+                p1, v, p2 = point_order[i:i + 3]
 
-            # Any other point forms supplementary angles with this line
-            for q in self.points:
-                if q not in [p1, v, p2]:
-                    # Create and normalize both angles
-                    angle1_name = self.normalize_angle_name(p1 + v + q)
-                    angle2_name = self.normalize_angle_name(q + v + p2)
+                # Add points if they don't exist
+                for p in [p1, v, p2]:
+                    if p not in self.points:
+                        self.add_point(p)
 
-                    # Add the angles to solver using normalized names
-                    angle1_var = self.add_angle(angle1_name[0], angle1_name[1], angle1_name[2])
-                    angle2_var = self.add_angle(angle2_name[0], angle2_name[1], angle2_name[2])
+                # Add straight angle constraint (180°) - use normalized angle
+                straight_angle = self.normalize_angle_name(p1 + v + p2)
+                angle_var = self.add_angle(straight_angle[0], straight_angle[1], straight_angle[2])
 
-                    # These angles must be supplementary
+                # Any other point forms supplementary angles with this line
+                for q in self.points:
+                    if q not in [p1, v, p2]:
+                        # Create and normalize both angles
+                        angle1_name = self.normalize_angle_name(p1 + v + q)
+                        angle2_name = self.normalize_angle_name(q + v + p2)
 
-                    # Each angle must be between 0° and 180°
-                    self.solver.add(angle1_var > 0)
-                    self.solver.add(angle1_var < 180)
-                    self.solver.add(angle2_var > 0)
-                    self.solver.add(angle2_var < 180)
+                        # Add the angles to solver using normalized names
+                        angle1_var = self.add_angle(angle1_name[0], angle1_name[1], angle1_name[2])
+                        angle2_var = self.add_angle(angle2_name[0], angle2_name[1], angle2_name[2])
 
-                    # Track the supplementary relationship
+                        # These angles must be supplementary
+                        # Each angle must be between 0° and 180°
+                        self.solver.add(angle1_var > 0)
+                        self.solver.add(angle1_var < 180)
+                        self.solver.add(angle2_var > 0)
+                        self.solver.add(angle2_var < 180)
 
-        # Given that 'points' is a list of collinear points in order (e.g. ['A', 'B', 'C'])
-        if len(points) >= 3:
-            # Process each endpoint of the collinear set
-            for endpoint in (points[0], points[-1]):
-                # Choose the neighbor that is adjacent to the endpoint:
-                # – For the first endpoint, choose points[1]
-                # – For the last endpoint, choose points[-2]
-                ref = points[1] if endpoint == points[0] else points[-2]
-                # For every other point in the collinear set (other than endpoint and its chosen neighbor)
-                for other in points:
-                    if other == endpoint or other == ref:
-                        continue
-                    # For every external point Q (i.e. a point not in the collinear set)
-                    for q in self.points:
-                        if q not in points:
-                            # Construct the two angles:
-                            # For the chosen (reference) angle at the endpoint, use the neighbor ref
-                            angle_ref = self.normalize_angle_name(f"{ref}{endpoint}{q}")
-                            # For the other candidate angle at the endpoint, use 'other'
-                            angle_other = self.normalize_angle_name(f"{other}{endpoint}{q}")
-                            # Add the equality constraint in the solver and record the relationship
-                            a_ref_var = self.add_angle(angle_ref[0], angle_ref[1], angle_ref[2])
-                            a_other_var = self.add_angle(angle_other[0], angle_other[1], angle_other[2])
-                            self.solver.add(a_ref_var == a_other_var)
-                            print(f"Derived from collinearity: {angle_ref} = {angle_other}")
+            # Process endpoints for this order
+            if len(point_order) >= 3:
+                # Process each endpoint of the collinear set
+                for endpoint in (point_order[0], point_order[-1]):
+                    # Choose the neighbor that is adjacent to the endpoint
+                    ref = point_order[1] if endpoint == point_order[0] else point_order[-2]
+
+                    # For every other point in the collinear set
+                    for other in point_order:
+                        if other == endpoint or other == ref:
+                            continue
+
+                        # For every external point Q
+                        for q in self.points:
+                            if q not in point_order:
+                                # Construct the angles
+                                angle_ref = self.normalize_angle_name(f"{ref}{endpoint}{q}")
+                                angle_other = self.normalize_angle_name(f"{other}{endpoint}{q}")
+
+                                # Add the equality constraint
+                                a_ref_var = self.add_angle(angle_ref[0], angle_ref[1], angle_ref[2])
+                                a_other_var = self.add_angle(angle_other[0], angle_other[1], angle_other[2])
+                                self.solver.add(a_ref_var == a_other_var)
+                                print(f"Derived from collinearity: {angle_ref} = {angle_other}")
 
     def parse_algebraic_expression(self, expr: str) -> Real:
         """Convert string expression to Z3 expression using any variables"""
@@ -487,11 +502,22 @@ class GeometricTheorem:
             if expr in self.variables:
                 return self.variables[expr]
 
-            # Try to convert to float first
+            # Try to convert to float first with math functions
             try:
-                return float(expr)
-            except ValueError:
+                import math
+                eval_env = {"sqrt": math.sqrt, "pi": math.pi}
+                return float(eval(expr, {"__builtins__": {}}, eval_env))
+            except Exception:
                 pass
+
+            # Check for sqrt pattern
+            sqrt_match = re.search(r'sqrt\((.+?)\)', expr)
+            if sqrt_match:
+                inner_expr = sqrt_match.group(1)
+                inner_value = self.parse_algebraic_expression(inner_expr)
+                # Use z3's power function for square root
+                from z3 import Pow
+                return Pow(inner_value, 0.5)
 
             # Handle arithmetic operations
             if '+' in expr:
@@ -506,7 +532,7 @@ class GeometricTheorem:
                 num, denom = expr.split('/')
                 return self.parse_algebraic_expression(num) / self.parse_algebraic_expression(denom)
             elif '*' in expr:
-                left, right = expr.split('*')
+                left, right = expr.split('*', 1)  # Changed to split on first '*'
                 return self.parse_algebraic_expression(left) * self.parse_algebraic_expression(right)
 
             # If we get here, check if any variables are in the expression
@@ -731,31 +757,32 @@ class GeometricTheorem:
             self.found_tier_1_or_2_error = True
             return False, error
 
-
-
-
-
-
-
-
-
         if theorem_name == "adjacent_complementary_angle":
             version = args[0]
             if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Missing angle arguments",
+                        details="adjacent_complementary_angle requires two angles"
+                    ))
+
                 # Check for collinear points in premise
                 if "Collinear" in premise:
                     collinear_match = re.search(r'Collinear\((\w+)\)', premise)
                     if collinear_match:
-                        points = collinear_match.group(1)
+                        points = collinear_match.group(1)  # e.g. "CDA"
                         # Normalize the points from premise
                         normalized_premise_points = self.normalize_collinear_points(points)
 
                         # Check if these normalized points exist in collinear_facts
                         collinear_found = False
                         for fact in self.collinear_facts:
-                            # Convert fact to normalized string for comparison
-                            normalized_fact = self.normalize_collinear_points(''.join(fact))
-                            if normalized_premise_points == normalized_fact:
+                            # Try both original and reversed order
+                            fact_forward = self.normalize_collinear_points(''.join(fact))
+                            fact_reversed = self.normalize_collinear_points(''.join(fact[::-1]))
+
+                            if normalized_premise_points in [fact_forward, fact_reversed]:
                                 collinear_found = True
                                 break
 
@@ -766,30 +793,32 @@ class GeometricTheorem:
                                 details=f"Known collinear facts: {self.collinear_facts}"
                             ))
 
-                        # Also verify the angles exist
-                        if len(args) < 3:
-                            return return_error(GeometricError(
-                                tier=ErrorTier.TIER1_THEOREM_CALL,
-                                message="Missing angle arguments",
-                                details="adjacent_complementary_angle requires two angles"
-                            ))
+                        # Verify the angles exist
+                        angle1, angle2 = args[1], args[2]  # e.g. "CDB", "BDA"
 
-                        # Verify angle points share a vertex and are on the collinear line
-                        angle1_points = self.normalize_angle_name(args[1])
-                        angle2_points = self.normalize_angle_name(args[2])
+                        # Check that both angles contain the shared point
+                        shared_point = None
+                        for p in angle1:
+                            if p in angle2:
+                                shared_point = p
+                                break
 
-                        # Get vertex of each normalized angle (middle point)
-                        vertex1 = angle1_points[1]
-                        vertex2 = angle2_points[1]
-
-                        # Check if vertices are the same and both are in the normalized collinear points
-                        if not (vertex1 == vertex2 and
-                                all(p in normalized_premise_points for p in [vertex1, vertex2])):
+                        if not shared_point:
                             return return_error(GeometricError(
                                 tier=ErrorTier.TIER2_PREMISE,
-                                message=f"Angles {args[1]} and {args[2]} must share a vertex on collinear line {points}",
-                                details=f"After normalization: angles {angle1_points} and {angle2_points} on line {normalized_premise_points}"
+                                message=f"Angles {angle1} and {angle2} must share a vertex",
+                                details="Required for adjacent complementary angles"
                             ))
+
+                        # Check that the shared point is in the collinear set
+                        if shared_point not in points:
+                            return return_error(GeometricError(
+                                tier=ErrorTier.TIER2_PREMISE,
+                                message=f"Shared point {shared_point} must be on the collinear line {points}",
+                                details="Vertex must be on the collinear line"
+                            ))
+
+                        return True, None
                     else:
                         return return_error(GeometricError(
                             tier=ErrorTier.TIER2_PREMISE,
@@ -801,180 +830,895 @@ class GeometricTheorem:
                         message="Missing collinear points in premise",
                         details="adjacent_complementary_angle theorem requires collinear points"
                     ))
-
             elif version == "2":
                 print("2")
+
+
+        elif theorem_name == "cosine_theorem":
+            version = args[0]
+            if version == "1":
+                if len(args) < 2:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Missing triangle argument for cosine_theorem",
+                        details="Expected cosine_theorem(1, triangle)"
+                    ))
+
+                triangle = args[1].strip()
+                normalized_triangle = self.normalize_triangle(triangle)
+
+                # Check if the triangle exists in the polygons stored in the class attributes
+                if normalized_triangle not in self.polygons:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message=f"Triangle {triangle} not defined in the geometric data",
+                        details=f"Known polygons: {self.polygons}"
+                    ))
+
+                return True, None
+
+        elif theorem_name == "line_addition":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Missing arguments for line_addition",
+                        details="Expected: line_addition(1, line1, line2)"
+                    ))
+
+                line1 = args[1].strip()  # e.g. "CD"
+                line2 = args[2].strip()  # e.g. "DA"
+
+                # Extract points from premise collinearity
+                collinear_match = re.search(r'Collinear\((\w+)\)', premise)
+                if not collinear_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing collinearity fact in premise",
+                        details="line_addition requires collinear points"
+                    ))
+
+                collinear_points = collinear_match.group(1)  # e.g. "CDA"
+                normalized_collinear = self.normalize_collinear_points(collinear_points)
+
+                # Check if collinearity fact exists
+                if not any(self.normalize_collinear_points(''.join(fact)) == normalized_collinear
+                           for fact in self.collinear_facts):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message=f"Points {collinear_points} not proven collinear",
+                        details=f"Known collinear facts: {self.collinear_facts}"
+                    ))
+
+                # Verify that the lines share points in the collinear sequence
+                if not (all(p in collinear_points for p in line1) and
+                        all(p in collinear_points for p in line2)):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Lines must be part of the collinear sequence",
+                        details=f"Lines {line1} and {line2} must be formed by points in {collinear_points}"
+                    ))
+
+                # Check if lines share an endpoint
+                common_point = set(line1).intersection(set(line2))
+                if not common_point:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Lines must share an endpoint",
+                        details=f"Lines {line1} and {line2} must have a common point"
+                    ))
+
+                return True, None
+
+
+
+
+        elif theorem_name == "perpendicular_bisector_judgment_distance_equal":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Missing arguments for perpendicular_bisector_judgment_distance_equal",
+                        details="Expected: perpendicular_bisector_judgment_distance_equal(1, bisector_line, bisected_line)"
+                    ))
+
+                bisector = args[1].strip()  # e.g. "BD"
+                bisected = args[2].strip()  # e.g. "CA"
+
+                # Parse the premise parts
+                premise_parts = premise.split('&')
+
+                # Check collinearity fact
+                collinear_part = next((p for p in premise_parts if p.startswith('Collinear(')), None)
+                if not collinear_part:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing collinearity fact in premise",
+                        details="Required for perpendicular bisector"
+                    ))
+
+                # Extract collinear points and check
+                collinear_match = re.search(r'Collinear\((\w+)\)', collinear_part)
+                if collinear_match:
+                    collinear_points = collinear_match.group(1)
+                    normalized_collinear = self.normalize_collinear_points(collinear_points)
+                    if not any(self.normalize_collinear_points(''.join(fact)) == normalized_collinear
+                               for fact in self.collinear_facts):
+                        return return_error(GeometricError(
+                            tier=ErrorTier.TIER2_PREMISE,
+                            message=f"Points {collinear_points} not proven collinear",
+                            details=f"Known collinear facts: {self.collinear_facts}"
+                        ))
+
+                # Check angle = 90° fact
+                angle_eq_part = next((p for p in premise_parts if p.startswith('Equal(MeasureOfAngle(')), None)
+                if not angle_eq_part:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing right angle fact in premise",
+                        details="Perpendicular bisector requires 90° angle"
+                    ))
+
+                # Check angle equality matches required right angle
+                angle_match = re.search(r'Equal\(MeasureOfAngle\((\w{3})\),90\)', angle_eq_part)
+                if not angle_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Angle value must be 90 degrees",
+                        details="Required for perpendicular bisector"
+                    ))
+
+                # Check length equality fact
+                length_eq_part = next((p for p in premise_parts if 'LengthOfLine' in p), None)
+                if not length_eq_part:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing length equality in premise",
+                        details="Required for perpendicular bisector"
+                    ))
+
+                # All premise checks passed, return success
+                return True, None
+
+        elif theorem_name == "altitude_of_quadrilateral_judgment_diagonal":
+
+            if len(args) < 2:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Missing arguments for altitude_of_quadrilateral_judgment_diagonal"
+
+                ))
+
+            quad = args[1].strip()  # e.g., "DACB"
+
+            # Parse premise to check for parallelogram or trapezoid
+
+            premise_parts = premise.split('&')
+
+            first_part = premise_parts[0].strip('()')  # Remove outer parentheses
+
+            shape_options = first_part.split('|')  # Split on OR operator
+
+            is_valid = False
+
+            for shape_fact in shape_options:
+
+                if shape_fact.startswith('Parallelogram('):
+
+                    para_match = re.match(r'Parallelogram\((\w+)\)', shape_fact)
+
+                    if para_match and para_match.group(1) == quad:
+
+                        if quad in self.parallelograms:
+                            is_valid = True
+
+                            break
+
+                elif shape_fact.startswith('Trapezoid('):
+
+                    trap_match = re.match(r'Trapezoid\((\w+)\)', shape_fact)
+
+                    if trap_match and trap_match.group(1) == quad:
+
+                        if hasattr(self, 'trapezoids') and quad in self.trapezoids:
+
+                            # If it's a trapezoid, also check for the right angle
+
+                            angle_match = re.search(r'Equal\(MeasureOfAngle\((\w{3})\),90\)', premise)
+
+                            if angle_match:
+
+                                angle_name = angle_match.group(1)
+
+                                angle_var = self.add_angle(angle_name[0], angle_name[1], angle_name[2])
+
+                                if self.solver.check() == sat:
+
+                                    # Check if the angle is constrained to 90 degrees
+
+                                    temp_solver = Solver()
+
+                                    for c in self.solver.assertions():
+                                        temp_solver.add(c)
+
+                                    temp_solver.add(angle_var != 90)
+
+                                    if temp_solver.check() == unsat:
+                                        is_valid = True
+
+                                        break
+
+            if not is_valid:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE,
+
+                    message=f"Shape {quad} is not proven to be a parallelogram or a trapezoid with right angle",
+
+                    details=f"Known parallelograms: {self.parallelograms}"
+
+                ))
+
+            return True, None
+
+
+        elif theorem_name == "altitude_of_quadrilateral_judgment_left_vertex":
+            if len(args) < 3:
+                return (False, GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Missing arguments for altitude_of_quadrilateral_judgment_left_vertex."
+                ))
+            quad = args[2].strip()
+            # Check that the quadrilateral is recorded as a parallelogram or trapezoid.
+            if not (quad in self.parallelograms or quad in self.trapezoids):
+                return (False, GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Quadrilateral {quad} is not defined as a parallelogram or trapezoid."
+                ))
+
+            return (True, None)
+
+
+
+
+
+
+
+        elif theorem_name == "parallelogram_property_opposite_line_equal":
+            if len(args) < 2:
+                return (False, GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Missing parallelogram name for parallelogram_property_opposite_line_equal."
+                ))
+            para = args[1].strip()
+            if para not in self.parallelograms:
+                return (False, GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Parallelogram {para} is not defined."
+                ))
+            return (True, None)
+
+        elif theorem_name == "parallelogram_area_formula_common":
+            if len(args) < 2:
+                return (False, GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Missing quadrilateral name for parallelogram_area_formula_common."
+                ))
+            quad = args[1].strip()
+            if quad not in self.parallelograms:
+                return (False, GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Quadrilateral {quad} is not defined as a parallelogram."
+                ))
+            return (True, None)
+
+
+        elif theorem_name == "isosceles_triangle_property_angle_equal":
+
+            # Expected theorem call: isosceles_triangle_property_angle_equal(1, T)
+
+            # where T is a triangle name (e.g., "JPN").
+
+            if len(args) < 2:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Missing triangle name for isosceles_triangle_property_angle_equal."
+
+                ))
+
+            tri = args[1].strip()  # e.g., "JPN"
+
+            # Generate all cyclic variations of the triangle T.
+
+            def cyclic_variations(s):
+
+                return {s[i:] + s[:i] for i in range(len(s))}
+
+            variations = cyclic_variations(tri)
+
+            # Check that at least one cyclic variation of T is recorded as isosceles.
+
+            if not (variations & self.isosceles_triangles):
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE,
+
+                    message=f"Triangle {tri} is not recorded as isosceles.",
+
+                    details="Ensure that isosceles_triangle_judgment_line_equal has been applied."
+
+                ))
+
+            return True, None
+
+
+
+
+
+
+
+
+
+        elif theorem_name == "isosceles_triangle_judgment_line_equal":
+            # Expected theorem call: isosceles_triangle_judgment_line_equal(1, T)
+            # where T is a triangle name (for example, "JPN").
+            if len(args) < 2:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Missing triangle name for isosceles_triangle_judgment_line_equal."
+                ))
+            tri = args[1].strip()  # e.g., "JPN"
+
+            # Check that the triangle is defined (i.e. a polygon fact exists)
+
+
+            # We now want to check that the premise contains an equality between two sides
+            # sharing a common vertex for some cyclic rotation of tri.
+            # For a triangle ABC, one possibility is Equal(LengthOfLine(AB),LengthOfLine(AC)).
+            def cyclic_rotations(s):
+                rotations = []
+                for i in range(len(s)):
+                    rotations.append(s[i:] + s[:i])
+                return rotations
+
+            rotations = cyclic_rotations(tri)
+            found_equality = False
+
+
+
+            # Then, in your branch:
+            for r in rotations:
+                if self.check_length_equality(r[0:2], r[0] + r[2]):
+                    found_equality = True
+                    break
+            if not found_equality:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message="Expected equality between two sides sharing a vertex not found in the premise.",
+                    details=f"Premise: {premise}"
+                ))
+            return True, None
+
+
+        elif theorem_name == "rectangle_property_diagonal_equal":
+
+            # Expected theorem call: rectangle_property_diagonal_equal(1, PNML)
+
+            # And the premise should include a clause like "Rectangle(PNML)".
+
+            if len(args) < 2:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Missing rectangle name for rectangle_property_diagonal_equal."
+
+                ))
+
+            rect_name = args[1].strip()  # e.g., "PNML"
+
+            # Check that a rectangle equivalent to rect_name (via cyclic variations) was declared.
+
+            if not (rect_name in self.rectangles):
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE,
+
+                    message=f"Rectangle {rect_name} is not defined.",
+
+                    details=f"Defined rectangles (cyclic variations): {self.rectangles}"
+
+                ))
+
+            # Since the rectangle fact is present, we assume that the diagonal lines will be
+
+            # handled in later steps. Do not check for the existence of the diagonal lines here.
+
+            return True, None
+
+
+        elif theorem_name == "parallelogram_property_diagonal_bisection":
+            # Expected theorem call: parallelogram_property_diagonal_bisection(1, PNML, J)
+            # The premise should include a parallelogram fact for PNML and
+            # collinear facts showing that the intersection point J lies on both diagonals.
+            if len(args) < 3:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Insufficient arguments for parallelogram_property_diagonal_bisection."
+                ))
+            para_name = args[1].strip()  # e.g., "PNML"
+            mid_candidate = args[2].strip()  # e.g., "J"
+
+            # --- Check that a parallelogram fact is recorded for the given parallelogram.
+            # (Assume that when parsing TEXT_CDL, all cyclic variations of any parallelogram are added to self.parallelograms.)
+            if not (get_cyclic_variations(para_name) & self.parallelograms):
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Parallelogram {para_name} is not defined.",
+                    details=f"Defined parallelograms: {self.parallelograms}"
+                ))
+
+            # --- Compute the expected collinear facts.
+            # For a quadrilateral (parallelogram) with vertices in order, the diagonals are:
+            #    diag1: from the 1st vertex to the 3rd, and diag2: from the 2nd vertex to the 4th.
+            if len(para_name) < 4:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message=f"Parallelogram name {para_name} is invalid (expected 4 letters)."
+                ))
+            diag1_expected = para_name[0] + mid_candidate + para_name[2]  # e.g., "PJM"
+            diag2_expected = para_name[1] + mid_candidate + para_name[3]  # e.g., "NJL"
+
+            norm_diag1 = self.normalize_collinear_points(diag1_expected)
+            norm_diag2 = self.normalize_collinear_points(diag2_expected)
+
+            found_diag1 = any(self.normalize_collinear_points("".join(fact)) == norm_diag1
+                              for fact in self.collinear_facts)
+            found_diag2 = any(self.normalize_collinear_points("".join(fact)) == norm_diag2
+                              for fact in self.collinear_facts)
+
+            if not found_diag1 or not found_diag2:
+                missing = []
+                if not found_diag1:
+                    missing.append(diag1_expected)
+                if not found_diag2:
+                    missing.append(diag2_expected)
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Expected collinear fact(s) {', '.join(missing)} not found.",
+                    details=f"Stored collinear facts: {[''.join(f) for f in self.collinear_facts]}"
+                ))
+
+            return True, None
+
+
+
+
+        elif theorem_name == "circle_property_circular_power_tangent_and_segment_line":
+            # Expected arguments: version, token1, token2, token3.
+            # For example: (1, "DC", "DBF", "E")
+            version = args[0].strip()  # e.g., "1"
+            token1 = args[1].strip()  # e.g., "DC"
+            token2 = args[2].strip()  # e.g., "DBF"  (assumed to be a three–letter string)
+            token3 = args[3].strip()  # e.g., "E"
+
+            # --- Check that the tangent fact has been recorded.
+            if (token1, token3) not in self.tangent_facts:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Tangent fact IsTangentOfCircle({token1},{token3}) not found in accumulated data.",
+                    details=f"Stored tangent facts: {self.tangent_facts}"
+                ))
+
+            # --- Check that a cocircular fact exists for the chord.
+            # For token2, we interpret the chord as token2[1:].
+            chord = token2[1:]
+            found_cocircular = False
+            for fact in self.cocircular_facts:
+                # Each cocircular fact is assumed to be stored as a tuple whose first element is the center.
+                # Compare the sorted list of chord letters with the sorted version of fact[1:].
+                if fact[0] == token3 and sorted(fact[1:]) == sorted(list(chord)):
+                    found_cocircular = True
+                    break
+            if not found_cocircular:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Expected cocircular fact with center {token3} and chord {chord} not found.",
+                    details=f"Stored cocircular facts: {self.cocircular_facts}"
+                ))
+
+            # --- Check that the secant is recorded as collinear.
+            # We expect a collinear fact corresponding to token2.
+            normalized_secant = self.normalize_collinear_points(token2)
+            found_collinear = False
+            for fact in self.collinear_facts:
+                if self.normalize_collinear_points("".join(fact)) == normalized_secant:
+                    found_collinear = True
+                    break
+            if not found_collinear:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Expected collinear fact Collinear({token2}) not found.",
+                    details=f"Stored collinear facts: {[''.join(f) for f in self.collinear_facts]}"
+                ))
+            return True, None
 
 
 
 
         elif theorem_name == "parallel_property_collinear_extend":
 
-            version = args[0]
+            # Validate that the expected collinear fact is present and that the parallel relation exists.
 
-            token1 = args[1]  # e.g., "BF"
+            version = args[0].strip()
 
-            token2 = args[2]  # e.g., "DH"
+            if version not in {"1", "3"}:
+                return return_error(GeometricError(
 
-            token3 = args[3]  # e.g., "E"
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
 
-            if version == "1":
+                    message=f"Unsupported version {version} for parallel_property_collinear_extend.",
 
-                # (Existing version 1 code, if any.)
+                    details=f"Version provided: {version}"
 
-                # For example, version 1 might use a different transformation.
+                ))
 
-                new_expected = token3 + token1  # for instance, "E" + "BF" = "EBF"
+            token1 = args[1].strip()  # e.g., "GA"
 
-                if not re.search(r'Collinear\(\s*' + re.escape(new_expected) + r'\s*\)', premise):
-                    return return_error(GeometricError(
+            token2 = args[2].strip()  # e.g., "HD"
 
-                        tier=ErrorTier.TIER2_PREMISE,
+            token3 = args[3].strip()  # e.g., "J"
 
-                        message=f"Premise must include Collinear({new_expected}) (version 1).",
+            # Determine the expected collinear fact from the tokens.
 
-                        details=f"Premise provided: {premise}"
+            if version == "3":
 
-                    ))
-
-            elif version == "3":
-
-                # For version 3, we expect the Collinear fact to be formed as:
-
-                #   token1[0] + token3 + token1[1]
-
-                # e.g. if token1 = "BF" and token3 = "E", then expected = "B" + "E" + "F" = "BEF".
+                # Expected: token1[0] + token3 + token1[1]
 
                 expected_collinear = token1[0] + token3 + token1[1]
 
-                if not re.search(r'Collinear\(\s*' + re.escape(expected_collinear) + r'\s*\)', premise):
-                    return return_error(GeometricError(
+            elif version == "1":
 
-                        tier=ErrorTier.TIER2_PREMISE,
+                # Expected: token3 + token1
 
-                        message=f"Premise must include Collinear({expected_collinear}) (version 3).",
+                expected_collinear = token3 + token1
 
-                        details=f"Premise provided: {premise}"
+            normalized_expected = self.normalize_collinear_points(expected_collinear)
 
-                    ))
+            found_collinear = False
 
-            # In both cases (version 1, 3, etc.) we also check that ParallelBetweenLine(token1, token2) appears.
+            for fact in self.collinear_facts:
 
-            if not re.search(
-                    r'ParallelBetweenLine\(\s*' + re.escape(token1) + r'\s*,\s*' + re.escape(token2) + r'\s*\)',
-                    premise):
+                # Assume each fact is stored as a list of points; join them and normalize.
+
+                normalized_fact = self.normalize_collinear_points("".join(fact))
+
+                if normalized_fact == normalized_expected:
+                    found_collinear = True
+
+                    break
+
+            if not found_collinear:
                 return return_error(GeometricError(
 
                     tier=ErrorTier.TIER2_PREMISE,
 
-                    message=f"Premise must include ParallelBetweenLine({token1},{token2}).",
+                    message=f"Expected collinear fact Collinear({expected_collinear}) not found.",
 
-                    details=f"Premise provided: {premise}"
+                    details=f"Stored collinear facts: {[''.join(f) for f in self.collinear_facts]}"
 
                 ))
+
+            # (Optional:) Also check that a parallel relation between token1 and token2 already exists.
+
+            found_parallel = False
+
+            possible_parallel = {
+
+                (token1, token2),
+
+                (token1[::-1], token2),
+
+                (token1, token2[::-1]),
+
+                (token1[::-1], token2[::-1])
+
+            }
+
+            for pair in self.parallel_pairs:
+
+                if pair in possible_parallel or pair[::-1] in possible_parallel:
+                    found_parallel = True
+
+                    break
+
+            if not found_parallel:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE,
+
+                    message=f"Expected parallel relation ParallelBetweenLine({token1},{token2}) not found.",
+
+                    details=f"Stored parallel pairs: {self.parallel_pairs}"
+
+                ))
+
+            # If all checks pass, return success.
 
             return True, None
 
 
 
+
+
+        elif theorem_name == "circle_property_circular_power_segment_and_segment_line":
+            # Expected arguments: version, token1, token2, token3.
+            # For example: (1, "AFB", "AGC", "E")
+            version = args[0].strip()  # (unused here but could be used if needed)
+            token1 = args[1].strip()  # e.g., "AFB"
+            token2 = args[2].strip()  # e.g., "AGC"
+            token3 = args[3].strip()  # e.g., "E"
+
+            # --- Check the cocircular facts.
+            # For token1, we expect a fact like: Cocircular(E,FB)
+            chord1 = token1[1:]  # for "AFB", chord1 = "FB"
+            found_cocircular1 = False
+            for fact in self.cocircular_facts:
+                # Each cocircular fact is stored as a tuple with the center first.
+                if fact[0] == token3 and sorted(fact[1:]) == sorted(list(chord1)):
+                    found_cocircular1 = True
+                    break
+            if not found_cocircular1:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Expected cocircular fact Cocircular({token3},{chord1}) not found.",
+                    details=f"Stored cocircular facts: {self.cocircular_facts}"
+                ))
+
+            # For token2, we expect a fact like: Cocircular(E,GC)
+            chord2 = token2[1:]  # for "AGC", chord2 = "GC"
+            found_cocircular2 = False
+            for fact in self.cocircular_facts:
+                if fact[0] == token3 and sorted(fact[1:]) == sorted(list(chord2)):
+                    found_cocircular2 = True
+                    break
+            if not found_cocircular2:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Expected cocircular fact Cocircular({token3},{chord2}) not found.",
+                    details=f"Stored cocircular facts: {self.cocircular_facts}"
+                ))
+
+            # --- Check the collinearity facts.
+            # Expect Collinear(token1) and Collinear(token2) to be present.
+            norm_token1 = self.normalize_collinear_points(token1)
+            norm_token2 = self.normalize_collinear_points(token2)
+            found_collinear1 = any(self.normalize_collinear_points("".join(fact)) == norm_token1
+                                   for fact in self.collinear_facts)
+            found_collinear2 = any(self.normalize_collinear_points("".join(fact)) == norm_token2
+                                   for fact in self.collinear_facts)
+            if not found_collinear1:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Expected collinear fact Collinear({token1}) not found.",
+                    details=f"Stored collinear facts: {[''.join(f) for f in self.collinear_facts]}"
+                ))
+            if not found_collinear2:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Expected collinear fact Collinear({token2}) not found.",
+                    details=f"Stored collinear facts: {[''.join(f) for f in self.collinear_facts]}"
+                ))
+            return True, None
+
+
+
+
+
+        elif theorem_name == "radius_of_circle_property_length_equal":
+            # Check that the premise includes a centre fact.
+            # Suppose args[2] holds the circle token, e.g. "O".
+            circle_token = args[2].strip()
+            if circle_token not in self.circle_centers:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Centre for circle {circle_token} not recorded.",
+                    details=f"Accumulated centres: {self.circle_centers}"
+                ))
+
+            # Optionally, you can also check that a Line fact for the given line is present.
+            if "Line(" not in premise:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message="Premise for radius_of_circle_property_length_equal must include a Line fact.",
+                    details=f"Premise provided: {premise}"
+                ))
+            return True, None
+
+        elif theorem_name == "circle_property_chord_perpendicular_bisect_chord":
+            # Extract the circle and points from premise
+            cocirc_match = re.search(r'Cocircular\((\w+),(\w+)\)', premise)
+            if not cocirc_match:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message="Missing Cocircular fact in premise"
+                ))
+
+            circle, points = cocirc_match.groups()
+            # Check against stored cocircular facts
+            found = False
+            for fact in self.cocircular_facts:
+                if fact[0] == circle and sorted(fact[1:]) == sorted(list(points)):
+                    found = True
+                    break
+
+            if not found:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER2_PREMISE,
+                    message=f"Cocircular fact not established",
+                    details=f"Known cocircular facts: {self.cocircular_facts}"
+                ))
+            return True, None
+
+
         elif theorem_name == "midsegment_of_triangle_judgment_parallel":
-            version = args[0]
-            if version == "1":
-                # (Your existing version 1 code would go here.)
-                return False, None
-            elif version == "2":
-                # Expected theorem call: midsegment_of_triangle_judgment_parallel(2,HD,CFB)
-                # Expected premise (for example):
-                #   Polygon(CFB)&Collinear(CHF)&Collinear(CDB)&Line(HD)&ParallelBetweenLine(HD,FB)&Equal(LengthOfLine(CD),LengthOfLine(BD))
-                # Check that the triangle is defined:
-                if "Polygon(CFB)" not in premise:
+            version = args[0].strip()
+            if version == "2":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Insufficient arguments for midsegment_of_triangle_judgment_parallel",
+                        details="Expected: midsegment_of_triangle_judgment_parallel(2, line, triangle)"
+                    ))
+
+                line = args[1].strip()  # e.g. "HD"
+                tri = args[2].strip()  # e.g. "CFB"
+
+                # Check triangle exists
+                if self.normalize_triangle(tri) not in self.polygons:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE,
-                        message="Premise must include Polygon(CFB).",
-                        details=f"Premise provided: {premise}"
+                        message=f"Triangle {tri} not defined",
+                        details=f"Known polygons: {self.polygons}"
                     ))
-                # Check that the additional collinearity facts appear:
-                if "Collinear(CHF)" not in premise:
+
+                # Extract collinear facts from premise
+                collinear_matches = re.findall(r'Collinear\((\w+)\)', premise)
+                if len(collinear_matches) < 2:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE,
-                        message="Premise must include Collinear(CHF).",
-                        details=f"Premise provided: {premise}"
+                        message="Missing required collinear points",
+                        details="Midsegment theorem requires two collinear facts"
                     ))
-                if "Collinear(CDB)" not in premise:
+
+                # Check each collinear fact against stored facts
+                for collinear_points in collinear_matches:
+                    normalized = self.normalize_collinear_points(collinear_points)
+                    if not any(self.normalize_collinear_points(''.join(fact)) == normalized
+                               for fact in self.collinear_facts):
+                        return return_error(GeometricError(
+                            tier=ErrorTier.TIER2_PREMISE,
+                            message=f"Points {collinear_points} not proven collinear",
+                            details=f"Known collinear facts: {self.collinear_facts}"
+                        ))
+
+                # Extract and check parallel fact
+                parallel_match = re.search(r'ParallelBetweenLine\((\w+),(\w+)\)', premise)
+                if not parallel_match:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE,
-                        message="Premise must include Collinear(CDB).",
-                        details=f"Premise provided: {premise}"
+                        message="Missing parallel line relation",
+                        details="Midsegment theorem requires parallel lines"
                     ))
-                # Check that the specified line is given:
-                if "Line(HD)" not in premise:
+
+                line1, line2 = parallel_match.groups()
+                possible_pairs = [
+                    (line1, line2),
+                    (line2, line1),
+                    (line1[::-1], line2),
+                    (line1, line2[::-1]),
+                    (line2[::-1], line1),
+                    (line2, line1[::-1])
+                ]
+
+                if not any(pair in self.parallel_pairs for pair in possible_pairs):
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE,
-                        message="Premise must include Line(HD).",
-                        details=f"Premise provided: {premise}"
+                        message=f"Lines {line1} and {line2} not proven parallel",
+                        details=f"Known parallel pairs: {self.parallel_pairs}"
                     ))
-                # Check that the given parallel fact is present:
-                if "ParallelBetweenLine(HD,FB)" not in premise:
+
+                # Extract and check length equality
+                length_match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', premise)
+                if not length_match:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE,
-                        message="Premise must include ParallelBetweenLine(HD,FB).",
-                        details=f"Premise provided: {premise}"
+                        message="Missing length equality",
+                        details="Midsegment theorem requires equal lengths"
                     ))
-                # Check that the lengths CD and BD are equal:
-                if not re.search(r'Equal\(LengthOfLine\(CD\),LengthOfLine\(BD\)\)', premise):
+
+                length1, length2 = length_match.groups()
+                if not self.check_length_equality(length1, length2):
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE,
-                        message="Premise must include Equal(LengthOfLine(CD),LengthOfLine(BD)).",
-                        details=f"Premise provided: {premise}"
+                        message=f"Lengths {length1} and {length2} not proven equal",
+                        details="Required for midsegment theorem"
                     ))
+
                 return True, None
 
 
 
+
+
         elif theorem_name == "arc_length_formula":
-            # The premise should contain a valid Arc(…) fact.
+
             arc_match = re.search(r'Arc\((\w+)\)', premise)
+
             if not arc_match:
                 return return_error(GeometricError(
+
                     tier=ErrorTier.TIER2_PREMISE,
-                    message="Premise for arc_length_formula must include an Arc(...) fact.",
-                    details=f"Premise provided: {premise}"
+
+                    message="Missing arc definition"
+
                 ))
+
+            arc_name = arc_match.group(1)
+
+            normalized_arc = self.normalize_arc(arc_name)
+
+            if f"arc_{normalized_arc}" not in self.arcs:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE,
+
+                    message=f"Arc {arc_name} not established",
+
+                    details=f"Known arcs: {list(self.arcs.keys())}"
+
+                ))
+
             return True, None
 
 
         elif theorem_name == "arc_property_circumference_angle_internal":
-            # The premise should include a Cocircular fact and an Angle fact.
-            cocirc_match = re.search(r'Cocircular\((\w),(\w+)\)', premise)
-            if not cocirc_match:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER2_PREMISE,
-                    message="Premise for arc_property_circumference_angle_internal must include a Cocircular fact.",
-                    details=f"Premise provided: {premise}"
-                ))
+            # Extract angle from premise
             angle_match = re.search(r'Angle\((\w{3})\)', premise)
             if not angle_match:
                 return return_error(GeometricError(
                     tier=ErrorTier.TIER2_PREMISE,
-                    message="Premise for arc_property_circumference_angle_internal must include an Angle fact.",
-                    details=f"Premise provided: {premise}"
+                    message="Missing angle in premise"
                 ))
+
             return True, None
 
 
         elif theorem_name == "parallel_property_ipsilateral_internal_angle":
             # The premise should include a ParallelBetweenLine clause and a Line clause.
-            if "ParallelBetweenLine" not in premise:
+            parallel_match = re.search(r'ParallelBetweenLine\((\w+),(\w+)\)', premise)
+            if not parallel_match:
                 return return_error(GeometricError(
                     tier=ErrorTier.TIER2_PREMISE,
-                    message="Premise for parallel_property_ipsilateral_internal_angle must include a ParallelBetweenLine fact.",
-                    details=f"Premise provided: {premise}"
+                    message="Missing parallel lines in premise"
                 ))
-            if "Line(" not in premise:
+
+            line1, line2 = parallel_match.groups()
+            # Check against stored parallel pairs
+            possible_pairs = (line1, line2)
+
+
+            if not possible_pairs in self.parallel_pairs :
                 return return_error(GeometricError(
                     tier=ErrorTier.TIER2_PREMISE,
-                    message="Premise for parallel_property_ipsilateral_internal_angle must include a Line fact (e.g. Line(AD)).",
-                    details=f"Premise provided: {premise}"
+                    message=f"Lines {line1} and {line2} not proven parallel",
+                    details=f"Known parallel pairs: {self.parallel_pairs}"
                 ))
             return True, None
 
@@ -2037,13 +2781,18 @@ class GeometricTheorem:
 
 
 
+
         elif theorem_name == "similar_triangle_property_line_ratio":
 
             version = args[0]
+
             if version == "1":
+
                 similar_match = re.search(r'SimilarBetweenTriangle\((\w+),(\w+)\)', premise)
 
                 if not similar_match:
+                    # Add return here
+
                     return return_error(GeometricError(
 
                         tier=ErrorTier.TIER2_PREMISE,
@@ -2057,6 +2806,8 @@ class GeometricTheorem:
                 tri1, tri2 = similar_match.groups()
 
                 if not self.are_triangles_similar(tri1, tri2):
+                    # Add return here
+
                     return return_error(GeometricError(
 
                         tier=ErrorTier.TIER2_PREMISE,
@@ -2066,7 +2817,13 @@ class GeometricTheorem:
                         details=f"Known similar triangles: {self.similar_triangles}"
 
                     ))
+
+                # If all checks pass, return success
+
+                return True, None
+
             elif version == "2":
+
                 print("2")
 
 
@@ -2131,6 +2888,7 @@ class GeometricTheorem:
                         details=f"Available parallelograms: {', '.join(self.parallelograms)}"
 
                     ))
+                return True, None
             elif version == "2":
                 print("2")
 
@@ -2341,26 +3099,36 @@ class GeometricTheorem:
                         message=f"Angles {angle1} and {angle2} must share a vertex",
                         details="Required for angle addition"
                     ))
+                return True, None
             elif version == "2":
                 print("2")
 
+
         elif theorem_name == "quadrilateral_property_angle_sum":
+
             if len(args) < 2:
                 return return_error(GeometricError(
+
                     tier=ErrorTier.TIER1_THEOREM_CALL,
-                    message="Invalid number of arguments",
-                    details="Expected quadrilateral name for angle sum theorem"
+
+                    message="Missing quadrilateral name"
+
                 ))
 
-            quad_name = args[1]
-            if f"Polygon({quad_name})" not in premise:
+            quad_name = args[1].strip()
+
+            if quad_name not in self.polygons:
                 return return_error(GeometricError(
+
                     tier=ErrorTier.TIER2_PREMISE,
-                    message=f"Quadrilateral {quad_name} is not defined in premise",
-                    details="Quadrilateral must be defined as a polygon"
+
+                    message=f"Quadrilateral {quad_name} not defined",
+
+                    details=f"Known polygons: {self.polygons}"
+
                 ))
 
-        return True, None
+            return True, None
 
     def parse_and_verify_proof(self, content: str) -> bool:
         try:
@@ -2390,6 +3158,17 @@ class GeometricTheorem:
 
             print("\nAvailable sections:", list(sections.keys()))
 
+
+
+            # just a scan
+            normal_collinear_set = set()
+            if 'CONSTRUCTION_CDL' in sections:
+                for line in sections['CONSTRUCTION_CDL']:
+                    if line.startswith('Collinear('):
+                        points = line[10:-1]  # Extract points from "Collinear(...)"
+                        normalized_points = self.normalize_collinear_points(points)
+                        # Here we use ''.join(...) as a simple string representation
+                        normal_collinear_set.add(''.join(normalized_points))
             # Process CONSTRUCTION_CDL_EXTENDED first
             if 'CONSTRUCTION_CDL_EXTENDED' in sections:
                 print("\nProcessing CONSTRUCTION_CDL_EXTENDED section...")
@@ -2411,6 +3190,28 @@ class GeometricTheorem:
                         # Skip SYMBOLS_AND_VALUES, EQUATIONS
                     if line.startswith('SYMBOLS_AND_VALUES:') or line.startswith('EQUATIONS:'):
                         continue
+
+
+                    if line.startswith('Parallelogram('):
+                        match = re.match(r'Parallelogram\((\w+)\)', line)
+                        if match:
+                            para_name = match.group(1)
+                            print(f"Found parallelogram in TEXT_CDL: {para_name}")
+                            self.parallelograms.update(get_cyclic_variations(para_name))
+                            print(f"Added parallelogram variations: {self.parallelograms}")
+
+                    if line.startswith('Collinear('):
+                        points = line[10:-1]  # Extract points from "Collinear(...)"
+                        normalized_points = self.normalize_collinear_points(points)
+                        normalized_str = ''.join(normalized_points)
+                        # If the same fact appears in the main CONSTRUCTION_CDL section, skip it.
+                        if normalized_str in normal_collinear_set:
+                            print(f"Skipping duplicate collinear fact from extended section: {normalized_points}")
+                            continue
+                        # Otherwise, add it:
+                        self.collinear_facts.append(list(normalized_points))
+                        self.add_collinear_fact(list(normalized_points))
+                        print(f"Added normalized collinear points (extended): {normalized_points}")
 
 
                     elif line.startswith('PerpendicularBetweenLine('):
@@ -2470,11 +3271,7 @@ class GeometricTheorem:
 
 
 
-                    elif line.startswith("Rectangle("):
-                        match = re.match(r"Rectangle\((\w+)\)", line)
-                        if match:
-                            shape_name = match.group(1)
-                            self.rectangles.add(shape_name)
+
 
                     elif line.startswith("Circle("):
                         # e.g. "Circle(D)" means we have a circle named D
@@ -2591,6 +3388,7 @@ class GeometricTheorem:
             # Inside parse_and_verify_proof, when processing TEXT_CDL section:
             # Inside parse_and_verify_proof, modify the TEXT_CDL section:
             if 'TEXT_CDL' in sections:
+                from fractions import Fraction
                 for line in sections['TEXT_CDL']:
                     if line.startswith('Equal(MeasureOfAngle('):
                         match = re.match(r'Equal\(MeasureOfAngle\((\w+)\),(.*?)\)', line)
@@ -2599,12 +3397,106 @@ class GeometricTheorem:
                             print(f"Found angle expression in TEXT_CDL: {angle_name} = {expression}")
                             self.add_algebraic_angle(angle_name, expression)
                     elif line.startswith('Equal(LengthOfLine('):
+                        # Try first to match length equality between two lines
+                        equality_match = re.match(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', line)
+                        if equality_match:
+                            line1, line2 = equality_match.groups()
+                            print(f"Found length equality in TEXT_CDL: {line1} = {line2}")
+                            # Get variables for both lines
+                            len1 = self.add_length(line1[0], line1[1])
+                            len2 = self.add_length(line2[0], line2[1])
+                            # Add equality constraint
+                            self.solver.add(len1 == len2)
+                            print(f"Added length equality constraint: {line1} = {line2}")
+                            continue
+
+                        # If not equality between lines, try the existing case for numeric/algebraic values
                         match = re.match(r'Equal\(LengthOfLine\((\w+)\),(.+)\)', line)
                         if match:
                             line_name, expression = match.groups()
                             expression = expression.strip()
                             print(f"Found length expression in TEXT_CDL: {line_name} = {expression}")
-                            self.add_algebraic_length(line_name, expression)
+                            # Get (or create) the length variable
+                            length_var = self.add_length(line_name[0], line_name[1])
+
+                            try:
+                                # Try parsing as numeric value first with math functions
+                                import math
+                                # Create a safe evaluation environment with only math functions
+                                eval_env = {"sqrt": math.sqrt, "pi": math.pi}
+                                value = float(eval(expression, {"__builtins__": {}}, eval_env))
+                                self.solver.add(length_var == value)
+                                print(f"Added numeric length constraint: {line_name} = {value}")
+                            except Exception as e:
+                                print(f"Could not evaluate as numeric: {expression}. Error: {e}")
+                                # Handle as algebraic expression
+                                variables = self.extract_variables(expression)
+                                for var in variables:
+                                    if var not in self.variables:
+                                        self.variables[var] = Real(var)
+                                        print(f"Created new variable for algebraic length: {var}")
+                                expr = self.parse_algebraic_expression(expression)
+                                self.solver.add(length_var == expr)
+                                print(f"Added algebraic length constraint: {line_name} = {expr}")
+
+
+                    elif line.startswith('ParallelBetweenLine('):
+
+                        match = re.search(r'ParallelBetweenLine\((\w+),\s*(\w+)\)', line)
+
+                        if match:
+
+                            line1, line2 = match.group(1), match.group(2)
+
+                            # Create the variants: original and reversed
+
+                            variants1 = [line1, line1[::-1]]
+
+                            variants2 = [line2, line2[::-1]]
+
+                            # Add every combination in both orders
+
+                            for v1 in variants1:
+
+                                for v2 in variants2:
+                                    self.parallel_pairs.add((v1, v2))
+
+                                    self.parallel_pairs.add((v2, v1))
+
+                            print(f"Added all combinations: {self.parallel_pairs}")
+
+
+
+                    elif line.startswith('Equal(DiameterOfCircle('):
+                        # This should match a line like: Equal(DiameterOfCircle(A),10)
+                        match = re.match(r'Equal\(DiameterOfCircle\((\w+)\),\s*(.+)\)', line)
+                        if match:
+                            circle_name, expression = match.groups()
+                            expression = expression.strip()
+                            print(
+                                f"Found diameter expression in TEXT_CDL: DiameterOfCircle({circle_name}) = {expression}")
+                            # Try to parse the expression as a number first
+                            try:
+                                value = float(expression)
+                                print(f"Adding numeric diameter for circle {circle_name}: {value}")
+                            except ValueError:
+                                # Otherwise, extract any variables and parse as an algebraic expression.
+                                variables = self.extract_variables(expression)
+                                for var in variables:
+                                    if var not in self.variables:
+                                        self.variables[var] = Real(var)
+                                        print(f"Created new variable for algebraic diameter: {var}")
+                                value = self.parse_algebraic_expression(expression)
+                                print(f"Adding algebraic diameter for circle {circle_name}: {value}")
+                            diam_name = f"diameter_{circle_name}"
+                            if diam_name not in self.circle_diameters:
+                                self.circle_diameters[diam_name] = Real(diam_name)
+                                self.solver.add(self.circle_diameters[diam_name] >= 0)
+                                print(f"Created diameter variable: {diam_name}")
+                            self.solver.add(self.circle_diameters[diam_name] == value)
+                            print(f"Added constraint: {diam_name} == {value}")
+
+
                     elif line.startswith('Equal(MeasureOfArc('):
                         match = re.match(r'Equal\(MeasureOfArc\((\w+)\),(.+)\)', line)
                         if match:
@@ -2676,6 +3568,17 @@ class GeometricTheorem:
                         if m:
                             point_name, circle_name = m.groups()
                             self.circle_centers[circle_name] = point_name
+                    elif line.startswith("Rectangle("):
+                        match = re.match(r"Rectangle\((\w+)\)", line)
+                        if match:
+                            shape_name = match.group(1)
+                            # Get all cyclic variations of the rectangle name.
+                            variations = get_cyclic_variations_rectangle(shape_name)
+                            # Add all these variations to your rectangle set.
+                            self.rectangles.update(variations)
+                            print(f"Added rectangle variations: {variations}")
+
+
                     elif line.startswith("IsDiameterOfCircle("):
                         m = re.match(r'IsDiameterOfCircle\((\w+),(\w+)\)', line)
                         if m:
@@ -2693,6 +3596,8 @@ class GeometricTheorem:
                         if match:
                             tri1, tri2 = match.groups()
                             self.add_similar_triangles(tri1, tri2)
+
+
 
             print("\nCollected facts:")
             print("Collinear points:", self.collinear_facts)
@@ -2756,7 +3661,8 @@ class GeometricTheorem:
                     arc_token = arc_length_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
                         try:
-                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": 3.141592653589793}))
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception:
                             expected = float(Fraction(sections['ANSWER'][0].strip()))
                         print(f"\nGoal arc length: {arc_token}")
@@ -2799,6 +3705,107 @@ class GeometricTheorem:
                                 print("Details:", error.details)
                             return False
 
+                # Add this to the section handling goals in parse_and_verify_proof
+                # --- Check for a cosine goal of the form:
+                #     Value(Cos(MeasureOfAngle(CBA)))
+                # Add this to the section handling goals in parse_and_verify_proof
+                # --- Check for a cosine goal of the form:
+                #     Value(Cos(MeasureOfAngle(CBA)))
+                cos_match = re.search(r'Value\(Cos\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
+                if cos_match:
+                    angle_token = cos_match.group(1)
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
+
+                        print(f"\nGoal cosine: Cos(MeasureOfAngle({angle_token}))")
+                        print(f"Expected value: {expected}")
+
+                        # Get the angle variable
+                        angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
+
+                        if self.solver.check() == sat:
+                            model = self.solver.model()
+                            angle_val_expr = model.eval(angle_var)
+                            angle_val_str = angle_val_expr.as_decimal(10)
+                            if angle_val_str.endswith('?'):
+                                angle_val_str = angle_val_str[:-1]
+
+                            try:
+                                angle_val = float(angle_val_str)
+                                import math
+                                calculated_value = math.cos(math.radians(angle_val))
+                                print(f"Calculated cos({angle_token}) from angle {angle_val}° = {calculated_value}")
+
+                                epsilon = 1e-8
+                                if abs(calculated_value - expected) < epsilon:
+                                    print("Success: Cosine matches the expected value.")
+                                    return True
+                                else:
+                                    print(f"Error: Calculated cosine {calculated_value} != expected {expected}")
+                                    error = GeometricError(
+                                        tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
+                                        message="Failed to prove cosine goal from the given theorems.",
+                                        details=f"Goal was: Cos(MeasureOfAngle({angle_token})) = {expected}, calculated: {calculated_value}"
+                                    )
+                                    print(f"\nError in {error.tier.name}: {error.message}")
+                                    if error.details:
+                                        print("Details:", error.details)
+                                    return False
+                            except Exception as e:
+                                print(f"Error calculating cosine from angle: {e}")
+
+                                # If we can't get the angle directly, try to solve for the cosine using the Law of Cosines
+                                try:
+                                    # Find the triangle containing this angle
+                                    triangle = None
+                                    for poly in self.polygons:
+                                        if len(poly) == 3 and angle_token[1] in poly:
+                                            triangle = poly
+                                            break
+
+                                    if triangle:
+                                        # Get indices for the vertices
+                                        vertex_idx = triangle.index(angle_token[1])
+                                        prev_idx = (vertex_idx - 1) % 3
+                                        next_idx = (vertex_idx + 1) % 3
+
+                                        # Get the sides
+                                        side1 = self.add_length(triangle[prev_idx], triangle[vertex_idx])
+                                        side2 = self.add_length(triangle[vertex_idx], triangle[next_idx])
+                                        side3 = self.add_length(triangle[prev_idx], triangle[next_idx])
+
+                                        # Get values from model
+                                        side1_val = float(model.eval(side1).as_decimal(10).rstrip('?'))
+                                        side2_val = float(model.eval(side2).as_decimal(10).rstrip('?'))
+                                        side3_val = float(model.eval(side3).as_decimal(10).rstrip('?'))
+
+                                        # Apply Law of Cosines
+                                        cos_val = (side1_val ** 2 + side2_val ** 2 - side3_val ** 2) / (
+                                                    2 * side1_val * side2_val)
+                                        print(
+                                            f"Calculated cos({angle_token}) from sides using Law of Cosines = {cos_val}")
+
+                                        if abs(cos_val - expected) < epsilon:
+                                            print("Success: Cosine matches the expected value.")
+                                            return True
+                                        else:
+                                            print(f"Error: Calculated cosine {cos_val} != expected {expected}")
+                                            return False
+                                    else:
+                                        print(f"Could not find a triangle containing angle {angle_token}")
+                                        return False
+                                except Exception as e2:
+                                    print(f"Error applying Law of Cosines: {e2}")
+                                    return False
+                        else:
+                            print("Solver constraints unsat when verifying cosine goal.")
+                            return False
+
                 # --- Check for an arc measure goal of the form:
                 #     Value(MeasureOfArc(X))
                 arc_match = re.search(r'Value\(MeasureOfArc\((\w+)\)\)', goal_line)
@@ -2806,7 +3813,8 @@ class GeometricTheorem:
                     arc_token = arc_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
                         try:
-                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": 3.141592653589793}))
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception:
                             expected = float(Fraction(sections['ANSWER'][0].strip()))
                         print(f"\nGoal arc measure: {arc_token}")
@@ -2822,16 +3830,73 @@ class GeometricTheorem:
                             print(f"\nError in {error.tier.name}: {error.message}")
                             return False
 
+                quad_area_match = re.search(r'Value\(AreaOfQuadrilateral\((\w+)\)\)', goal_line)
+                if quad_area_match:
+                    quad_name = quad_area_match.group(1)
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
+                        print(f"\nGoal quadrilateral area: {quad_name}")
+                        print(f"Expected area: {expected}")
+                        if quad_name in self.quad_areas:
+                            quad_area_var = self.quad_areas[quad_name]
+                        else:
+                            quad_area_var = Real(f"areaQuadr_{quad_name}")
+                            self.quad_areas[quad_name] = quad_area_var
+                        if self.solver.check() == sat:
+                            model = self.solver.model()
+                            calc_expr = model.eval(quad_area_var)
+                            val_str = calc_expr.as_decimal(10)
+                            if val_str.endswith('?'):
+                                val_str = val_str[:-1]
+                            calculated_value = float(val_str)
+                            print(f"Calculated area for {quad_name} is {calculated_value}")
+                            epsilon = 1e-8
+                            if abs(calculated_value - expected) < epsilon:
+                                print("Success: The quadrilateral area matches the expected value.")
+                                return True
+                            else:
+                                print(f"Error: Calculated area {calculated_value} != expected {expected}")
+                                error = GeometricError(
+                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
+                                    message="Failed to prove quadrilateral area goal from the given theorems.",
+                                    details=f"Goal was: AreaOfQuadrilateral({quad_name}) = {expected}"
+                                )
+                                print(f"\nError in {error.tier.name}: {error.message}")
+                                if error.details:
+                                    print("Details:", error.details)
+                                return False
+                        else:
+                            print("Solver constraints unsat when verifying quadrilateral area goal.")
+                            error = GeometricError(
+                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
+                                message="Failed to prove quadrilateral area goal: solver is unsatisfiable.",
+                                details=f"Goal: AreaOfQuadrilateral({quad_name}) = {expected}"
+                            )
+                            print(f"\nError in {error.tier.name}: {error.message}")
+                            if error.details:
+                                print("Details:", error.details)
+                            return False
+
+
+
+
+
                 # --- Check for a division-of-lengths goal of the form:
                 #     Value(Div(LengthOfLine(AF),LengthOfLine(AC)))
                 length_div_match = re.search(r'Value\(Div\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)', goal_line)
                 if length_div_match:
-                    line1 = length_div_match.group(1)  # e.g., "AF"
-                    line2 = length_div_match.group(2)  # e.g., "AC"
+                    line1 = length_div_match.group(1)
+                    line2 = length_div_match.group(2)
                     if 'ANSWER' in sections and sections['ANSWER']:
                         answer_str = sections['ANSWER'][0].strip()
                         try:
-                            expected_value = float(eval(answer_str, {"pi": 3.141592653589793}))
+                            import math
+                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception:
                             expected_value = float(Fraction(answer_str))
                         print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
@@ -2873,7 +3938,8 @@ class GeometricTheorem:
                 if perimeter_match:
                     triangle = perimeter_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = float(eval(sections['ANSWER'][0].strip(), {"pi": 3.141592653589793}))
+                        import math
+                        expected_answer = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
                         print(f"\nGoal triangle perimeter: {triangle}")
                         print(f"Expected answer: {expected_answer}")
                         if triangle in self.triangle_perimeters:
@@ -2924,10 +3990,13 @@ class GeometricTheorem:
                     line_name = length_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
                         answer_str = sections['ANSWER'][0].strip()
+                        import math
+                        eval_env = {"sqrt": math.sqrt, "pi": math.pi}
                         try:
-                            expected_answer = float(answer_str)
-                        except ValueError:
-                            expected_answer = float(Fraction(answer_str))
+                            expected_answer = float(eval(answer_str, {"__builtins__": {}}, eval_env))
+                        except Exception as e:
+                            print("Error evaluating answer expression:", e)
+                            return False
                         print(f"\nGoal line: {line_name}")
                         print(f"Expected answer: {expected_answer}")
                         verified = self.verify_goal_length(line_name[0], line_name[1], expected_answer)
@@ -2979,11 +4048,12 @@ class GeometricTheorem:
                     goal_expr = general_match.group(1).strip()
                     if self.solver.check() == sat:
                         model = self.solver.model()
-                        answer_str = sections['ANSWER'][0].strip() if 'ANSWER' in sections and sections[
-                            'ANSWER'] else None
+                        answer_str = sections['ANSWER'][0].strip() if (
+                                    'ANSWER' in sections and sections['ANSWER']) else None
                         if answer_str is None:
                             print("No answer provided in ANSWER section.")
                             return False
+                        # Special handling if goal_expr is of the form Sub(...)
                         if goal_expr.startswith("Sub(") and goal_expr.endswith(")"):
                             inner = goal_expr[4:-1]
                             parts = inner.split(',')
@@ -3010,7 +4080,8 @@ class GeometricTheorem:
                                             return False
                                         computed_value = area_circle_val - area_triangle_val
                                         try:
-                                            expected_value = eval(answer_str, {"pi": 3.141592653589793})
+                                            import math
+                                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                                         except Exception as e:
                                             expected_value = float(Fraction(answer_str))
                                         epsilon = 1e-8
@@ -3029,7 +4100,17 @@ class GeometricTheorem:
                                             if error.details:
                                                 print("Details:", error.details)
                                             return False
+                        # Build a mapping for eval that includes free variables from TEXT_CDL.
                         mapping = {}
+                        for var, z3var in self.variables.items():
+                            try:
+                                val = model.eval(z3var, model_completion=True)
+                                val_str = str(val).replace('?', '')
+                                mapping[var] = float(Fraction(val_str))
+                            except Exception as e:
+                                print(f"Error converting free variable {var}: {e}")
+                                return False
+                        # Also add circle areas and triangle areas if needed.
                         for circle, var in self.circle_areas.items():
                             value = model.eval(var)
                             value_str = str(value).replace('?', '')
@@ -3046,14 +4127,17 @@ class GeometricTheorem:
                             except Exception as e:
                                 print("Error converting triangle area for", tri, ":", e)
                                 return False
-                        mapping["pi"] = 3.141592653589793
+                        # Add additional symbols needed for evaluation.
+                        import math
+                        mapping["pi"] = math.pi
+                        mapping["sqrt"] = math.sqrt
                         try:
                             computed_value = eval(goal_expr, mapping)
                         except Exception as e:
                             print("Error evaluating general goal expression:", e)
                             return False
                         try:
-                            expected_value = eval(answer_str, {"pi": 3.141592653589793})
+                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception as e:
                             expected_value = float(Fraction(answer_str))
                         epsilon = 1e-8
@@ -3152,35 +4236,54 @@ class GeometricTheorem:
         self.added_ratio_constraints.add(norm_tris)
 
     def add_algebraic_length(self, line_name: str, expression: str):
-        """Add a length constraint that can be numeric or an algebraic expression."""
+        """
+        Add a length constraint given an algebraic expression.
+        For instance, for a TEXT_CDL line like
+          Equal(LengthOfLine(JM),5)
+        or
+          Equal(LengthOfLine(LJ),y)
+        this function will create a Z3 variable for the segment (using add_length)
+        and then add the equality constraint. It also handles algebraic expressions.
+        """
         print(f"\nAdding algebraic length constraint: {line_name} = {expression}")
-        # First, try to parse the expression as a float.
+
+        # First try to parse the expression as a numeric value.
         try:
             value = float(expression)
-            print(f"Adding numeric value for line {line_name}: {value}")
-            # Create (or get) the length variable.
-            lvar = self.add_length(line_name[0], line_name[1])
-            # Add the numeric constraint.
-            self.solver.add(lvar == value)
-            # Optionally, you could also store the numeric value (as you do with angles).
+            print(f"Adding numeric value for {line_name}: {value}")
+            # Use add_length to get the variable (which normalizes the name)
+            length_var = self.add_length(line_name[0], line_name[1])
+            self.solver.add(length_var == value)
+            print(f"Stored numeric value: {line_name} = {value}")
             return
         except ValueError:
-            # Not a pure number, so we treat it as an algebraic expression.
+            # Not a pure number, so proceed as an algebraic expression.
             pass
 
-        # Extract variables from the expression (if any)
+        # Extract free variable names from the expression.
         variables = self.extract_variables(expression)
         for var in variables:
             if var not in self.variables:
                 self.variables[var] = Real(var)
                 print(f"Created new variable for algebraic length: {var}")
 
-        # Get (or create) the length variable.
-        lvar = self.add_length(line_name[0], line_name[1])
-        # Parse the expression using your algebraic parser.
+        # Get (or create) the length variable using your normalization.
+        length_var = self.add_length(line_name[0], line_name[1])
+        # Parse the expression into a Z3 expression.
         expr = self.parse_algebraic_expression(expression)
-        # Add the constraint that the length variable equals the parsed expression.
-        self.solver.add(lvar == expr)
+        self.solver.add(length_var == expr)
+        print(f"Added constraint: {line_name} == {expr}")
+
+    def check_length_equality(self, line1: str, line2: str) -> bool:
+        # Get (or create) the Z3 variables for each segment.
+        var1 = self.add_length(line1[0], line1[1])
+        var2 = self.add_length(line2[0], line2[1])
+        temp_solver = Solver()
+        for c in self.solver.assertions():
+            temp_solver.add(c)
+        # If adding the inequality makes the system unsat, then they are equal.
+        temp_solver.add(var1 != var2)
+        return temp_solver.check() == unsat
 
     def adding_conclution(self, theorem_name: str, args: List[str], premise: str, conclusions: List[str]) -> \
             Optional[GeometricError]:
@@ -3220,7 +4323,21 @@ class GeometricTheorem:
             "arc_property_circumference_angle_internal",
             "parallel_property_ipsilateral_internal_angle",
             "parallel_property_collinear_extend",
-            "midsegment_of_triangle_judgment_parallel"
+            "midsegment_of_triangle_judgment_parallel",
+            "circle_property_chord_perpendicular_bisect_chord",
+            "radius_of_circle_property_length_equal",
+            "circle_property_circular_power_tangent_and_segment_line",
+            "circle_property_circular_power_segment_and_segment_line",
+            "rectangle_property_diagonal_equal",
+            "parallelogram_property_diagonal_bisection",
+            "isosceles_triangle_judgment_line_equal",
+            "isosceles_triangle_property_angle_equal",
+            "altitude_of_quadrilateral_judgment_left_vertex",
+            "parallelogram_property_opposite_line_equal",
+            "parallelogram_area_formula_common",
+            "altitude_of_quadrilateral_judgment_diagonal",
+            "perpendicular_bisector_judgment_distance_equal",
+            "cosine_theorem"
         ]
 
         if theorem_name not in valid_theorems:
@@ -3229,6 +4346,13 @@ class GeometricTheorem:
                 message=f"Unknown theorem: {theorem_name}",
                 details=f"Valid theorems are: {valid_theorems}"
             )
+
+
+
+
+
+
+
 
         if theorem_name == "parallelogram_property_opposite_angle_equal":
             version = args[0]
@@ -3246,6 +4370,420 @@ class GeometricTheorem:
 
             elif version == "2":
                 print("2")
+
+
+
+
+        elif theorem_name == "cosine_theorem":
+
+            version = args[0]
+
+            if version == "1":
+
+                # Parse the conclusion to extract sides and angle
+
+                # Expected conclusion format: Equal(Add(Pow(LengthOfLine(AC),2),Mul(2,LengthOfLine(BA),LengthOfLine(BC),Cos(MeasureOfAngle(CBA)))),Add(Pow(LengthOfLine(BA),2),Pow(LengthOfLine(BC),2)))
+
+                match = re.search(
+
+                    r'Equal\(Add\(Pow\(LengthOfLine\((\w+)\),2\),Mul\(2,LengthOfLine\((\w+)\),LengthOfLine\((\w+)\),Cos\(MeasureOfAngle\((\w+)\)\)\)\),Add\(Pow\(LengthOfLine\(\2\),2\),Pow\(LengthOfLine\(\3\),2\)\)\)',
+
+                    conclusions[0]
+
+                )
+
+                if not match:
+                    return GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Invalid conclusion format for cosine_theorem",
+
+                        details=f"Expected cosine theorem format not found in: {conclusions[0]}"
+
+                    )
+
+                side1, side2, side3, angle_str = match.groups()
+
+                # Get (or create) variables for the sides and angle
+
+                side1_var = self.add_length(side1[0], side1[1])
+
+                side2_var = self.add_length(side2[0], side2[1])
+
+                side3_var = self.add_length(side3[0], side3[1])
+
+                angle_var = self.add_angle(angle_str[0], angle_str[1], angle_str[2])
+
+                # Try to compute the actual angle and its cosine
+
+                if self.solver.check() == sat:
+
+                    model = self.solver.model()
+
+                    try:
+
+                        # Get the sides from the model
+
+                        side1_val = float(model.eval(side1_var).as_decimal(10).rstrip('?'))
+
+                        side2_val = float(model.eval(side2_var).as_decimal(10).rstrip('?'))
+
+                        side3_val = float(model.eval(side3_var).as_decimal(10).rstrip('?'))
+
+                        # Apply the law of cosines to get the cosine value directly
+
+                        # cos(A) = (b² + c² - a²) / (2bc)
+
+                        cos_val = (side2_val ** 2 + side3_val ** 2 - side1_val ** 2) / (2 * side2_val * side3_val)
+
+                        # Calculate the angle in degrees from cosine
+
+                        import math
+
+                        angle_in_degrees = math.degrees(math.acos(cos_val))
+
+                        # Set the angle variable to this value
+
+                        self.solver.add(angle_var == angle_in_degrees)
+
+                        print(f"Applied cosine theorem: angle {angle_str} = {angle_in_degrees}° (cos = {cos_val})")
+
+
+                    except Exception as e:
+
+                        print(f"Could not calculate angle using cosine theorem: {e}")
+
+                        # Fall back to using the law of cosines with variables
+
+                        self.solver.add(
+
+                            2 * side2_var * side3_var * self.parse_algebraic_expression(
+                                f"cos({angle_var} * pi / 180)") ==
+
+                            side2_var * side2_var + side3_var * side3_var - side1_var * side1_var
+
+                        )
+
+                        print(
+                            f"Applied cosine theorem algebraically for triangle with sides {side1}, {side2}, {side3} and angle {angle_str}")
+
+                else:
+
+                    print("Solver is UNSAT. Cannot apply cosine theorem with numeric values.")
+
+                    # Fall back to using the law of cosines with variables
+
+                    self.solver.add(
+
+                        side1_var * side1_var ==
+
+                        side2_var * side2_var + side3_var * side3_var -
+
+                        2 * side2_var * side3_var * self.parse_algebraic_expression(f"cos({angle_var} * pi / 180)")
+
+                    )
+
+                    print(
+                        f"Applied cosine theorem algebraically for triangle with sides {side1}, {side2}, {side3} and angle {angle_str}")
+
+        elif theorem_name == "altitude_of_quadrilateral_judgment_diagonal":
+
+            # Expected conclusion: ["IsAltitudeOfQuadrilateral(DC,DACB)"]
+
+            altitude_match = re.search(r'IsAltitudeOfQuadrilateral\((\w+),(\w+)\)', conclusions[0])
+
+            if not altitude_match:
+                return GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Invalid conclusion format for altitude_of_quadrilateral_judgment_diagonal",
+
+                    details="Expected format: IsAltitudeOfQuadrilateral(line,quad)"
+
+                )
+
+            print("Parsing altitude fact...")
+
+            print(f"Full conclusion: {conclusions[0]}")
+
+            line = altitude_match.group(1)  # First capture group (DC)
+
+            quad = altitude_match.group(2)  # Second capture group (DACB)
+
+            print(f"Extracted line: {line}, quad: {quad}")
+
+            # Store the altitude information
+
+            if quad not in self.altitudes:
+                self.altitudes[quad] = []
+
+            self.altitudes[quad].append(line)
+
+            # Create a height variable for this quad and link it to the altitude length
+
+            if quad not in self.quad_heights:
+                height_var = Real(f"heightQuadr_{quad}")
+
+                self.quad_heights[quad] = height_var
+
+                self.solver.add(height_var >= 0)
+
+                # The height equals the length of the altitude line
+
+                altitude_length = self.add_length(line[0], line[1])
+
+                self.solver.add(height_var == altitude_length)
+
+            print(f"Added altitude fact: {line} is an altitude of {quad} and stored corresponding height")
+
+            return None
+
+
+
+        elif theorem_name == "perpendicular_bisector_judgment_distance_equal":
+
+            match = re.search(r'IsPerpendicularBisectorOfLine\((\w+),(\w+)\)', conclusions[0])
+
+            if not match:
+                return GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Invalid conclusion format for perpendicular_bisector_judgment_distance_equal"
+
+                )
+
+            bisector, bisected = match.groups()  # e.g. "BD", "CA"
+
+            # Find point D from the collinear fact ADC
+
+            bisector_point = None  # This will be point D
+
+            for fact in self.collinear_facts:
+
+                fact_str = ''.join(fact)
+
+                for point in bisector:
+
+                    if point in fact_str and all(p in fact_str for p in bisected):
+                        bisector_point = point
+
+                        break
+
+                if bisector_point:
+                    break
+
+            if not bisector_point:
+                return GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Could not find bisector point on the bisected line",
+
+                    details=f"Need collinear fact containing point from {bisector} and points {bisected}"
+
+                )
+
+            # Get the two parts of the bisected line
+
+            parts = [p for p in bisected]
+
+            # Add equal distance constraints for the two parts
+
+            # If bisected is CA and bisector_point is D, this adds CD = DA
+
+            dist1 = self.add_length(bisector_point, parts[0])
+
+            dist2 = self.add_length(bisector_point, parts[1])
+
+            self.solver.add(dist1 == dist2)
+
+            # Add right angle constraints
+
+            # If bisector is BD, get the B point
+
+            other_point = next(p for p in bisector if p != bisector_point)
+
+            # Get collinear points for D (intersecting point)
+
+            collinear_points = None
+
+            for fact in self.collinear_facts:
+
+                if bisector_point in fact:
+                    collinear_points = fact
+
+                    break
+
+            if collinear_points:
+
+                # Add right angle for both points on the collinear line
+
+                for p in collinear_points:
+
+                    if p != bisector_point:  # For each endpoint (C and A)
+
+                        angle = self.add_angle(other_point, bisector_point, p)  # BDC and BDA
+
+                        self.solver.add(angle == 90)
+
+                        print(f"Added 90° angle constraint for ∠{other_point}{bisector_point}{p}")
+
+            print(
+                f"Added perpendicular bisector constraints: {bisector_point} divides {bisected} equally with right angles")
+
+            return None
+
+
+
+
+
+        elif theorem_name == "altitude_of_quadrilateral_judgment_left_vertex":
+            # Expected conclusion: "IsAltitudeOfQuadrilateral(AE,ACDB)"
+            altitude_fact = f"IsAltitudeOfQuadrilateral({args[1].strip()},{args[2].strip()})"
+            self.altitudes.add(altitude_fact)
+            print(f"Recorded altitude fact: {altitude_fact}")
+            return None
+
+        elif theorem_name == "parallelogram_property_opposite_line_equal":
+            # Expected conclusion: "Equal(LengthOfLine(DC),LengthOfLine(BA))"
+            match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', conclusions[0])
+            if match:
+                line1, line2 = match.groups()
+                var1 = self.add_length(line1[0], line1[1])
+                var2 = self.add_length(line2[0], line2[1])
+                self.solver.add(var1 == var2)
+                print(f"Added constraint: LengthOfLine({line1}) == LengthOfLine({line2})")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Conclusion format error for parallelogram_property_opposite_line_equal."
+                )
+
+
+        elif theorem_name == "parallelogram_area_formula_common":
+
+            # Expected conclusion: "Equal(AreaOfQuadrilateral(ACDB),Mul(HeightOfQuadrilateral(ACDB),LengthOfLine(CD)))"
+
+            match = re.search(
+
+                r'Equal\(AreaOfQuadrilateral\((\w+)\),Mul\(HeightOfQuadrilateral\(\1\),LengthOfLine\((\w+)\)\)\)',
+
+                conclusions[0])
+
+            if match:
+
+                quad, base_line = match.groups()
+
+                # Check that we have a height for this quad
+
+                if quad not in self.quad_heights:
+                    return GeometricError(
+
+                        tier=ErrorTier.TIER2_PREMISE,
+
+                        message=f"No height established for quadrilateral {quad}",
+
+                        details="Height must be established through an altitude theorem first"
+
+                    )
+
+                # Get or create area variable
+
+                if quad not in self.quad_areas:
+                    self.quad_areas[quad] = Real(f"areaQuadr_{quad}")
+
+                    self.solver.add(self.quad_areas[quad] >= 0)
+
+                area_var = self.quad_areas[quad]
+
+                # Get the height variable we previously stored
+
+                height_var = self.quad_heights[quad]
+
+                # Get the base length
+
+                base_var = self.add_length(base_line[0], base_line[1])
+
+                # Add the area formula constraint
+
+                self.solver.add(area_var == height_var * base_var)
+
+                print(
+                    f"Added parallelogram area constraint: AreaOfQuadrilateral({quad}) == HeightOfQuadrilateral({quad}) * LengthOfLine({base_line})")
+
+                return None
+
+            else:
+
+                return GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Conclusion format error for parallelogram_area_formula_common."
+
+                )
+
+
+
+
+        elif theorem_name == "isosceles_triangle_judgment_line_equal":
+            # Expected theorem call: isosceles_triangle_judgment_line_equal(1, T)
+            # where T is the triangle name (e.g., "JPN").
+            tri = args[1].strip()
+
+            # To record that the triangle is isosceles, add T and all its cyclic rotations
+            # to an attribute (e.g. self.isosceles_triangles).
+            def cyclic_rotations(s):
+                rotations = set()
+                for i in range(len(s)):
+                    rotations.add(s[i:] + s[:i])
+                return rotations
+
+            rotations = cyclic_rotations(tri)
+            if not hasattr(self, "isosceles_triangles"):
+                self.isosceles_triangles = set()
+            self.isosceles_triangles.update(rotations)
+            print(f"Recorded isosceles triangle: {tri} and its rotations {rotations}")
+            return None
+
+
+
+        elif theorem_name == "isosceles_triangle_property_angle_equal":
+            # Expected theorem call: isosceles_triangle_property_angle_equal(1, T)
+            # where T is a triangle name, e.g., "JPN".
+            tri = args[1].strip()
+            if len(tri) != 3:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Triangle name must have exactly 3 letters."
+                )
+            # For a general triangle T = XYZ, one common convention is to assume the apex is at the first vertex.
+            # Then the base angles are at the second and third vertices.
+            # We add the constraint: Equal(MeasureOfAngle(XYZ), MeasureOfAngle(YZX))
+            # That is, using T's characters: angle1 = add_angle(tri[0], tri[1], tri[2])
+            # and angle2 = add_angle(tri[1], tri[2], tri[0])
+            angle1 = self.add_angle(tri[0], tri[1], tri[2])
+            angle2 = self.add_angle(tri[1], tri[2], tri[0])
+            self.solver.add(angle1 == angle2)
+            print(f"Added isosceles triangle property: MeasureOfAngle({tri}) == MeasureOfAngle({tri[1:] + tri[0]})")
+
+            # Record the isosceles triangle fact in a general way.
+            # Add all cyclic variations of tri into self.isosceles_triangles.
+            def cyclic_variations(s):
+                return {s[i:] + s[:i] for i in range(len(s))}
+
+            variations = cyclic_variations(tri)
+            if not hasattr(self, "isosceles_triangles"):
+                self.isosceles_triangles = set()
+            self.isosceles_triangles.update(variations)
+            print(f"Recorded isosceles triangle: {tri} and rotations: {variations}")
+            return None
+
+
 
         elif theorem_name == "arc_length_formula":
             # Expected conclusion, for example:
@@ -3290,66 +4828,173 @@ class GeometricTheorem:
                     details=f"Expected pattern not found in: {conclusions[0]}"
                 )
 
+        elif theorem_name == "circle_property_circular_power_segment_and_segment_line":
+            # Expected arguments: version, token1, token2, token3.
+            # For example: (1, "AFB", "AGC", "E")
+            token1 = args[1].strip()  # e.g., "AFB"
+            token2 = args[2].strip()  # e.g., "AGC"
+            # token3 (the center "E") is used in the premise but not directly in the conclusion.
+            # Interpret token1 = "AFB" as: A, F, B.
+            # Then we add the constraint:
+            #   (LengthOfLine(AF) * LengthOfLine(AB)) = (LengthOfLine(AG) * LengthOfLine(AC))
+            af_var = self.add_length(token1[0], token1[1])  # AF
+            ab_var = self.add_length(token1[0], token1[2])  # AB
+            # Similarly, for token2 = "AGC" as: A, G, C.
+            ag_var = self.add_length(token2[0], token2[1])  # AG
+            ac_var = self.add_length(token2[0], token2[2])  # AC
+            self.solver.add(af_var * ab_var == ag_var * ac_var)
+            print(
+                f"Added power-of-a-circle constraint: (LengthOfLine({token1[0]}{token1[1]}) * LengthOfLine({token1[0]}{token1[2]})) = (LengthOfLine({token2[0]}{token2[1]}) * LengthOfLine({token2[0]}{token2[2]}))")
+            return None
+
+
+        elif theorem_name == "circle_property_circular_power_tangent_and_segment_line":
+            # Expected arguments: version, token1, token2, token3
+            # For example: (1, "DC", "DBF", "E")
+            token1 = args[1].strip()  # e.g., "DC"
+            token2 = args[2].strip()  # e.g., "DBF"
+            # We'll assume token2 has exactly three characters (e.g., "DBF")
+            # so that:
+            #   external segment = LengthOfLine(DB)  [from token2[0] and token2[1]]
+            #   entire secant   = LengthOfLine(DF)  [from token2[0] and token2[2]]
+            tangent_var = self.add_length(token1[0], token1[1])  # LengthOfLine(DC)
+            external_var = self.add_length(token2[0], token2[1])  # LengthOfLine(DB)
+            secant_var = self.add_length(token2[0], token2[2])  # LengthOfLine(DF)
+            self.solver.add(tangent_var * tangent_var == external_var * secant_var)
+            print(
+                f"Added tangent–secant constraint: (LengthOfLine({token1}))² = LengthOfLine({token2[0:2]}) * LengthOfLine({token2[0]}{token2[2]})")
+            return None
+
+
+
+        elif theorem_name == "rectangle_property_diagonal_equal":
+            # Expected argument: the rectangle name (e.g., "PNML")
+            if len(args) < 2:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Missing rectangle name for rectangle_property_diagonal_equal."
+                )
+            rect = args[1].strip()  # e.g., "PNML"
+            if len(rect) < 4:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message=f"Rectangle name {rect} is invalid (expected at least 4 letters)."
+                )
+            # For a rectangle with vertices in cyclic order, the diagonals are:
+            #   diag1: from the first vertex to the third, and
+            #   diag2: from the second vertex to the fourth.
+            diag1 = rect[0] + rect[2]  # e.g., if rect="PNML", diag1 = "PM"
+            diag2 = rect[1] + rect[3]  # e.g., diag2 = "NL"
+            # Retrieve or create the corresponding length variables.
+            var1 = self.add_length(diag1[0], diag1[1])
+            var2 = self.add_length(diag2[0], diag2[1])
+            # Add the equality constraint.
+            self.solver.add(var1 == var2)
+            print(f"Added rectangle diagonal equality: LengthOfLine({diag1}) == LengthOfLine({diag2})")
+            return None
+
+
+
+
+        elif theorem_name == "parallelogram_property_diagonal_bisection":
+            # Expected theorem call: parallelogram_property_diagonal_bisection(1, PNML, J)
+            # The intended conclusion is to record that J is the midpoint of the diagonal joining
+            # the 1st and 3rd vertices of PNML.
+            # In other words, if the diagonal is from P to M (where para_name="PNML"),
+            # then we add the constraint: LengthOfLine(PJ) == LengthOfLine(JM).
+            if len(args) < 3:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Insufficient arguments for parallelogram_property_diagonal_bisection."
+                )
+            para_name = args[1].strip()  # e.g., "PNML"
+            mid_candidate = args[2].strip()  # e.g., "J"
+
+            # Compute the first diagonal from the parallelogram: vertices 1 and 3.
+            diag = para_name[0] + para_name[2]  # e.g., for "PNML", diag = "PM"
+            # To state that mid_candidate J is the midpoint of the diagonal, we require:
+            #   LengthOfLine(PJ) = LengthOfLine(JM)
+            first_half = self.add_length(para_name[0], mid_candidate)
+            second_half = self.add_length(mid_candidate, para_name[2])
+            self.solver.add(first_half == second_half)
+            print(
+                f"Added diagonal bisection: {mid_candidate} is the midpoint of {diag} (LengthOfLine({para_name[0]}{mid_candidate}) == LengthOfLine({mid_candidate}{para_name[2]}))")
+            return None
+
+
+
+
 
 
         elif theorem_name == "parallel_property_collinear_extend":
 
-            version = args[0]
+            version = args[0].strip()
 
-            token1 = args[1]  # e.g., "BF"
+            token1 = args[1].strip()  # e.g., "GA"
 
-            token2 = args[2]  # e.g., "DH"
+            token2 = args[2].strip()  # e.g., "HD"
 
-            token3 = args[3]  # e.g., "E"
+            token3 = args[3].strip()  # e.g., "J"
 
-            if version == "1":
+            # Helper function to add all variations for a given line pair.
 
-                # Existing version 1 behavior (for example):
+            def add_parallel_variations(line_tuple):
 
-                new_line1 = token3 + token1[0]  # e.g., "E" + "B" = "EB"
+                a, b = line_tuple
 
-                new_line2 = token3 + token1[1]  # e.g., "E" + "F" = "EF"
+                variations = {
 
-                self.parallel_pairs.add((new_line1, token2))
+                    (a, b),
 
-                self.parallel_pairs.add((new_line2, token2))
+                    (b, a),
 
-                print(
-                    f"[Version 1] Added parallel extension: ParallelBetweenLine({new_line1},{token2}) and ParallelBetweenLine({new_line2},{token2})")
+                    (a[::-1], b),
 
-            elif version == "3":
+                    (a, b[::-1]),
 
-                # For version 3, we want to form the new lines by taking:
+                    (a[::-1], b[::-1]),
 
-                # new_line1 = token1[0] + token3   and new_line2 = token3 + token1[1].
+                    (b[::-1], a[::-1]),
 
-                # For token1="BF" and token3="E", that yields "B"+"E" = "BE" and "E"+"F" = "EF"
+                    (b, a[::-1]),
 
-                new_line1 = token1[0] + token3
+                    (b[::-1], a)
 
-                new_line2 = token3 + token1[1]
+                }
 
-                self.parallel_pairs.add((new_line1, token2))
+                for var in variations:
+                    self.parallel_pairs.add(var)
 
-                self.parallel_pairs.add((new_line2, token2))
+            # For the conclusion, form the new parallel lines.
 
-                print(
-                    f"[Version 3] Added parallel extension: ParallelBetweenLine({new_line1},{token2}) and ParallelBetweenLine({new_line2},{token2})")
+            if version == "3":
 
-            else:
+                # For version 3, form new_line1 as token1[0] + token3 and new_line2 as token3 + token1[1]
 
-                # (Optional: handle version 2 or fallback)
+                new_line1 = token1[0] + token3  # e.g., for token1="GA" and token3="J": "GJ"
 
-                new_line1 = token3 + token1[0]
+                new_line2 = token3 + token1[1]  # e.g., "JA"
 
-                new_line2 = token3 + token1[1]
+            elif version == "1":
 
-                self.parallel_pairs.add((new_line1, token2))
+                # For version 1, form new_line1 as token3 + token1[0] and new_line2 as token3 + token1[1]
 
-                self.parallel_pairs.add((new_line2, token2))
+                new_line1 = token3 + token1[0]  # e.g., "JG"
 
-                print(
-                    f"[Default] Added parallel extension: ParallelBetweenLine({new_line1},{token2}) and ParallelBetweenLine({new_line2},{token2})")
+                new_line2 = token3 + token1[1]  # e.g., "JA"
+
+            # Add parallel variations with token2.
+
+            add_parallel_variations((new_line1, token2))
+
+            add_parallel_variations((new_line2, token2))
+
+            print(
+                f"[Version {version}] Added parallel extension with new lines: {new_line1} and {new_line2} parallel to {token2}")
+
+            return None
+
+
 
 
 
@@ -3447,6 +5092,148 @@ class GeometricTheorem:
                     message="Conclusion format error for arc_property_circumference_angle_internal",
                     details=f"Expected pattern not found in: {conclusions[0]}"
                 )
+
+
+
+
+
+
+
+        elif theorem_name == "circle_property_chord_perpendicular_bisect_chord":
+
+            # Expecting arguments: [version, circle_token, bisector_line, chord_token]
+
+            if len(args) < 4:
+                return GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Missing arguments for circle_property_chord_perpendicular_bisect_chord",
+
+                    details="Expected format: circle_property_chord_perpendicular_bisect_chord(1, <circle>, <bisector_line>, <chord>)"
+
+                )
+
+            circle_token = args[1].strip()  # e.g., "O"
+
+            bisector_line = args[2].strip()  # e.g., "OP"
+
+            chord_token = args[3].strip()  # e.g., "BC"
+
+            # Record the fact for later use.
+
+            if not hasattr(self, "bisector_facts"):
+                self.bisector_facts = set()
+
+            self.bisector_facts.add((bisector_line, chord_token))
+
+            print(f"Recorded fact: {bisector_line} is the perpendicular bisector of {chord_token}")
+
+            # Look for a collinearity fact that shows both endpoints of the chord are collinear with a third point.
+
+            # For example, if chord_token is "BC" and a collinearity fact "Collinear(BPC)" exists,
+
+            # then the extra point "P" is our candidate midpoint.
+
+            midpoint = None
+
+            for fact in self.collinear_facts:
+
+                # fact is a list of points (e.g., ['B','P','C'])
+
+                if set(chord_token).issubset(set(fact)):
+
+                    extras = [pt for pt in fact if pt not in chord_token]
+
+                    if extras:
+                        midpoint = extras[0]
+
+                        break
+
+            if midpoint is not None:
+
+                print(f"Found candidate midpoint for chord {chord_token}: {midpoint}")
+
+                # Check that the bisector line passes through this midpoint.
+
+                if midpoint in bisector_line:
+
+                    # Identify the other endpoint of the bisector line.
+
+                    other_bisector = None
+
+                    for pt in bisector_line:
+
+                        if pt != midpoint:
+                            other_bisector = pt
+
+                            break
+
+                    if other_bisector is not None:
+
+                        # Add perpendicular constraints on both "sides" of the chord.
+
+                        angle1 = self.add_angle(chord_token[0], midpoint, other_bisector)
+
+                        angle2 = self.add_angle(other_bisector, midpoint, chord_token[1])
+
+                        self.solver.add(angle1 == 90, angle2 == 90)
+
+                        print(
+                            f"Added perpendicular constraints: angle({chord_token[0]}{midpoint}{other_bisector}) and angle({other_bisector}{midpoint}{chord_token[1]}) are both 90°")
+
+                        # **New step:** Also add the bisection constraint: the chord is divided equally.
+
+                        len_first = self.add_length(chord_token[0], midpoint)
+
+                        len_second = self.add_length(midpoint, chord_token[1])
+
+                        self.solver.add(len_first == len_second)
+
+                        print(
+                            f"Added chord bisection constraint: LengthOfLine({chord_token[0]}{midpoint}) == LengthOfLine({midpoint}{chord_token[1]})")
+
+                    else:
+
+                        print(f"Could not determine the other endpoint of bisector {bisector_line}.")
+
+                else:
+
+                    print(
+                        f"Midpoint {midpoint} is not on the bisector line {bisector_line}; cannot add perpendicular constraint.")
+
+            else:
+
+                print(
+                    f"No collinear fact found that identifies a midpoint for chord {chord_token}; cannot add perpendicular constraint.")
+
+
+
+
+
+
+        elif theorem_name == "radius_of_circle_property_length_equal":
+            # Expecting arguments: [version, line_token, circle_token] e.g., ("1", "OA", "O")
+            if len(args) < 3:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message="Missing arguments for radius_of_circle_property_length_equal",
+                    details="Expected format: radius_of_circle_property_length_equal(1, <line>, <circle>)"
+                )
+            line_token = args[1].strip()  # e.g., "OA"
+            circle_token = args[2].strip()  # e.g., "O"
+            # Ensure that a radius variable exists for the circle.
+            if circle_token not in self.circle_radii:
+                radius_var = Real(f"radius_{circle_token}")
+                self.circle_radii[circle_token] = radius_var
+                self.solver.add(radius_var >= 0)
+            else:
+                radius_var = self.circle_radii[circle_token]
+            # Get (or create) the length variable for the given line.
+            length_var = self.add_length(line_token[0], line_token[1])
+            # Add the constraint that the line’s length equals the circle’s radius.
+            self.solver.add(length_var == radius_var)
+            print(f"Added radius property: LengthOfLine({line_token}) = RadiusOfCircle({circle_token})")
 
 
         elif theorem_name == "parallel_property_ipsilateral_internal_angle":
@@ -3733,9 +5520,9 @@ class GeometricTheorem:
 
                     model = self.solver.model()
 
-                    a1_val_str = model.eval(angle1_var, model_completion=True).as_decimal(10)
+                    a1_val_str = model.eval(angle1_var).as_decimal(10)
 
-                    a2_val_str = model.eval(angle2_var, model_completion=True).as_decimal(10)
+                    a2_val_str = model.eval(angle2_var).as_decimal(10)
 
                     if a1_val_str.endswith('?'):
                         a1_val_str = a1_val_str[:-1]
@@ -4319,7 +6106,6 @@ class GeometricTheorem:
 
                     #  however, our flag in added_ratio_constraints should prevent duplicates.)
 
-                    self.add_all_side_ratios_for_similar_triangles(tri1, tri2)  # todo should i?
 
                     print(f"Added ratio constraints for all corresponding sides of {tri1} and {tri2}.")
             elif version == "2":
@@ -4395,37 +6181,47 @@ class GeometricTheorem:
 
 
 
+
         elif theorem_name == "line_addition":
 
-            version = args[0]
-            if version == "1":
-                match = re.search(
+            # Match conclusion pattern: Equal(LengthOfLine(CA),Add(LengthOfLine(CD),LengthOfLine(DA)))
 
-                    r'Equal\(LengthOfLine\((\w+)\),Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)',
+            match = re.search(
 
-                    conclusions[0]
+                r'Equal\(LengthOfLine\((\w+)\),Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)',
+
+                conclusions[0]
+
+            )
+
+            if not match:
+                return GeometricError(
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                    message="Invalid conclusion format for line_addition",
+
+                    details="Expected: Equal(LengthOfLine(total),Add(LengthOfLine(part1),LengthOfLine(part2)))"
 
                 )
 
-                if match:
-                    total, part1, part2 = match.group(1), match.group(2), match.group(3)
+            total_line, part1, part2 = match.groups()
 
-                    # Get (or create) the Z3 variables for each segment.
+            # Create or get length variables for all segments
 
-                    total_var = self.add_length(total[0], total[1])
+            total_var = self.add_length(total_line[0], total_line[1])
 
-                    part1_var = self.add_length(part1[0], part1[1])
+            part1_var = self.add_length(part1[0], part1[1])
 
-                    part2_var = self.add_length(part2[0], part2[1])
+            part2_var = self.add_length(part2[0], part2[1])
 
-                    # Add the addition constraint and basic nonnegative constraints.
+            # Add the length addition constraint
 
-                    self.solver.add(total_var == part1_var + part2_var,
+            self.solver.add(total_var == part1_var + part2_var)
 
-                                    part1_var > 0, part2_var > 0, total_var > 0)
+            print(f"Added line addition constraint: {total_line} = {part1} + {part2}")
 
-            elif version == "2":
-                print("2")
+            return None
 
 
 
@@ -4628,6 +6424,17 @@ class GeometricTheorem:
             elif version == "2":
                 print("2")
 
+def get_cyclic_variations_rectangle(para_name: str) -> Set[str]:
+    """Return all cyclic variations of a polygon name.
+    For instance, "PNML" returns {"PNML", "NMLP", "MLPN", "LPNM"}.
+    """
+    variations = set()
+    n = len(para_name)
+    for i in range(n):
+        variation = para_name[i:] + para_name[:i]
+        variations.add(variation)
+    return variations
+
 
 def get_cyclic_variations(para_name: str) -> Set[str]:
     """Get all cyclic variations of a parallelogram name
@@ -4655,8 +6462,9 @@ def verify_geometric_proof(filename: str) -> bool:
         print(f"Error: {str(e)}")
         return False
 
-
+#/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_3412/question3412_gt")
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_696/question696_oren_correct")
     print(f"Verification {'succeeded' if result else 'failed'}")
+##

@@ -1,6 +1,6 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, AD=1, DB=2, DE∥BC. Find the ratio of the length of line DE to the length of line BC.
+As shown in the diagram, AD=1, DB=2, DE=2, DE is parallel to BC. Find the length of line BC.
 CONSTRUCTION_CDL:
 Shape(AD,DE,EA)
 Shape(DB,BC,CE,ED)
@@ -9,9 +9,10 @@ Collinear(AEC)
 TEXT_CDL:
 Equal(LengthOfLine(AD),1)
 Equal(LengthOfLine(DB),2)
+Equal(LengthOfLine(DE),2)
 ParallelBetweenLine(DE,BC)
 GOAL_CDL:
-Value(Div(LengthOfLine(DE),LengthOfLine(BC)))
+Value(LengthOfLine(BC))
 CONSTRUCTION_CDL_EXTENDED:
 Shape(DE,EA,AD)
 Shape(EA,AD,DE)
@@ -91,25 +92,27 @@ Polygon(BCA)
 Polygon(CAB)
 Polygon(CBA)
 ParallelBetweenLine(CB,ED)
+ParallelBetweenLine(ED,CB)
 SYMBOLS_AND_VALUES:
-LengthOfLine(AD);ll_ad;1
-LengthOfLine(DA);ll_ad;1
-LengthOfLine(DB);ll_db;2
-LengthOfLine(BD);ll_db;2
-LengthOfLine(DE);ll_de;None
-LengthOfLine(ED);ll_de;None
-LengthOfLine(BC);ll_bc;None
-LengthOfLine(CB);ll_bc;None
+LengthOfLine(QP);ll_qp;24
+LengthOfLine(PQ);ll_qp;24
+LengthOfLine(RT);ll_rt;16
+LengthOfLine(TR);ll_rt;16
+LengthOfLine(ST);ll_st;9
+LengthOfLine(TS);ll_st;9
+LengthOfLine(PS);ll_ps;None
+LengthOfLine(SP);ll_ps;None
 
 
 
 EQUATIONS:
-ll_ad=1
-ll_db=2
+ll_ad-1
+ll_db-2
+ll_de-2
 GOAL_SYMBOL:
-ll_de/ll_bc
+ll_bc
 ANSWER:
-1/3
+6
 THEOREM_SEQUENCE:
 1;line_addition(1,AD,DB);Collinear(ADB);["Equal(LengthOfLine(AB),Add(LengthOfLine(AD),LengthOfLine(DB)))"]
 2;parallel_property_corresponding_angle(1,DE,BC,A);ParallelBetweenLine(DE,BC)&Collinear(ADB);["Equal(MeasureOfAngle(ADE),MeasureOfAngle(DBC))"]

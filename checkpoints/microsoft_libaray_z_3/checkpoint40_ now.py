@@ -4960,6 +4960,6 @@ def verify_geometric_proof(filename: str) -> bool:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_6850/question6850_gt")
+        "/questions/the new format for questions after jan_17/new_45_questions/question_6850/question6850_gt")
     print(f"Verification {'succeeded' if result else 'failed'}")
 ##a

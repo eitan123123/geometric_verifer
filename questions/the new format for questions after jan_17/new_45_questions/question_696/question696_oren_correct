@@ -134,20 +134,36 @@ Cocircular(E,FC)
 Cocircular(E,GF)
 Cocircular(E,FG)
 Cocircular(E,BCG)
+Cocircular(E,GCB)
 Cocircular(E,CGB)
+Cocircular(E,BGC)
 Cocircular(E,GBC)
+Cocircular(E,CBG)
 Cocircular(E,BCF)
+Cocircular(E,FCB)
 Cocircular(E,CFB)
+Cocircular(E,BFC)
 Cocircular(E,FBC)
+Cocircular(E,CBF)
 Cocircular(E,BGF)
+Cocircular(E,FGB)
 Cocircular(E,GFB)
+Cocircular(E,BFG)
 Cocircular(E,FBG)
+Cocircular(E,GBF)
 Cocircular(E,CGF)
+Cocircular(E,FGC)
 Cocircular(E,GFC)
+Cocircular(E,CFG)
 Cocircular(E,FCG)
+Cocircular(E,GCF)
+Cocircular(E,FGCB)
 Cocircular(E,CGFB)
+Cocircular(E,BFGC)
 Cocircular(E,GFBC)
+Cocircular(E,CBFG)
 Cocircular(E,FBCG)
+Cocircular(E,GCBF)
 Point(D)
 Point(A)
 Point(B)
@@ -236,22 +252,27 @@ MeasureOfAngle(BDE);ma_bdc;None
 MeasureOfAngle(ADC);ma_bdc;None
 MeasureOfAngle(ADE);ma_bdc;None
 
+Outputs:
+Outputs for Problem B:
 
 
 EQUATIONS:
-ll_af=2*x
+ll_af-2*x
 ll_ag-y
 ll_bd-x
-ll_bf=24
-ll_cg=12
-ll_dc=9
+ll_bf-24
+ll_cg-12
+ll_dc-9
+
 GOAL_SYMBOL:
 y
+
 ANSWER:
--6+6*sqrt(6)
+6(√6-1)
+
 THEOREM_SEQUENCE:
-1;line_addition(1,DB,BF);Collinear(DBF);["Equal(LengthOfLine(DF),Add(LengthOfLine(DB),LengthOfLine(BF)))"]
-2;circle_property_circular_power_tangent_and_segment_line(1,DC,DBF,E);IsTangentOfCircle(DC,E)&Cocircular(E,BF)&Collinear(DBF);["Equal(Mul(LengthOfLine(DC),LengthOfLine(DC)),Mul(LengthOfLine(DB),LengthOfLine(DF)))"]
-3;line_addition(1,AF,FB);Collinear(AFB);["Equal(LengthOfLine(AB),Add(LengthOfLine(AF),LengthOfLine(FB)))"]
-4;line_addition(1,AG,GC);Collinear(AGC);["Equal(LengthOfLine(AC),Add(LengthOfLine(AG),LengthOfLine(GC)))"]
-5;circle_property_circular_power_segment_and_segment_line(1,AFB,AGC,E);Cocircular(E,FB)&Cocircular(E,GC)&Collinear(AFB)&Collinear(AGC);["Equal(Mul(LengthOfLine(AF),LengthOfLine(AB)),Mul(LengthOfLine(AG),LengthOfLine(AC)))"]
+1; line_addition(1,DB,BF); Collinear(DBF); ["Equal(LengthOfLine(DF),Add(LengthOfLine(DB),LengthOfLine(BF)))"]
+2; circle_property_circular_power_tangent_and_segment_line(1,DC,DBF,E); IsTangentOfCircle(DC,E)&Cocircular(E,BF)&Collinear(DBF); ["Equal(Mul(LengthOfLine(DC),LengthOfLine(DC)),Mul(LengthOfLine(DB),LengthOfLine(DF)))"]
+3; line_addition(1,BF,FA); Collinear(BFA); ["Equal(LengthOfLine(BA),Add(LengthOfLine(BF),LengthOfLine(FA)))"]
+4; line_addition(1,AG,GC); Collinear(AGC); ["Equal(LengthOfLine(AC),Add(LengthOfLine(AG),LengthOfLine(GC)))"]
+5; circle_property_circular_power_chord_and_chord(1,AFB,ACG,E); Cocircular(E,BF)&Cocircular(E,CG)&Collinear(AFB)&Collinear(ACG); ["Equal(Mul(LengthOfLine(AF),LengthOfLine(AB)),Mul(LengthOfLine(AC),LengthOfLine(AG)))"]

@@ -107,7 +107,7 @@ ma_jlk-90
 ma_kml-90
 GOAL_SYMBOL:
 y
-GT_ANSWER:
+ANSWER:
 5*sqrt(5)
 THEOREM_SEQUENCE:
 1;line_addition(1,KM,MJ);Collinear(KMJ);["Equal(LengthOfLine(KJ),Add(LengthOfLine(KM),LengthOfLine(MJ)))"]

@@ -42,14 +42,20 @@ LengthOfLine(CB);ll_bc;24
 MeasureOfAngle(ACB);ma_acb;47
 MeasureOfAngle(BAC);ma_bac;30
 
+Outputs:
+Outputs for Problem B:
 
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abc-40
 ma_bca-x
 ma_cab-25
-GT_GOAL_SYMBOL:
+
+GOAL_SYMBOL:
 x
+
 ANSWER:
 115
+
 THEOREM_SEQUENCE:
-1;triangle_property_angle_sum(1,ABC);Polygon(ABC);["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCA),MeasureOfAngle(CAB)),180)"]
+1; triangle_property_angle_sum(1,ABC); Polygon(ABC); ["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCA),MeasureOfAngle(CAB)),180)"]

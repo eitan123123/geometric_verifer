@@ -54,13 +54,15 @@ MeasureOfAngle(PQR);ma_pqr;128
 LengthOfLine(PQ);ll_pq;None
 LengthOfLine(QP);ll_pq;None
 
+Outputs:
+Outputs for Problem B:
+
+
 EQUATIONS:
-ll_cb=18
-ll_cd=12
-ma_bad=115
+ll_cb-18 ll_cd-12 ma_bad-115
 GOAL_SYMBOL:
 ma_adc
 ANSWER:
 65
 THEOREM_SEQUENCE:
-1;parallel_property_ipsilateral_internal_angle(1,AB,DC);ParallelBetweenLine(AB,DC)&Line(AD);["Equal(Add(MeasureOfAngle(BAD),MeasureOfAngle(ADC)),180)"]
+1; parallel_property_ipsilateral_internal_angle(1,AB,DC); ParallelBetweenLine(AB,DC)&Line(AD); ["Equal(Add(MeasureOfAngle(BAD),MeasureOfAngle(ADC)),180)"]

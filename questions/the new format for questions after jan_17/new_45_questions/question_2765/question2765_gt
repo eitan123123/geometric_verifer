@@ -232,7 +232,7 @@ EQUATIONS:
 ma_aen-64
 GOAL_SYMBOL:
 ma_ezd
-GT_ANSWER:
+ANSWER:
 64
 THEOREM_SEQUENCE:
 1;parallel_property_collinear_extend(3,IL,RN,Z);ParallelBetweenLine(IL,RN)&Collinear(IZL);["ParallelBetweenLine(IZ,RN)", "ParallelBetweenLine(ZL,RN)"]

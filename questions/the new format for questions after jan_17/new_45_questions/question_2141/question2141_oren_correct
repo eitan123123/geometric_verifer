@@ -44,8 +44,11 @@ Cocircular(B,FD)
 Cocircular(B,DF)
 Cocircular(B,CD)
 Cocircular(B,DC)
+Cocircular(B,DCF)
 Cocircular(B,CDF)
+Cocircular(B,FDC)
 Cocircular(B,DFC)
+Cocircular(B,CFD)
 Point(F)
 Point(B)
 Point(C)
@@ -75,15 +78,15 @@ MeasureOfAngle(BXA);ma_bxa;None
 Free(x);x;None
 MeasureOfAngle(CXB);ma_cxb;135
 
+Outputs:
+Outputs for Problem B:
 
 EQUATIONS:
-ma_cbd=70
-ma_dbf-x
-ma_fbc=65
+ma_cbd-70 ma_dbf-x ma_fbc-65
 GOAL_SYMBOL:
 x
 ANSWER:
 225
 THEOREM_SEQUENCE:
-1;round_angle(1,FBC,CBF);Angle(FBC)&Angle(CBF);["Equal(Add(MeasureOfAngle(FBC),MeasureOfAngle(CBF)),360)"]
-2;angle_addition(1,CBD,DBF);Angle(CBD)&Angle(DBF)&Angle(CBF);["Equal(MeasureOfAngle(CBF),Add(MeasureOfAngle(CBD),MeasureOfAngle(DBF)))"]
+1; angle_addition(1,FBC,CBD); Angle(FBC)&Angle(CBD)&Angle(FBD); ["Equal(MeasureOfAngle(FBD),Add(MeasureOfAngle(FBC),MeasureOfAngle(CBD)))"]
+2; round_angle(1,DBF,FBD); Angle(DBF)&Angle(FBD); ["Equal(Add(MeasureOfAngle(DBF),MeasureOfAngle(FBD)),360)"]

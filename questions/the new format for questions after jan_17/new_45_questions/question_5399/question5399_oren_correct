@@ -106,18 +106,22 @@ MeasureOfAngle(HJK);ma_gjk;100
 MeasureOfAngle(KGH);ma_kgj;None
 MeasureOfAngle(KGJ);ma_kgj;None
 
-
+Outputs:
+Outputs for Problem B:
 
 EQUATIONS:
-ll_ao-ll_bo
--ll_bo+ll_do
+ao-bo
+do-bo
 ma_oac-28
+
 GOAL_SYMBOL:
 ma_bod
+
 ANSWER:
 56
+
 THEOREM_SEQUENCE:
-1;triangle_property_angle_sum(1,OAD);Polygon(OAD);["Equal(Add(MeasureOfAngle(OAD),MeasureOfAngle(ADO),MeasureOfAngle(DOA)),180)"]
-2;isosceles_triangle_judgment_line_equal(1,OAD);Polygon(OAD)&Equal(LengthOfLine(OA),LengthOfLine(OD));["IsoscelesTriangle(OAD)"]
-3;isosceles_triangle_property_angle_equal(1,OAD);IsoscelesTriangle(OAD);["Equal(MeasureOfAngle(OAD),MeasureOfAngle(ADO))"]
-4;adjacent_complementary_angle(1,BOD,DOA);Collinear(BOA)&Angle(BOD)&Angle(DOA);["Equal(Add(MeasureOfAngle(BOD),MeasureOfAngle(DOA)),180)"]
+1; isosceles_triangle_judgment_line_equal(1,OAD); Polygon(OAD)&Equal(LengthOfLine(OA),LengthOfLine(OD)); ["IsoscelesTriangle(OAD)"]
+2; isosceles_triangle_property_angle_equal(1,OAD); IsoscelesTriangle(OAD); ["Equal(MeasureOfAngle(OAD),MeasureOfAngle(ODA))"]
+3; triangle_property_angle_sum(1,OAD); Polygon(OAD); ["Equal(Add(MeasureOfAngle(OAD),MeasureOfAngle(ODA),MeasureOfAngle(AOD)),180)"]
+4; isosceles_triangle_judgment_line_equal(1,BOD); Polygon(BOD)&Equal(LengthOfLine(BO),LengthOfLine(DO)); ["IsoscelesTriangle(BOD)"]

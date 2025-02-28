@@ -98,20 +98,36 @@ Cocircular(O,DB)
 Cocircular(O,CD)
 Cocircular(O,DC)
 Cocircular(O,ABC)
+Cocircular(O,CBA)
 Cocircular(O,BCA)
+Cocircular(O,ACB)
 Cocircular(O,CAB)
+Cocircular(O,BAC)
 Cocircular(O,ABD)
+Cocircular(O,DBA)
 Cocircular(O,BDA)
+Cocircular(O,ADB)
 Cocircular(O,DAB)
+Cocircular(O,BAD)
 Cocircular(O,ACD)
+Cocircular(O,DCA)
 Cocircular(O,CDA)
+Cocircular(O,ADC)
 Cocircular(O,DAC)
+Cocircular(O,CAD)
 Cocircular(O,BCD)
+Cocircular(O,DCB)
 Cocircular(O,CDB)
+Cocircular(O,BDC)
 Cocircular(O,DBC)
+Cocircular(O,CBD)
+Cocircular(O,DCBA)
 Cocircular(O,BCDA)
+Cocircular(O,ADCB)
 Cocircular(O,CDAB)
+Cocircular(O,BADC)
 Cocircular(O,DABC)
+Cocircular(O,CBAD)
 Point(B)
 Point(A)
 Point(C)
@@ -153,14 +169,16 @@ SYMBOLS_AND_VALUES:
 MeasureOfAngle(BCD);ma_bcd;110
 MeasureOfAngle(DOB);ma_dob;None
 
+Outputs:
+Outputs for Problem B:
 
 
 EQUATIONS:
-ma_abc=80
+ma_abc-80
 GOAL_SYMBOL:
 ma_cda
 ANSWER:
 100
 THEOREM_SEQUENCE:
-1;arc_property_circumference_angle_external(1,OCA,B);Cocircular(O,CAB)&Angle(ABC);["Equal(MeasureOfAngle(ABC),Mul(MeasureOfArc(OCA),1/2))"]
-2;arc_property_circumference_angle_internal(1,OCA,D);Cocircular(O,CDA)&Angle(CDA);["Equal(MeasureOfAngle(CDA),Sub(180,Mul(MeasureOfArc(OCA),1/2)))"]
+1; arc_property_circumference_angle_external(1,OAC,B); Cocircular(O,ABC)&Angle(ABC); ["Equal(MeasureOfAngle(ABC),Mul(MeasureOfArc(OAC),1/2))"]
+2; arc_property_circumference_angle_internal(1,OAC,D); Cocircular(O,ADC)&Angle(CDA); ["Equal(MeasureOfAngle(CDA),Sub(180,Mul(MeasureOfArc(OAC),1/2)))"]

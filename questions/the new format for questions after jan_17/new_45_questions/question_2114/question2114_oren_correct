@@ -83,20 +83,36 @@ Cocircular(P,RT)
 Cocircular(P,SR)
 Cocircular(P,RS)
 Cocircular(P,QTS)
+Cocircular(P,STQ)
 Cocircular(P,TSQ)
+Cocircular(P,QST)
 Cocircular(P,SQT)
+Cocircular(P,TQS)
 Cocircular(P,QTR)
+Cocircular(P,RTQ)
 Cocircular(P,TRQ)
+Cocircular(P,QRT)
 Cocircular(P,RQT)
+Cocircular(P,TQR)
 Cocircular(P,QSR)
+Cocircular(P,RSQ)
 Cocircular(P,SRQ)
+Cocircular(P,QRS)
 Cocircular(P,RQS)
+Cocircular(P,SQR)
 Cocircular(P,TSR)
+Cocircular(P,RST)
 Cocircular(P,SRT)
+Cocircular(P,TRS)
 Cocircular(P,RTS)
+Cocircular(P,STR)
+Cocircular(P,RSTQ)
 Cocircular(P,TSRQ)
+Cocircular(P,QRST)
 Cocircular(P,SRQT)
+Cocircular(P,TQRS)
 Cocircular(P,RQTS)
+Cocircular(P,STQR)
 Point(R)
 Point(T)
 Point(P)
@@ -145,17 +161,23 @@ MeasureOfAngle(ACO);ma_aco;90
 LengthOfLine(OC);ll_oc;None
 LengthOfLine(CO);ll_oc;None
 
+Outputs:
+Outputs for Problem B:
+
 
 EQUATIONS:
-ll_rt=15
-ma_rps=130
-ma_tpq=112
+ll_rt-15
+ma_rps-130
+ma_tpq-112
+
 GOAL_SYMBOL:
 la_psr
+
 ANSWER:
 65*pi/12
+
 THEOREM_SEQUENCE:
-1;diameter_of_circle_property_length_equal(1,TR,P);IsDiameterOfCircle(TR,P);["Equal(LengthOfLine(TR),DiameterOfCircle(P))"]
-2;circle_property_length_of_radius_and_diameter(1,P);Circle(P);["Equal(DiameterOfCircle(P),Mul(RadiusOfCircle(P),2))"]
-3;arc_property_center_angle(1,PSR,P);Arc(PSR)&Angle(RPS)&IsCentreOfCircle(P,P);["Equal(MeasureOfArc(PSR),MeasureOfAngle(RPS))"]
-4;arc_length_formula(1,PSR);Arc(PSR);["Equal(LengthOfArc(PSR),Mul(MeasureOfArc(PSR),1/180*pi,RadiusOfCircle(P)))"]
+1; arc_property_center_angle(1,PSR,P); Arc(PSR)&Angle(RPS)&IsCentreOfCircle(P,P); ["Equal(MeasureOfArc(PSR),MeasureOfAngle(RPS))"]
+2; diameter_of_circle_property_length_equal(1,TR,P); IsDiameterOfCircle(TR,P); ["Equal(LengthOfLine(TR),DiameterOfCircle(P))"]
+3; circle_property_length_of_radius_and_diameter(1,P); Circle(P); ["Equal(DiameterOfCircle(P),Mul(RadiusOfCircle(P),2))"]
+4; arc_length_formula(1,PSR); Arc(PSR); ["Equal(LengthOfArc(PSR),Mul(MeasureOfArc(PSR),1/180*pi,RadiusOfCircle(P)))"]

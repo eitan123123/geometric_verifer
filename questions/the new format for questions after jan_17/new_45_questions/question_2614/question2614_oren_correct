@@ -72,16 +72,22 @@ MeasureOfAngle(ABC);ma_abc;40
 MeasureOfAngle(ACD);ma_acd;65
 MeasureOfAngle(BCA);ma_bca;None
 
+Outputs:
+Outputs for Problem B:
 
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-ma_abd-x
-ma_cda-61
-ma_dab-69
-ma_dbc-55
-ma_bcd-90
-GT_GOAL_SYMBOL:
+ma_abd−x
+ma_cda−61
+ma_dab−69
+ma_dbc−55
+ma_bcd−90
+
+GOAL_SYMBOL:
 ma_abc
+
 ANSWER:
 140
+
 THEOREM_SEQUENCE:
-1;quadrilateral_property_angle_sum(1,DABC);Polygon(DABC);["Equal(Add(MeasureOfAngle(DAB),MeasureOfAngle(ABC),MeasureOfAngle(BCD),MeasureOfAngle(CDA)),360)"]
+1; quadrilateral_property_angle_sum(1,ABCD); Polygon(ABCD); ["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCD),MeasureOfAngle(CDA),MeasureOfAngle(DAB)),360)"]

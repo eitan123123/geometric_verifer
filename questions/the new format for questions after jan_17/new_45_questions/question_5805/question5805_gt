@@ -1,17 +1,17 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, Div(LengthOfLine(AD)=LengthOfLine(DB)), DE=2, DE is parallel to BC. Find the length of line BC.
+As shown in the diagram, AD=1, DB=2, DE∥BC. Find the ratio of the length of line DE to the length of line BC.
 CONSTRUCTION_CDL:
 Shape(AD,DE,EA)
 Shape(DB,BC,CE,ED)
 Collinear(ADB)
 Collinear(AEC)
 TEXT_CDL:
-Equal(Div(LengthOfLine(AD),LengthOfLine(DB)),1/2)
-Equal(LengthOfLine(DE),2)
+Equal(LengthOfLine(AD),1)
+Equal(LengthOfLine(DB),2)
 ParallelBetweenLine(DE,BC)
 GOAL_CDL:
-Value(LengthOfLine(BC))
+Value(Div(LengthOfLine(DE),LengthOfLine(BC)))
 CONSTRUCTION_CDL_EXTENDED:
 Shape(DE,EA,AD)
 Shape(EA,AD,DE)
@@ -91,30 +91,29 @@ Polygon(BCA)
 Polygon(CAB)
 Polygon(CBA)
 ParallelBetweenLine(CB,ED)
-ParallelBetweenLine(ED,CB)
 SYMBOLS_AND_VALUES:
-LengthOfLine(AD);ll_ad;None
-LengthOfLine(DA);ll_ad;None
-LengthOfLine(AB);ll_ab;None
-LengthOfLine(BA);ll_ab;None
-LengthOfLine(AE);ll_ae;5
-LengthOfLine(EA);ll_ae;5
-LengthOfLine(EC);ll_ec;None
-LengthOfLine(CE);ll_ec;None
+LengthOfLine(AD);ll_ad;1
+LengthOfLine(DA);ll_ad;1
+LengthOfLine(DB);ll_db;2
+LengthOfLine(BD);ll_db;2
+LengthOfLine(DE);ll_de;None
+LengthOfLine(ED);ll_de;None
+LengthOfLine(BC);ll_bc;None
+LengthOfLine(CB);ll_bc;None
 
 
 
 EQUATIONS:
-ll_ad/ll_db-1/2
-ll_de-2
+ll_ad=1
+ll_db=2
 GOAL_SYMBOL:
-ll_bc
+ll_de/ll_bc
 ANSWER:
-6
+1/3
 THEOREM_SEQUENCE:
-1;parallel_property_corresponding_angle(1,DE,BC,A);ParallelBetweenLine(DE,BC)&Collinear(ADB);["Equal(MeasureOfAngle(ADE),MeasureOfAngle(DBC))"]
-2;parallel_property_corresponding_angle(2,CB,ED,A);ParallelBetweenLine(CB,ED)&Collinear(CEA);["Equal(MeasureOfAngle(BCE),MeasureOfAngle(DEA))"]
-3;line_addition(1,AD,DB);Collinear(ADB);["Equal(LengthOfLine(AB),Add(LengthOfLine(AD),LengthOfLine(DB)))"]
-4;similar_triangle_judgment_aa(1,ABC,ADE);Polygon(ABC)&Polygon(ADE)&Equal(MeasureOfAngle(ABC),MeasureOfAngle(ADE))&Equal(MeasureOfAngle(BCA),MeasureOfAngle(DEA));["SimilarBetweenTriangle(ABC,ADE)"]
-5;similar_triangle_property_line_ratio(1,ABC,ADE);SimilarBetweenTriangle(ABC,ADE);["Equal(LengthOfLine(BC),Mul(LengthOfLine(DE),RatioOfSimilarTriangle(ABC,ADE)))"]
-6;similar_triangle_property_line_ratio(1,CAB,EAD);SimilarBetweenTriangle(CAB,EAD);["Equal(LengthOfLine(AB),Mul(LengthOfLine(AD),RatioOfSimilarTriangle(CAB,EAD)))"]
+1;line_addition(1,AD,DB);Collinear(ADB);["Equal(LengthOfLine(AB),Add(LengthOfLine(AD),LengthOfLine(DB)))"]
+2;parallel_property_corresponding_angle(1,DE,BC,A);ParallelBetweenLine(DE,BC)&Collinear(ADB);["Equal(MeasureOfAngle(ADE),MeasureOfAngle(DBC))"]
+3;parallel_property_corresponding_angle(2,CB,ED,A);ParallelBetweenLine(CB,ED)&Collinear(CEA);["Equal(MeasureOfAngle(BCE),MeasureOfAngle(DEA))"]
+4;similar_triangle_judgment_aa(1,ADE,ABC);Polygon(ADE)&Polygon(ABC)&Equal(MeasureOfAngle(ADE),MeasureOfAngle(ABC))&Equal(MeasureOfAngle(DEA),MeasureOfAngle(BCA));["SimilarBetweenTriangle(ADE,ABC)"]
+5;similar_triangle_property_line_ratio(1,ADE,ABC);SimilarBetweenTriangle(ADE,ABC);["Equal(LengthOfLine(DE),Mul(LengthOfLine(BC),RatioOfSimilarTriangle(ADE,ABC)))"]
+6;similar_triangle_property_line_ratio(1,EAD,CAB);SimilarBetweenTriangle(EAD,CAB);["Equal(LengthOfLine(AD),Mul(LengthOfLine(AB),RatioOfSimilarTriangle(EAD,CAB)))"]

@@ -25,16 +25,16 @@ Shape(FC,CE,EF)
 Shape(CE,EF,FC)
 Shape(CD,DE,EC)
 Shape(DE,EC,CD)
-Shape(FA,AB,BC,CE,EF)
-Shape(AB,BC,CE,EF,FA)
-Shape(BC,CE,EF,FA,AB)
-Shape(CE,EF,FA,AB,BC)
-Shape(EF,FA,AB,BC,CE)
 Shape(AB,BC,CF,FE,EA)
 Shape(BC,CF,FE,EA,AB)
 Shape(CF,FE,EA,AB,BC)
 Shape(FE,EA,AB,BC,CF)
 Shape(EA,AB,BC,CF,FE)
+Shape(FA,AB,BC,CE,EF)
+Shape(AB,BC,CE,EF,FA)
+Shape(BC,CE,EF,FA,AB)
+Shape(CE,EF,FA,AB,BC)
+Shape(EF,FA,AB,BC,CE)
 Shape(EA,AF,FC,CE)
 Shape(AF,FC,CE,EA)
 Shape(FC,CE,EA,AF)
@@ -43,16 +43,16 @@ Shape(EF,FC,CD,DE)
 Shape(FC,CD,DE,EF)
 Shape(CD,DE,EF,FC)
 Shape(DE,EF,FC,CD)
+Shape(AB,BC,CE,EA)
+Shape(BC,CE,EA,AB)
+Shape(CE,EA,AB,BC)
+Shape(EA,AB,BC,CE)
 Shape(FA,AB,BC,CD,DE,EF)
 Shape(AB,BC,CD,DE,EF,FA)
 Shape(BC,CD,DE,EF,FA,AB)
 Shape(CD,DE,EF,FA,AB,BC)
 Shape(DE,EF,FA,AB,BC,CD)
 Shape(EF,FA,AB,BC,CD,DE)
-Shape(AB,BC,CE,EA)
-Shape(BC,CE,EA,AB)
-Shape(CE,EA,AB,BC)
-Shape(EA,AB,BC,CE)
 Shape(EA,AF,FC,CD,DE)
 Shape(AF,FC,CD,DE,EA)
 Shape(FC,CD,DE,EA,AF)
@@ -109,11 +109,11 @@ Angle(CEF)
 Angle(ECD)
 Angle(CDE)
 Angle(DEC)
+Angle(CFE)
+Angle(EAB)
 Angle(FAB)
 Angle(BCE)
 Angle(EFA)
-Angle(CFE)
-Angle(EAB)
 Angle(ACE)
 Angle(CEA)
 Angle(FCD)
@@ -137,9 +137,9 @@ Angle(FEC)
 Angle(DCE)
 Angle(EDC)
 Angle(CED)
+Angle(BAE)
 Angle(BAF)
 Angle(ECB)
-Angle(BAE)
 Angle(ECA)
 Angle(AEC)
 Angle(DCF)
@@ -175,16 +175,16 @@ Polygon(CED)
 Polygon(CDE)
 Polygon(DEC)
 Polygon(DCE)
-Polygon(FABCE)
-Polygon(ABCEF)
-Polygon(BCEFA)
-Polygon(CEFAB)
-Polygon(EFABC)
 Polygon(ABCFE)
 Polygon(BCFEA)
 Polygon(CFEAB)
 Polygon(FEABC)
 Polygon(EABCF)
+Polygon(FABCE)
+Polygon(ABCEF)
+Polygon(BCEFA)
+Polygon(CEFAB)
+Polygon(EFABC)
 Polygon(EAC)
 Polygon(ECA)
 Polygon(AEC)
@@ -195,16 +195,16 @@ Polygon(EFCD)
 Polygon(FCDE)
 Polygon(CDEF)
 Polygon(DEFC)
+Polygon(ABCE)
+Polygon(BCEA)
+Polygon(CEAB)
+Polygon(EABC)
 Polygon(FABCDE)
 Polygon(ABCDEF)
 Polygon(BCDEFA)
 Polygon(CDEFAB)
 Polygon(DEFABC)
 Polygon(EFABCD)
-Polygon(ABCE)
-Polygon(BCEA)
-Polygon(CEAB)
-Polygon(EABC)
 Polygon(ACD)
 Polygon(ADC)
 Polygon(CAD)
@@ -241,21 +241,23 @@ PerimeterOfTriangle(CDF);pt_cdf;None
 PerimeterOfTriangle(DFC);pt_cdf;None
 PerimeterOfTriangle(FCD);pt_cdf;None
 
+Outputs:
+Outputs for Problem B:
 
 
 EQUATIONS:
-ll_ab=4
-ll_bc=6
-ma_afe=90
-ma_efc=90
+ll_ab-4
+ll_bc-6
+ma_afe-90
+ma_efc-90
 ll_af-ll_fc
 GOAL_SYMBOL:
 pt_cde
 ANSWER:
 10
 THEOREM_SEQUENCE:
-1;perpendicular_bisector_property_distance_equal(1,EF,AC);IsPerpendicularBisectorOfLine(EF,AC);["Equal(LengthOfLine(EA),LengthOfLine(EC))"]
-2;line_addition(1,AE,ED);Collinear(AED);["Equal(LengthOfLine(AD),Add(LengthOfLine(AE),LengthOfLine(ED)))"]
-3;parallelogram_property_opposite_line_equal(1,ABCD);Parallelogram(ABCD);["Equal(LengthOfLine(BA),LengthOfLine(CD))"]
-4;parallelogram_property_opposite_line_equal(1,BCDA);Parallelogram(BCDA);["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
-5;triangle_perimeter_formula(1,ECD);Polygon(ECD);["Equal(PerimeterOfTriangle(ECD),Add(LengthOfLine(EC),LengthOfLine(CD),LengthOfLine(DE)))"]
+1; parallelogram_property_opposite_line_equal(1,ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(BA),LengthOfLine(CD))"]
+2; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
+3; perpendicular_bisector_property_distance_equal(1,EF,AC); IsPerpendicularBisectorOfLine(EF,AC); ["Equal(LengthOfLine(EA),LengthOfLine(EC))"]
+4; line_addition(1,AE,ED); Collinear(AED); ["Equal(LengthOfLine(AD),Add(LengthOfLine(AE),LengthOfLine(ED)))"]
+5; triangle_perimeter_formula(1,CDE); Polygon(CDE); ["Equal(PerimeterOfTriangle(CDE),Add(LengthOfLine(CD),LengthOfLine(DE),LengthOfLine(EC)))"]

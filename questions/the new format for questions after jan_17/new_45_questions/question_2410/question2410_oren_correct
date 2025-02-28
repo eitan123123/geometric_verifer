@@ -183,16 +183,22 @@ MeasureOfAngle(AHG);ma_ahe;90
 MeasureOfAngle(CHF);ma_cha;None
 MeasureOfAngle(CHA);ma_cha;None
 
+Outputs:
+Outputs for Problem B:
+
 
 EQUATIONS:
 ma_adg-36
 ma_age-104
 ma_fec-40
 ma_gbc-90
+
 GOAL_SYMBOL:
 ma_gad
+
 ANSWER:
 68
+
 THEOREM_SEQUENCE:
-1;adjacent_complementary_angle(1,DGA,AGE);Collinear(DGE)&Angle(DGA)&Angle(AGE);["Equal(Add(MeasureOfAngle(DGA),MeasureOfAngle(AGE)),180)"]
-2;triangle_property_angle_sum(1,DGA);Polygon(DGA);["Equal(Add(MeasureOfAngle(DGA),MeasureOfAngle(GAD),MeasureOfAngle(ADG)),180)"]
+1; adjacent_complementary_angle(1,DGA,AGE); Collinear(DGE)&Angle(DGA)&Angle(AGE); ["Equal(Add(MeasureOfAngle(DGA),MeasureOfAngle(AGE)),180)"]
+2; triangle_property_angle_sum(1,ADG); Polygon(ADG); ["Equal(Add(MeasureOfAngle(ADG),MeasureOfAngle(DGA),MeasureOfAngle(GAD)),180)"]
