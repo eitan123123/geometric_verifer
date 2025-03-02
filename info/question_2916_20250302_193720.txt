@@ -1,0 +1,21 @@
+Analysis Report for question_2916
+============================================================
+
+You tried to find the goal angle ECD
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - E
+  - C
+  - D
+
+Angles:
+  - Angle DCE
+
+These are the theorems that have to do with goal ECD in your proof:
+------------------------------------------------------------
+None. Your proof doesn't include any theorems that constrain angle ECD.
+
+This wasn't enough information to get a unique value for the goal angle ECD.
+Your proof allows multiple solutions for this angle.

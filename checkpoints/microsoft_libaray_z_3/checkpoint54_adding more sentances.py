@@ -931,52 +931,6 @@ class GeometricTheorem:
             elif version == "2":
                 print("2")
 
-
-        elif theorem_name == "perpendicular_bisector_property_distance_equal":
-            version = args[0]
-            if version == "1":
-                if len(args) < 3:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Insufficient arguments for perpendicular_bisector_property_distance_equal",
-                        details="Expected format: perpendicular_bisector_property_distance_equal(1, bisector, bisected)"
-                    ))
-
-                bisector = args[1].strip()  # e.g., "EF"
-                bisected = args[2].strip()  # e.g., "AC"
-
-                # Check if the perpendicular bisector relationship is established
-                relationship_exists = False
-
-                if hasattr(self, "perpendicular_bisectors"):
-                    # Check all variations
-                    bisector_variations = [bisector, bisector[::-1]]
-                    bisected_variations = [bisected, bisected[::-1]]
-
-                    for b1 in bisector_variations:
-                        for b2 in bisected_variations:
-                            if (b1, b2) in self.perpendicular_bisectors:
-                                relationship_exists = True
-                                break
-                        if relationship_exists:
-                            break
-
-                if not relationship_exists:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message=f"Perpendicular bisector relationship not established: {bisector} is not a perpendicular bisector of {bisected}",
-                        details="Required for perpendicular_bisector_property_distance_equal theorem"
-                    ))
-
-                # All checks passed
-                return True, None
-            else:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL,
-                    message=f"Unsupported version {version} for perpendicular_bisector_property_distance_equal"
-                ))
-
-
         elif theorem_name == "triangle_area_formula_common":
             version = args[0]
             if version == "1":
@@ -1161,142 +1115,92 @@ class GeometricTheorem:
 
 
 
-
         elif theorem_name == "circle_property_circular_power_chord_and_chord":
+            # Expected args: [version, chord1, chord2, circle]
+            # where chord1 and chord2 are strings like "BEA" and "DEC",
+            # and circle is the circle token like "F"
 
             version = args[0]
-
             if version == "1":
-
                 if len(args) < 4:
                     return return_error(GeometricError(
-
                         tier=ErrorTier.TIER1_THEOREM_CALL,
-
                         message="Insufficient arguments for circle_property_circular_power_chord_and_chord",
-
                         details="Expected format: circle_property_circular_power_chord_and_chord(1, chord1, chord2, circle)"
-
                     ))
 
                 chord1 = args[1].strip()  # e.g., "BEA"
-
                 chord2 = args[2].strip()  # e.g., "DEC"
-
                 circle_token = args[3].strip()  # e.g., "F"
 
-                # Count how many points from each chord are on the circle
+                # Check for cocircularity facts in the stored cocircular_facts
+                cocircular1_found = False
+                cocircular2_found = False
 
-                chord1_points_on_circle = []
+                for fact in self.cocircular_facts:
+                    # Each fact is a tuple where the first element is the circle
+                    if fact[0] == circle_token:
+                        # For chord1 (e.g., "BEA"), we need endpoints (B and A) to be on the circle
+                        if chord1[0] in fact[1:] and chord1[2] in fact[1:]:
+                            cocircular1_found = True
+                        # For chord2 (e.g., "DEC"), we need endpoints (D and C) to be on the circle
+                        if chord2[0] in fact[1:] and chord2[2] in fact[1:]:
+                            cocircular2_found = True
 
-                chord2_points_on_circle = []
-
-                for point in chord1:
-
-                    for fact in self.cocircular_facts:
-
-                        if fact[0] == circle_token and point in fact[1:]:
-                            chord1_points_on_circle.append(point)
-
-                            break
-
-                for point in chord2:
-
-                    for fact in self.cocircular_facts:
-
-                        if fact[0] == circle_token and point in fact[1:]:
-                            chord2_points_on_circle.append(point)
-
-                            break
-
-                # We need at least 2 points from each chord to be on the circle
-
-                if len(chord1_points_on_circle) < 2:
+                if not cocircular1_found:
                     return return_error(GeometricError(
-
                         tier=ErrorTier.TIER2_PREMISE,
-
-                        message=f"Not enough points from chord {chord1} are on circle {circle_token}",
-
-                        details=f"Found only points {chord1_points_on_circle} on circle {circle_token}, need at least 2"
-
+                        message=f"Missing cocircularity fact for chord {chord1} on circle {circle_token}",
+                        details=f"Chord endpoints {chord1[0]} and {chord1[2]} must be on circle {circle_token}"
                     ))
 
-                if len(chord2_points_on_circle) < 2:
+                if not cocircular2_found:
                     return return_error(GeometricError(
-
                         tier=ErrorTier.TIER2_PREMISE,
-
-                        message=f"Not enough points from chord {chord2} are on circle {circle_token}",
-
-                        details=f"Found only points {chord2_points_on_circle} on circle {circle_token}, need at least 2"
-
+                        message=f"Missing cocircularity fact for chord {chord2} on circle {circle_token}",
+                        details=f"Chord endpoints {chord2[0]} and {chord2[2]} must be on circle {circle_token}"
                     ))
 
                 # Check for collinearity facts in the stored collinear_facts
-
                 collinear1_found = False
-
                 collinear2_found = False
 
                 # Normalize the chord strings to match how collinearity is stored
-
                 norm_chord1 = self.normalize_collinear_points(chord1)
-
                 norm_chord2 = self.normalize_collinear_points(chord2)
 
                 for fact in self.collinear_facts:
-
                     # Convert fact list to string for comparison
-
                     fact_str = ''.join(fact)
-
                     # Normalize for comparison
-
                     norm_fact = self.normalize_collinear_points(fact_str)
 
                     # Check if all points from the chord are in this fact
-
                     if all(p in norm_fact for p in norm_chord1):
                         collinear1_found = True
-
                     if all(p in norm_fact for p in norm_chord2):
                         collinear2_found = True
 
                 if not collinear1_found:
                     return return_error(GeometricError(
-
                         tier=ErrorTier.TIER2_PREMISE,
-
                         message=f"Missing collinearity fact for points in {chord1}",
-
                         details=f"Points {chord1} must be collinear"
-
                     ))
 
                 if not collinear2_found:
                     return return_error(GeometricError(
-
                         tier=ErrorTier.TIER2_PREMISE,
-
                         message=f"Missing collinearity fact for points in {chord2}",
-
                         details=f"Points {chord2} must be collinear"
-
                     ))
 
                 # All checks passed
-
                 return True, None
-
             else:
-
                 return return_error(GeometricError(
-
                     tier=ErrorTier.TIER1_THEOREM_CALL,
-
                     message=f"Unsupported version {version} for circle_property_circular_power_chord_and_chord"
-
                 ))
 
 
@@ -3741,39 +3645,16 @@ class GeometricTheorem:
 
                     if line.startswith('Collinear('):
                         points = line[10:-1]  # Extract points from "Collinear(...)"
-
-                        # If there are more than 3 points, break it down into all possible 3-point combinations
-                        if len(points) > 3:
-                            from itertools import combinations
-                            for sub_points in combinations(points, 3):
-                                three_points = ''.join(sub_points)
-                                normalized_points = self.normalize_collinear_points(three_points)
-                                normalized_str = ''.join(normalized_points)
-
-                                # If the same fact appears in the main CONSTRUCTION_CDL section, skip it
-                                if normalized_str in normal_collinear_set:
-                                    print(
-                                        f"Skipping duplicate collinear fact from extended section: {normalized_points}")
-                                    continue
-
-                                # Otherwise, add it
-                                self.collinear_facts.append(list(normalized_points))
-                                self.add_collinear_fact(list(normalized_points))
-                                print(f"Added normalized collinear points (extended): {normalized_points}")
-                        else:
-                            # Original behavior for 3 or fewer points
-                            normalized_points = self.normalize_collinear_points(points)
-                            normalized_str = ''.join(normalized_points)
-
-                            # If the same fact appears in the main CONSTRUCTION_CDL section, skip it
-                            if normalized_str in normal_collinear_set:
-                                print(f"Skipping duplicate collinear fact from extended section: {normalized_points}")
-                                continue
-
-                            # Otherwise, add it
-                            self.collinear_facts.append(list(normalized_points))
-                            self.add_collinear_fact(list(normalized_points))
-                            print(f"Added normalized collinear points (extended): {normalized_points}")
+                        normalized_points = self.normalize_collinear_points(points)
+                        normalized_str = ''.join(normalized_points)
+                        # If the same fact appears in the main CONSTRUCTION_CDL section, skip it.
+                        if normalized_str in normal_collinear_set:
+                            print(f"Skipping duplicate collinear fact from extended section: {normalized_points}")
+                            continue
+                        # Otherwise, add it:
+                        self.collinear_facts.append(list(normalized_points))
+                        self.add_collinear_fact(list(normalized_points))
+                        print(f"Added normalized collinear points (extended): {normalized_points}")
 
 
                     elif line.startswith('PerpendicularBetweenLine('):
@@ -4001,109 +3882,6 @@ class GeometricTheorem:
                                 self.solver.add(length_var == expr)
                                 print(f"Added algebraic length constraint: {line_name} = {expr}")
 
-
-                    elif line.startswith("IsPerpendicularBisectorOfLine("):
-                        # Match a statement like: IsPerpendicularBisectorOfLine(EF,AC)
-                        match = re.match(r'IsPerpendicularBisectorOfLine\((\w+),(\w+)\)', line)
-                        if match:
-                            bisector, bisected = match.groups()  # e.g., "EF", "AC"
-                            print(f"Found perpendicular bisector: {bisector} is perpendicular bisector of {bisected}")
-
-                            # Initialize perpendicular_bisectors attribute if it doesn't exist
-                            if not hasattr(self, "perpendicular_bisectors"):
-                                self.perpendicular_bisectors = set()
-                            bisector_variations = [bisector, bisector[::-1]]
-
-                            # For bisected AC, add (EF,AC), (EF,CA)
-                            bisected_variations = [bisected, bisected[::-1]]
-
-                            # Add all combinations
-                            for b1 in bisector_variations:
-                                for b2 in bisected_variations:
-                                    self.perpendicular_bisectors.add((b1, b2))
-
-                            print(f"Added perpendicular bisector relationships: {self.perpendicular_bisectors}")
-                            # Find the intersection point (e.g., point on both bisector and bisected)
-                            bisector_point = None  # This will be the intersection point
-
-                            # Check all collinear facts to find where the lines meet
-                            for fact in self.collinear_facts:
-                                fact_str = ''.join(fact)
-                                # Look for a point that's in both the bisector and a collinear fact with the bisected line
-                                for point in bisector:
-                                    if point in fact_str and all(p in fact_str for p in bisected):
-                                        bisector_point = point
-                                        break
-                                if bisector_point:
-                                    break
-
-                            if not bisector_point:
-                                # Try to infer the intersection point - look for a common point in both bisector and bisected
-                                common_points = set(bisector).intersection(set(bisected))
-                                if common_points:
-                                    bisector_point = list(common_points)[0]
-                                    print(f"Inferred intersection point: {bisector_point}")
-                                else:
-                                    print(
-                                        f"Warning: Could not find the intersection point for perpendicular bisector {bisector} of {bisected}")
-                                    continue  # Skip this statement
-
-                            # Get the two parts of the bisected line
-                            parts = [p for p in bisected]
-
-                            # Add equal distance constraints for the two parts
-                            # If bisected is AC and bisector_point is E, this adds AE = EC
-                            dist1 = self.add_length(bisector_point, parts[0])
-                            dist2 = self.add_length(bisector_point, parts[1])
-                            self.solver.add(dist1 == dist2)
-                            print(
-                                f"Added equal distance constraint: {bisector_point}{parts[0]} = {bisector_point}{parts[1]}")
-
-                            # Add right angle constraints
-                            # If bisector is EF, get the other point (F)
-                            other_point = next(p for p in bisector if p != bisector_point)
-
-                            # Get collinear points for the intersection point
-                            collinear_points = None
-                            for fact in self.collinear_facts:
-                                if bisector_point in fact:
-                                    collinear_points = fact
-                                    break
-
-                            if collinear_points:
-                                # Add right angle for points on the collinear line
-                                for p in collinear_points:
-                                    if p != bisector_point and p in bisected:  # Only for the endpoints of the bisected line
-                                        angle = self.add_angle(other_point, bisector_point, p)  # e.g., FEA and FEC
-                                        self.solver.add(angle == 90)
-                                        print(f"Added 90° angle constraint for ∠{other_point}{bisector_point}{p}")
-                            else:
-                                # If no collinearity fact exists, still add right angles for the bisected endpoints
-                                for p in parts:
-                                    angle = self.add_angle(other_point, bisector_point, p)  # e.g., FEA and FEC
-                                    self.solver.add(angle == 90)
-                                    print(f"Added 90° angle constraint for ∠{other_point}{bisector_point}{p}")
-
-                            # Also add collinearity for the three key points if not already present
-                            bisected_with_bisector_point = parts[0] + bisector_point + parts[1]
-                            normalized_collinear = self.normalize_collinear_points(bisected_with_bisector_point)
-
-                            # Check if this collinearity is already recorded
-                            collinear_exists = False
-                            for fact in self.collinear_facts:
-                                fact_str = self.normalize_collinear_points(''.join(fact))
-                                if normalized_collinear == fact_str:
-                                    collinear_exists = True
-                                    break
-
-                            if not collinear_exists:
-                                # Add new collinearity fact
-                                self.collinear_facts.append(list(normalized_collinear))
-                                self.add_collinear_fact(list(normalized_collinear))
-                                print(f"Added collinearity fact for {normalized_collinear}")
-
-                            print(
-                                f"Processed perpendicular bisector: {bisector_point} divides {bisected} equally with right angles")
 
 
 
@@ -4509,50 +4287,17 @@ class GeometricTheorem:
             if 'GOAL_CDL' in sections:
                 goal_line = sections['GOAL_CDL'][0]
 
-                def parse_special_answer(answer_str):
-                    """Parse answer strings including those with square root symbol."""
-                    import math
-                    import re
-
-                    # Remove whitespace
-                    answer_str = answer_str.strip()
-
-                    # Handle √ symbol format: 6(√6-1)
-                    if '√' in answer_str:
-                        # Handle pattern like "6(√6-1)"
-                        pattern = r'(\d+)\(√(\d+)(-|\+)(\d+)\)'
-                        match = re.match(pattern, answer_str)
-                        if match:
-                            a, b, op, c = match.groups()
-                            a, b, c = float(a), float(b), float(c)
-                            if op == '-':
-                                return a * (math.sqrt(b) - c)
-                            else:  # op == '+'
-                                return a * (math.sqrt(b) + c)
-
-                        # General replacement of √ symbol
-                        modified_str = re.sub(r'√(\d+)', r'math.sqrt(\1)', answer_str)
-                        # Handle implicit multiplication
-                        modified_str = re.sub(r'(\d+)\(', r'\1*(', modified_str)
-                        try:
-                            return float(eval(modified_str, {"math": math}))
-                        except Exception:
-                            pass
-
-                    # Standard eval with math functions
-                    try:
-                        return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
-                    except Exception:
-                        # Fall back to Fraction
-                        from fractions import Fraction
-                        return float(Fraction(answer_str))
                 # --- Check for an arc length goal of the form:
                 #     Value(LengthOfArc(X))
                 arc_length_match = re.search(r'Value\(LengthOfArc\((\w+)\)\)', goal_line)
                 if arc_length_match:
                     arc_token = arc_length_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal arc length: {arc_token}")
                         print(f"Expected arc length: {expected}")
@@ -4641,7 +4386,13 @@ class GeometricTheorem:
                     line2 = sum_lengths_match.group(2)  # e.g., "DM"
 
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected_answer = float(
+                                eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected_answer = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal sum of lengths: LengthOfLine({line1}) + LengthOfLine({line2})")
                         print(f"Expected answer: {expected_answer}")
@@ -4747,7 +4498,12 @@ class GeometricTheorem:
                 if cos_match:
                     angle_token = cos_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal cosine: Cos(MeasureOfAngle({angle_token}))")
                         print(f"Expected value: {expected}")
@@ -5175,7 +4931,12 @@ class GeometricTheorem:
                 if sin_match:
                     angle_token = sin_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal sine: Sin(MeasureOfAngle({angle_token}))")
                         print(f"Expected value: {expected}")
@@ -5541,7 +5302,11 @@ class GeometricTheorem:
                 if arc_match:
                     arc_token = arc_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
                         print(f"\nGoal arc measure: {arc_token}")
                         print(f"Expected arc measure: {expected}")
                         if self.verify_goal_arc(arc_token, expected):
@@ -5559,7 +5324,12 @@ class GeometricTheorem:
                 if quad_area_match:
                     quad_name = quad_area_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal quadrilateral area: {quad_name}")
                         print(f"Expected area: {expected}")
@@ -5649,7 +5419,11 @@ class GeometricTheorem:
                     line2 = length_div_match.group(2)
                     if 'ANSWER' in sections and sections['ANSWER']:
                         answer_str = sections['ANSWER'][0].strip()
-                        expected_value =parse_special_answer(answer_str)
+                        try:
+                            import math
+                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            expected_value = float(Fraction(answer_str))
 
                         print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
                         print(f"Expected value: {expected_value}")
@@ -5750,7 +5524,8 @@ class GeometricTheorem:
                 if perimeter_match:
                     triangle = perimeter_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
+                        import math
+                        expected_answer = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
                         print(f"\nGoal triangle perimeter: {triangle}")
                         print(f"Expected answer: {expected_answer}")
 
@@ -5841,7 +5616,14 @@ class GeometricTheorem:
                 if length_match:
                     line_name = length_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
+                        answer_str = sections['ANSWER'][0].strip()
+                        import math
+                        eval_env = {"sqrt": math.sqrt, "pi": math.pi}
+                        try:
+                            expected_answer = float(eval(answer_str, {"__builtins__": {}}, eval_env))
+                        except Exception as e:
+                            print("Error evaluating answer expression:", e)
+                            return False
                         print(f"\nGoal line: {line_name}")
                         print(f"Expected answer: {expected_answer}")
                         verified = self.verify_goal_length(line_name[0], line_name[1], expected_answer)
@@ -5865,7 +5647,11 @@ class GeometricTheorem:
                 if angle_match:
                     goal_angle = angle_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
+                        answer_str = sections['ANSWER'][0].strip()
+                        try:
+                            expected_answer = float(answer_str)
+                        except ValueError:
+                            expected_answer = float(Fraction(answer_str))
                         print(f"\nGoal angle: {goal_angle}")
                         print(f"Expected answer: {expected_answer}")
                         success = self.verify_algebraic_goal(goal_angle, expected_answer)
@@ -5926,10 +5712,10 @@ class GeometricTheorem:
                                         computed_value = area_circle_val - area_triangle_val
 
                                         try:
-                                            expected_value = parse_special_answer(answer_str)
+                                            import math
+                                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                                         except Exception as e:
-                                            print(f"Error parsing answer '{answer_str}': {e}")
-                                            return False
+                                            expected_value = float(Fraction(answer_str))
 
                                         epsilon = 1e-8
                                         if abs(computed_value - expected_value) >= epsilon:
@@ -6026,10 +5812,9 @@ class GeometricTheorem:
                             return False
 
                         try:
-                            expected_value = parse_special_answer(answer_str)
+                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception as e:
-                            print(f"Error parsing answer '{answer_str}': {e}")
-                            return False
+                            expected_value = float(Fraction(answer_str))
 
                         epsilon = 1e-8
                         if abs(computed_value - expected_value) >= epsilon:
@@ -6538,8 +6323,7 @@ class GeometricTheorem:
             "round_angle",
             "flat_angle",
             "altitude_of_triangle_judgment",
-            "triangle_area_formula_common",
-            "perpendicular_bisector_property_distance_equal"
+            "triangle_area_formula_common"
         ]
 
         if theorem_name not in valid_theorems:
@@ -6572,40 +6356,6 @@ class GeometricTheorem:
 
             elif version == "2":
                 print("2")
-
-
-
-        elif theorem_name == "perpendicular_bisector_property_distance_equal":
-            version = args[0]
-            if version == "1":
-                # Parse conclusion: "Equal(LengthOfLine(EA),LengthOfLine(EC))"
-                match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', conclusions[0])
-
-                if match:
-                    segment1, segment2 = match.groups()  # e.g., "EA", "EC"
-
-                    # Get (or create) length variables for both segments
-                    length1 = self.add_length(segment1[0], segment1[1])
-                    length2 = self.add_length(segment2[0], segment2[1])
-
-                    # Add the equality constraint
-                    self.solver.add(length1 == length2)
-
-                    print(
-                        f"Added perpendicular bisector property constraint: LengthOfLine({segment1}) = LengthOfLine({segment2})")
-                    return None
-                else:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Conclusion format error for perpendicular_bisector_property_distance_equal",
-                        details=f"Expected Equal(LengthOfLine(...),LengthOfLine(...)) but got {conclusions[0]}"
-                    )
-            else:
-                return GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL,
-                    message=f"Unsupported version {version} for perpendicular_bisector_property_distance_equal"
-                )
-
 
 
         elif theorem_name == "triangle_area_formula_common":
@@ -9207,6 +8957,6 @@ def verify_geometric_proof(filename: str) -> bool:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_696/question696_oren_correct")
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_6485/question6485_gt")
     print(f"Verification {'succeeded' if result else 'failed'}")
 ##

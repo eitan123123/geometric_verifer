@@ -1,0 +1,28 @@
+Analysis Report for question_4797
+============================================================
+
+You tried to find the goal angle ADB
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - A
+  - D
+  - B
+
+Angles:
+  - Angle BAD
+  - Angle ADB
+  - Angle ABD
+
+Polygons:
+  - Polygon ADB
+  - Polygon ABD
+
+These are the theorems that have to do with goal ADB in your proof:
+------------------------------------------------------------
+Step 4 - triangle_property_angle_sum(1, BAD):
+  Conclusion: Equal(Add(MeasureOfAngle(BAD),MeasureOfAngle(ADB),MeasureOfAngle(DBA)),180)
+
+This wasn't enough information to get a unique value for the goal angle ADB.
+Your proof allows multiple solutions for this angle.

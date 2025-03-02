@@ -1,0 +1,41 @@
+Analysis Report for question_6802
+============================================================
+
+You tried to find the goal angle BAC
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - B
+  - A
+  - C
+
+Lines:
+  - Line BC
+
+Angles:
+  - Angle ACB
+  - Angle ABC
+  - Angle BAC
+
+Polygons:
+  - Polygon ABC
+  - Polygon ACB
+
+Perpendicular Lines:
+  - Perpendicular AC and BC
+  - Perpendicular BC and AC
+
+Circles:
+  - Circle B with center B
+
+Cocircular Points:
+  - Cocircular B,C
+
+These are the theorems that have to do with goal BAC in your proof:
+------------------------------------------------------------
+Step 3 - triangle_property_angle_sum(1, ACB):
+  Conclusion: Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)
+
+This wasn't enough information to get a unique value for the goal angle BAC.
+Your proof allows multiple solutions for this angle.

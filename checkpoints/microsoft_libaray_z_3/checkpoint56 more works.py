@@ -4509,50 +4509,17 @@ class GeometricTheorem:
             if 'GOAL_CDL' in sections:
                 goal_line = sections['GOAL_CDL'][0]
 
-                def parse_special_answer(answer_str):
-                    """Parse answer strings including those with square root symbol."""
-                    import math
-                    import re
-
-                    # Remove whitespace
-                    answer_str = answer_str.strip()
-
-                    # Handle √ symbol format: 6(√6-1)
-                    if '√' in answer_str:
-                        # Handle pattern like "6(√6-1)"
-                        pattern = r'(\d+)\(√(\d+)(-|\+)(\d+)\)'
-                        match = re.match(pattern, answer_str)
-                        if match:
-                            a, b, op, c = match.groups()
-                            a, b, c = float(a), float(b), float(c)
-                            if op == '-':
-                                return a * (math.sqrt(b) - c)
-                            else:  # op == '+'
-                                return a * (math.sqrt(b) + c)
-
-                        # General replacement of √ symbol
-                        modified_str = re.sub(r'√(\d+)', r'math.sqrt(\1)', answer_str)
-                        # Handle implicit multiplication
-                        modified_str = re.sub(r'(\d+)\(', r'\1*(', modified_str)
-                        try:
-                            return float(eval(modified_str, {"math": math}))
-                        except Exception:
-                            pass
-
-                    # Standard eval with math functions
-                    try:
-                        return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
-                    except Exception:
-                        # Fall back to Fraction
-                        from fractions import Fraction
-                        return float(Fraction(answer_str))
                 # --- Check for an arc length goal of the form:
                 #     Value(LengthOfArc(X))
                 arc_length_match = re.search(r'Value\(LengthOfArc\((\w+)\)\)', goal_line)
                 if arc_length_match:
                     arc_token = arc_length_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal arc length: {arc_token}")
                         print(f"Expected arc length: {expected}")
@@ -4641,7 +4608,13 @@ class GeometricTheorem:
                     line2 = sum_lengths_match.group(2)  # e.g., "DM"
 
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected_answer = float(
+                                eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected_answer = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal sum of lengths: LengthOfLine({line1}) + LengthOfLine({line2})")
                         print(f"Expected answer: {expected_answer}")
@@ -4747,7 +4720,12 @@ class GeometricTheorem:
                 if cos_match:
                     angle_token = cos_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal cosine: Cos(MeasureOfAngle({angle_token}))")
                         print(f"Expected value: {expected}")
@@ -5175,7 +5153,12 @@ class GeometricTheorem:
                 if sin_match:
                     angle_token = sin_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal sine: Sin(MeasureOfAngle({angle_token}))")
                         print(f"Expected value: {expected}")
@@ -5541,7 +5524,11 @@ class GeometricTheorem:
                 if arc_match:
                     arc_token = arc_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
                         print(f"\nGoal arc measure: {arc_token}")
                         print(f"Expected arc measure: {expected}")
                         if self.verify_goal_arc(arc_token, expected):
@@ -5559,7 +5546,12 @@ class GeometricTheorem:
                 if quad_area_match:
                     quad_name = quad_area_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected =parse_special_answer(sections['ANSWER'][0].strip())
+                        try:
+                            import math
+                            expected = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            from fractions import Fraction
+                            expected = float(Fraction(sections['ANSWER'][0].strip()))
 
                         print(f"\nGoal quadrilateral area: {quad_name}")
                         print(f"Expected area: {expected}")
@@ -5649,7 +5641,11 @@ class GeometricTheorem:
                     line2 = length_div_match.group(2)
                     if 'ANSWER' in sections and sections['ANSWER']:
                         answer_str = sections['ANSWER'][0].strip()
-                        expected_value =parse_special_answer(answer_str)
+                        try:
+                            import math
+                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
+                        except Exception:
+                            expected_value = float(Fraction(answer_str))
 
                         print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
                         print(f"Expected value: {expected_value}")
@@ -5750,7 +5746,8 @@ class GeometricTheorem:
                 if perimeter_match:
                     triangle = perimeter_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
+                        import math
+                        expected_answer = float(eval(sections['ANSWER'][0].strip(), {"pi": math.pi, "sqrt": math.sqrt}))
                         print(f"\nGoal triangle perimeter: {triangle}")
                         print(f"Expected answer: {expected_answer}")
 
@@ -5841,7 +5838,14 @@ class GeometricTheorem:
                 if length_match:
                     line_name = length_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
+                        answer_str = sections['ANSWER'][0].strip()
+                        import math
+                        eval_env = {"sqrt": math.sqrt, "pi": math.pi}
+                        try:
+                            expected_answer = float(eval(answer_str, {"__builtins__": {}}, eval_env))
+                        except Exception as e:
+                            print("Error evaluating answer expression:", e)
+                            return False
                         print(f"\nGoal line: {line_name}")
                         print(f"Expected answer: {expected_answer}")
                         verified = self.verify_goal_length(line_name[0], line_name[1], expected_answer)
@@ -5865,7 +5869,11 @@ class GeometricTheorem:
                 if angle_match:
                     goal_angle = angle_match.group(1)
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
+                        answer_str = sections['ANSWER'][0].strip()
+                        try:
+                            expected_answer = float(answer_str)
+                        except ValueError:
+                            expected_answer = float(Fraction(answer_str))
                         print(f"\nGoal angle: {goal_angle}")
                         print(f"Expected answer: {expected_answer}")
                         success = self.verify_algebraic_goal(goal_angle, expected_answer)
@@ -5926,10 +5934,10 @@ class GeometricTheorem:
                                         computed_value = area_circle_val - area_triangle_val
 
                                         try:
-                                            expected_value = parse_special_answer(answer_str)
+                                            import math
+                                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                                         except Exception as e:
-                                            print(f"Error parsing answer '{answer_str}': {e}")
-                                            return False
+                                            expected_value = float(Fraction(answer_str))
 
                                         epsilon = 1e-8
                                         if abs(computed_value - expected_value) >= epsilon:
@@ -6026,10 +6034,9 @@ class GeometricTheorem:
                             return False
 
                         try:
-                            expected_value = parse_special_answer(answer_str)
+                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception as e:
-                            print(f"Error parsing answer '{answer_str}': {e}")
-                            return False
+                            expected_value = float(Fraction(answer_str))
 
                         epsilon = 1e-8
                         if abs(computed_value - expected_value) >= epsilon:

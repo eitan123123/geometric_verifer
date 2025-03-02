@@ -1,0 +1,25 @@
+Analysis Report for question_4254
+============================================================
+
+You tried to find the goal angle CBP
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - C
+  - B
+  - P
+
+Angles:
+  - Angle CBP
+
+Polygons:
+  - Polygon BPC
+  - Polygon BCP
+
+These are the theorems that have to do with goal CBP in your proof:
+------------------------------------------------------------
+None. Your proof doesn't include any theorems that constrain angle CBP.
+
+This wasn't enough information to get a unique value for the goal angle CBP.
+Your proof allows multiple solutions for this angle.
