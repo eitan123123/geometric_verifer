@@ -1612,7 +1612,7 @@ class GeometricTheorem:
         import datetime
 
         # Create the directory if it doesn't exist
-        output_dir = "info"
+        output_dir = "/Users/eitan/Desktop/lean/lean_python/info"
         os.makedirs(output_dir, exist_ok=True)
 
         # Create a timestamped filename - use ONLY the question name, not the goal token
@@ -8482,7 +8482,7 @@ class GeometricTheorem:
         # Write the report to a file (still using the original file writing code)
         import os
         import datetime
-        output_dir = "info"
+        output_dir = "/Users/eitan/Desktop/lean/lean_python/info"
         os.makedirs(output_dir, exist_ok=True)
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{output_dir}/{self.question_name}_{timestamp}.txt"
@@ -11422,7 +11422,7 @@ def verify_geometric_proof(filename: str) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_464/question464_gt")
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_1726/question1726_gt")
     print(f"Verification {'succeeded' if result else 'failed'}")
     if not result:
         print("Feedback:", feedback)
