@@ -261,7 +261,7 @@ GOAL_SYMBOL:
 ma_afb
 
 ANSWER:
-131
+130
 
 THEOREM_SEQUENCE:
 1; adjacent_complementary_angle(1,AFB,BFC); Collinear(AFC)&Angle(AFB)&Angle(BFC); ["Equal(Add(MeasureOfAngle(AFB),MeasureOfAngle(BFC)),180)"]

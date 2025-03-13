@@ -11426,7 +11426,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_1490/question1490_oren_correct",print_output=False)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_1490/question1490_oren_correct",print_output=True)
     print(f"Verification {'succeeded' if result else 'failed'}")
 
     if not result:

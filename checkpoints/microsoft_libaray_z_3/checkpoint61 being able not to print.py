@@ -8535,7 +8535,7 @@ class GeometricTheorem:
 
                 # Write report to file
                 self.write_failure_report(f"angle_{goal_angle}", angle_report)
-                return False, angle_report  # Return just the error message, not the full report
+                return False, error_msg  # Return just the error message, not the full report
 
             # Now check if any other value is allowed
             temp_solver2 = Solver()
@@ -8572,7 +8572,7 @@ class GeometricTheorem:
 
                 # Write report to file
                 self.write_failure_report(f"angle_{goal_angle}", angle_report)
-                return False, angle_report  # Return just the error message, not the full report
+                return False, error_msg  # Return just the error message, not the full report
 
             # If we get here, the constraints uniquely determine the value
             model = self.solver.model()
