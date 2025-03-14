@@ -2802,44 +2802,74 @@ class GeometricTheorem:
 
 
 
+
         elif theorem_name == "isosceles_triangle_judgment_line_equal":
+
             # Expected theorem call: isosceles_triangle_judgment_line_equal(1, T)
+
             # where T is a triangle name (for example, "JPN").
+
             if len(args) < 2:
                 return return_error(GeometricError(
+
                     tier=ErrorTier.TIER1_THEOREM_CALL,
+
                     message="Missing triangle name for isosceles_triangle_judgment_line_equal."
+
                 ))
+
             tri = args[1].strip()  # e.g., "JPN"
 
             # Check that the triangle is defined (i.e. a polygon fact exists)
 
+            if self.normalize_triangle(tri) not in self.polygons:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE,
+
+                    message=f"Polygon for triangle {tri} is missing",
+
+                    details="The construction data did not define this polygon."
+
+                ))
 
             # We now want to check that the premise contains an equality between two sides
+
             # sharing a common vertex for some cyclic rotation of tri.
+
             # For a triangle ABC, one possibility is Equal(LengthOfLine(AB),LengthOfLine(AC)).
+
             def cyclic_rotations(s):
+
                 rotations = []
+
                 for i in range(len(s)):
                     rotations.append(s[i:] + s[:i])
+
                 return rotations
 
             rotations = cyclic_rotations(tri)
+
             found_equality = False
 
-
-
-            # Then, in your branch:
             for r in rotations:
+
                 if self.check_length_equality(r[0:2], r[0] + r[2]):
                     found_equality = True
+
                     break
+
             if not found_equality:
                 return return_error(GeometricError(
+
                     tier=ErrorTier.TIER2_PREMISE,
+
                     message="Expected equality between two sides sharing a vertex not found in the premise.",
+
                     details=f"Premise: {premise}"
+
                 ))
+
             return True, None
 
 
@@ -8821,64 +8851,104 @@ class GeometricTheorem:
 
 
 
+
         elif theorem_name == "triangle_area_formula_common":
+
             version = args[0]
+
             if version == "1":
+
                 # Parse conclusion: "Equal(AreaOfTriangle(DCA),Mul(HeightOfTriangle(DCA),LengthOfLine(CA),1/2))"
+
                 match = re.search(
+
                     r'Equal\(AreaOfTriangle\((\w+)\),Mul\(HeightOfTriangle\(\1\),LengthOfLine\((\w+)\),(\d+/\d+)\)\)',
+
                     conclusions[0]
+
                 )
 
                 if match:
+
                     triangle, base, factor_str = match.groups()
 
                     # Get or create area variable
+
                     normalized_triangle = ''.join(sorted(triangle))  # Normalize alphabetically as requested
+
                     if normalized_triangle not in self.triangle_areas:
                         self.triangle_areas[normalized_triangle] = Real(f"areaTriangle_{normalized_triangle}")
+
                         self.solver.add(self.triangle_areas[normalized_triangle] >= 0)
 
                     area_var = self.triangle_areas[normalized_triangle]
 
-                    # Get height variable (should exist due to premise check)
-                    if triangle not in self.triangle_heights:
-                        # This should not happen due to premise check, but let's be safe
-                        return GeometricError(
-                            tier=ErrorTier.TIER2_PREMISE,
-                            message=f"No height variable found for triangle {triangle}",
-                            details="This should have been caught in the premise check"
-                        )
+                    # Create height variable if it doesn't exist
 
-                    height_var = self.triangle_heights[triangle]
+                    if not hasattr(self, "triangle_heights"):
+                        self.triangle_heights = {}
+
+                    if triangle not in self.triangle_heights:
+
+                        height_var = Real(f"heightTriangle_{triangle}")
+
+                        self.triangle_heights[triangle] = height_var
+
+                        self.solver.add(height_var >= 0)
+
+                        print(f"Created height variable for triangle {triangle}")
+
+                    else:
+
+                        height_var = self.triangle_heights[triangle]
 
                     # Get base length variable
+
                     base_var = self.add_length(base[0], base[1])
 
                     # Parse the factor (usually 1/2)
+
                     try:
+
                         from fractions import Fraction
+
                         factor_val = float(Fraction(factor_str))
+
                     except Exception as e:
+
                         print(f"Error parsing factor {factor_str}: {e}, defaulting to 0.5")
+
                         factor_val = 0.5
 
                     # Add area formula constraint: area = (1/2) * height * base
+
                     self.solver.add(area_var == factor_val * height_var * base_var)
 
                     print(
                         f"Added triangle area constraint: AreaOfTriangle({triangle}) = {factor_val} * HeightOfTriangle({triangle}) * LengthOfLine({base})")
+
                     return None
+
                 else:
+
                     return GeometricError(
+
                         tier=ErrorTier.TIER1_THEOREM_CALL,
+
                         message="Conclusion format error for triangle_area_formula_common",
+
                         details=f"Expected pattern not found in: {conclusions[0]}"
+
                     )
+
             else:
+
                 return GeometricError(
+
                     tier=ErrorTier.TIER1_THEOREM_CALL,
+
                     message=f"Unsupported version {version} for triangle_area_formula_common"
+
                 )
 
 
@@ -11426,7 +11496,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_1490/question1490_oren_correct",print_output=False)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_4187/question4187_gt",print_output=True)
     print(f"Verification {'succeeded' if result else 'failed'}")
 
     if not result:

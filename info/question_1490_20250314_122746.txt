@@ -1,0 +1,51 @@
+Analysis Report for question_1490
+============================================================
+
+Goal: Measure of angle FAB
+Expected value: 131.0°
+
+Error: The proof doesn't uniquely determine angle FAB.
+It could be 131.0° but also 131.50000001°
+
+The proof needs additional constraints to uniquely determine this angle.
+
+Analysis Report for question_1490
+============================================================
+
+You tried to find the goal angle FAB
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - F
+  - A
+  - B
+
+Lines:
+  - Line AB
+
+Angles:
+  - Angle AFB
+  - Angle BAF
+  - Angle ABF
+
+Polygons:
+  - Polygon AFB
+  - Polygon ABF
+
+These are the theorems that have to do with goal FAB in your proof:
+------------------------------------------------------------
+None. Your proof doesn't include any theorems that constrain angle FAB.
+
+Solver constraints directly related to this goal:
+------------------------------------------------------------
+1. angle_BAF >= 0
+2. angle_BAF <= 180
+3. angle_BAF == angle_BAC
+4. angle_BAF == angle_BAC
+
+This wasn't enough information to get a unique value for the goal angle FAB.
+Your proof allows multiple solutions for this angle.
+It could be 131.0° but also 131.50000001°
+You need to add more constraints by applying additional theorems.
+
