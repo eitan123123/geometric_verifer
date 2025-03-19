@@ -1,0 +1,48 @@
+Analysis Report for question_4254
+============================================================
+
+Goal: Measure of angle CBP
+Expected value: 45.0°
+
+Error: The proof doesn't uniquely determine angle CBP.
+It could be 45.0° but also 45.50000001°
+
+The proof needs additional constraints to uniquely determine this angle.
+
+Analysis Report for question_4254
+============================================================
+
+You tried to find the goal angle CBP
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - C
+  - B
+  - P
+
+Angles:
+  - Angle BPC
+  - Angle BCP
+  - Angle CBP
+
+Polygons:
+  - Polygon BPC
+  - Polygon BCP
+
+These are the theorems that have to do with goal CBP in your proof:
+------------------------------------------------------------
+None. Your proof doesn't include any theorems that constrain angle CBP.
+
+Solver constraints directly related to this goal:
+------------------------------------------------------------
+1. angle_CBP >= 0
+2. angle_CBP <= 180
+3. angle_CBP == angle_ABC
+4. angle_CBP == angle_ABC
+
+This wasn't enough information to get a unique value for the goal angle CBP.
+Your proof allows multiple solutions for this angle.
+It could be 45.0° but also 45.50000001°
+You need to add more constraints by applying additional theorems.
+

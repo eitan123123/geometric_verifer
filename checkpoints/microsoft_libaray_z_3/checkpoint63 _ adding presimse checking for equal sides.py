@@ -819,8 +819,7 @@ class GeometricTheorem:
         report += "-" * 60 + "\n"
 
         # Check for parallel lines
-        # Check for parallel lines
-        parallel_relations = set()
+        parallel_relations = []
         for pair in self.parallel_pairs:
             # Check all combinations and permutations
             pair_options = [
@@ -831,9 +830,7 @@ class GeometricTheorem:
             ]
 
             if pair in pair_options or (pair[1], pair[0]) in pair_options:
-                # Normalize the representation for consistency
-                sorted_pair = tuple(sorted([pair[0], pair[1]]))
-                parallel_relations.add(f"Lines {sorted_pair[0]} and {sorted_pair[1]} are parallel")
+                parallel_relations.append(f"Lines {pair[0]} and {pair[1]} are parallel")
 
         if parallel_relations:
             for rel in parallel_relations:
@@ -953,19 +950,11 @@ class GeometricTheorem:
         len1_var_name = f"length_{self.normalize_line_name(line1)}"
         len2_var_name = f"length_{self.normalize_line_name(line2)}"
 
-        # Use a set to store unique constraints
-        relevant_constraints_set = set()
+        relevant_constraints = []
         for c in self.solver.assertions():
             c_str = str(c)
-            if (len1_var_name in c_str or len2_var_name in c_str) and not (
-                    "1/1000" in c_str or
-                    (len1_var_name in c_str and c_str.endswith("> 0")) or
-                    (len2_var_name in c_str and c_str.endswith("> 0"))
-            ):
-                relevant_constraints_set.add(c_str)  # Using a set will eliminate duplicates
-
-        # Convert back to list
-        relevant_constraints = list(relevant_constraints_set)
+            if len1_var_name in c_str or len2_var_name in c_str:
+                relevant_constraints.append(c_str)
 
         if relevant_constraints:
             for i, constraint in enumerate(relevant_constraints):
@@ -1266,16 +1255,13 @@ class GeometricTheorem:
         Record that two triangles are similar and create their ratio variable.
         This function uses a canonical key obtained from cyclic rotations so that
         the pair (tri1, tri2) is uniquely identified regardless of rotation or order.
-
-        Additionally attempts to compute the ratio value when sufficient constraints exist.
         """
         # Get the canonical pair from our helper.
         canonical_pair = self.canonicalize_mirror_triangle_pair(tri1, tri2)
 
+
         # Record the similarity using the canonical pair.
-        if canonical_pair not in self.similar_triangles:
-            self.similar_triangles.append(canonical_pair)
-            print(f"Recorded similarity: triangles {tri1} and {tri2} (canonical: {canonical_pair})")
+        self.similar_triangles.append(canonical_pair)
 
         # Create a ratio variable if it does not already exist.
         if canonical_pair not in self.triangle_ratios:
@@ -1283,140 +1269,7 @@ class GeometricTheorem:
             self.triangle_ratios[canonical_pair] = Real(var_name)
             print(f"Created ratio variable: {var_name}")
 
-        ratio_var = self.triangle_ratios[canonical_pair]
-
-        # Try to compute the ratio automatically if solver is satisfiable
-        if self.solver.check() == sat:
-            model = self.solver.model()
-
-            # Get the vertices of both triangles in their original order
-            verts1 = list(tri1)
-            verts2 = list(tri2)
-
-            # Check if we can determine the ratio from any pair of corresponding sides
-            ratio_determined = False
-            attempted_pairs = []
-
-            # Check all three pairs of corresponding sides
-            for i in range(3):
-                p1a, p1b = verts1[i], verts1[(i + 1) % 3]
-                p2a, p2b = verts2[i], verts2[(i + 1) % 3]
-
-                # Form the sides
-                side1 = p1a + p1b
-                side2 = p2a + p2b
-
-                # Get the length variables
-                len1_var = self.add_length(side1[0], side1[1])
-                len2_var = self.add_length(side2[0], side2[1])
-
-                attempted_pairs.append((side1, side2))
-
-                # Check if both sides have unique values in the current model
-                try:
-                    # Create temporary solvers to check uniqueness
-                    temp_solver1 = Solver()
-                    for c in self.solver.assertions():
-                        temp_solver1.add(c)
-
-                    # Get current values
-                    len1_val = float(model.eval(len1_var).as_decimal(10).rstrip('?'))
-                    len2_val = float(model.eval(len2_var).as_decimal(10).rstrip('?'))
-
-                    # Check uniqueness by trying to find different values
-                    epsilon = 1e-8
-                    temp_solver1.add(Or(
-                        len1_var < len1_val - epsilon,
-                        len1_var > len1_val + epsilon
-                    ))
-
-                    temp_solver2 = Solver()
-                    for c in self.solver.assertions():
-                        temp_solver2.add(c)
-
-                    temp_solver2.add(Or(
-                        len2_var < len2_val - epsilon,
-                        len2_var > len2_val + epsilon
-                    ))
-
-                    # If both sides have unique values and second side is non-zero
-                    if temp_solver1.check() == unsat and temp_solver2.check() == unsat and len2_val > epsilon:
-                        computed_ratio = len1_val / len2_val
-
-                        # Check if this ratio is consistent with existing constraints
-                        temp_solver3 = Solver()
-                        for c in self.solver.assertions():
-                            temp_solver3.add(c)
-
-                        # Try adding the computed ratio
-                        temp_solver3.add(ratio_var == computed_ratio)
-
-                        if temp_solver3.check() == sat:
-                            # This ratio is consistent, so add it as a constraint
-                            self.solver.add(ratio_var == computed_ratio)
-                            print(f"✓ Automatically determined similarity ratio: {computed_ratio:.4f}")
-                            print(f"  Based on sides: {side1}/{side2} = {len1_val:.4f}/{len2_val:.4f}")
-                            ratio_determined = True
-                            break
-                        else:
-                            print(
-                                f"× Computed ratio {computed_ratio:.4f} from {side1}/{side2} inconsistent with existing constraints")
-                except Exception as e:
-                    # Just log and continue - don't disrupt the existing functionality
-                    print(f"! Error checking side pair {side1}/{side2}: {str(e)}")
-
-            if not ratio_determined:
-                # Also try checking if ratio_var itself is uniquely determined
-                try:
-                    ratio_val = float(model.eval(ratio_var).as_decimal(10).rstrip('?'))
-
-                    # Check if the ratio is uniquely determined
-                    temp_solver = Solver()
-                    for c in self.solver.assertions():
-                        temp_solver.add(c)
-
-                    epsilon = 1e-8
-                    temp_solver.add(Or(
-                        ratio_var < ratio_val - epsilon,
-                        ratio_var > ratio_val + epsilon
-                    ))
-
-                    if temp_solver.check() == unsat:
-                        # The ratio is already uniquely determined by existing constraints
-                        print(f"✓ Similarity ratio already constrained to: {ratio_val:.4f}")
-                        ratio_determined = True
-                    else:
-                        # To help with debugging, get an alternative value
-                        alt_model = temp_solver.model()
-                        alt_ratio = float(alt_model.eval(ratio_var).as_decimal(10).rstrip('?'))
-                        print(f"! Similarity ratio not uniquely determined: could be {ratio_val} or {alt_ratio}")
-                        print(f"  Attempted side pairs: {', '.join([f'{s1}/{s2}' for s1, s2 in attempted_pairs])}")
-                except Exception as e:
-                    print(f"! Error checking ratio uniqueness: {str(e)}")
-        else:
-            print("! Note: Cannot compute similarity ratio - solver is unsatisfiable")
-
-        # Add the side ratio constraints for all corresponding sides (for backward compatibility)
-        self.add_all_side_ratios_for_similar_triangles(tri1, tri2)
-
-        # Also try to create non-degeneracy constraints for the triangles
-        try:
-            # Add a constraint that the ratio is positive (prevents zero-sized solutions)
-            self.solver.add(ratio_var > 0)
-
-            # Add constraints that all sides have positive length
-            for tri in [tri1, tri2]:
-                for i in range(3):
-                    p1 = tri[i]
-                    p2 = tri[(i + 1) % 3]
-                    side_var = self.add_length(p1, p2)
-                    # Use a small positive value instead of 0 to prevent near-zero solutions
-                    self.solver.add(side_var > 0.001)
-        except Exception as e:
-            # Just log, don't disrupt existing functionality
-            print(f"! Error adding non-degeneracy constraints: {str(e)}")
-
-        return ratio_var  # Return the ratio variable for convenience
+        # Optionally, add the side ratio constraints immediately.
 
 
     def calculate_perimeter(self, triangle: str) -> Optional[Real]:
@@ -1669,236 +1522,6 @@ class GeometricTheorem:
             print(f"Error parsing expression '{expr}': {str(e)}")
             raise
 
-    def generate_length_analysis_report(self, line_name, expected_value, alt_value=None,
-                                        solver_state="multiple_values"):
-        """Generate a focused report about why the line length goal couldn't be uniquely determined"""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Length of line {line_name}\n"
-        report += f"Expected value: {expected_value}\n\n"
-
-        # Extract points involved in the line
-        line_points = list(line_name)
-
-        # Get all related facts from our knowledge base
-        related_facts = self.collect_related_facts_for_line(line_points)
-
-        if related_facts:
-            report += "Relevant geometric facts:\n"
-            report += "-" * 60 + "\n"
-            for category, facts in related_facts.items():
-                if facts:  # Only show categories with facts
-                    report += f"{category}:\n"
-                    for fact in facts:
-                        report += f"  - {fact}\n"
-                    report += "\n"
-        else:
-            report += "No facts directly involving line " + line_name + " were found in the premises.\n\n"
-
-        # Find theorems that mention the line or its components
-        report += f"Theorems related to line {line_name} in your proof:\n"
-        report += "-" * 60 + "\n"
-
-        related_theorems = self.find_related_theorems_for_line(line_name, line_points)
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving line {line_name} were found in your proof.\n\n"
-
-        # Add solver constraints related to this line
-        report += "Solver constraints directly related to this line:\n"
-        report += "-" * 60 + "\n"
-
-        # Normalize the line name for looking up in solver
-        normalized_line = self.normalize_line_name(line_name)
-        length_var_name = f"length_{normalized_line}"
-
-        # More precise constraint filtering
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            # Only include constraints that directly mention the exact line variable name
-            if length_var_name in c_str:
-                # Check for direct relationships with this line
-                patterns = [
-                    f"{length_var_name} " in c_str,
-                    f"{length_var_name}=" in c_str,
-                    f"{length_var_name}+" in c_str,
-                    f"{length_var_name}-" in c_str,
-                    f"{length_var_name}*" in c_str,
-                    f"{length_var_name}/" in c_str
-                ]
-                if any(patterns):
-                    relevant_constraints.append(c_str)
-
-            # Also include constraints that set the line value
-            elif f" == {length_var_name}" in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this line length.\n\n"
-
-        # Add different explanations based on solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += f"The solver found the constraints to be contradictory when trying to evaluate length of {line_name}.\n"
-            report += "This means there's an inconsistency in your geometric setup or theorem applications.\n"
-            report += "Check for contradictory premises or incorrectly applied theorems.\n"
-        elif solver_state == "incompatible":
-            report += f"The constraints in your proof are consistent, but don't allow line {line_name} to be {expected_value}.\n"
-            report += "This means your proof implies a different value for this line than expected.\n"
-        elif solver_state == "undefined":
-            report += f"The line {line_name} is not defined in your proof's context.\n"
-            report += "This usually means you haven't created constraints for this line in your theorems.\n"
-            report += "Check that you've properly established this line using appropriate theorems.\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine the length of line {line_name}.\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-
-        return report
-
-    def collect_related_facts_for_line(self, line_points):
-        """Collect only facts where at least one point is part of the line"""
-        related_facts = {}
-        line_points_set = set(line_points)
-
-        # 1. Points in the line
-        related_facts["Points"] = line_points
-
-        # 2. Collect lines containing at least one point from our line
-        related_lines = []
-        for line_name, line_var in self.lengths.items():
-            # Extract points from line name (typically in format "length_AB")
-            line_points_str = line_name.split('_')[1] if '_' in line_name else line_name
-            if any(p in line_points_set for p in line_points_str) and line_points_str != ''.join(line_points):
-                related_lines.append(f"Line {line_points_str}")
-        related_facts["Related Lines"] = related_lines
-
-        # 3. Collect triangles containing both points of our line
-        related_triangles = []
-        for polygon in self.polygons:
-            if len(polygon) == 3 and all(p in polygon for p in line_points):
-                properties = []
-                if polygon in self.right_triangles:
-                    properties.append("right")
-                if hasattr(self, 'isosceles_triangles') and polygon in self.isosceles_triangles:
-                    properties.append("isosceles")
-                if properties:
-                    related_triangles.append(f"Triangle {polygon} ({', '.join(properties)})")
-                else:
-                    related_triangles.append(f"Triangle {polygon}")
-        related_facts["Triangles Containing This Line"] = related_triangles
-
-        # 4. Collect quadrilaterals containing both points of our line
-        related_quads = []
-        for polygon in self.polygons:
-            if len(polygon) == 4 and all(p in polygon for p in line_points):
-                properties = []
-                if polygon in self.parallelograms:
-                    properties.append("parallelogram")
-                if hasattr(self, 'rectangles') and polygon in self.rectangles:
-                    properties.append("rectangle")
-                if hasattr(self, 'squares') and polygon in self.squares:
-                    properties.append("square")
-                if properties:
-                    related_quads.append(f"Quadrilateral {polygon} ({', '.join(properties)})")
-                else:
-                    related_quads.append(f"Quadrilateral {polygon}")
-        related_facts["Quadrilaterals Containing This Line"] = related_quads
-
-        # 5. Collect parallel line pairs involving this line
-        related_parallel = []
-        line_str = ''.join(line_points)
-        for pair in self.parallel_pairs:
-            if line_str in [pair[0], pair[1], pair[0][::-1], pair[1][::-1]]:
-                other_line = pair[1] if (pair[0] == line_str or pair[0][::-1] == line_str) else pair[0]
-                related_parallel.append(f"Parallel to {other_line}")
-        related_facts["Parallel Relationships"] = related_parallel
-
-        # 6. Collect perpendicular line pairs involving this line
-        related_perp = []
-        for pair in self.perpendicular_pairs:
-            if line_str in [pair[0], pair[1], pair[0][::-1], pair[1][::-1]]:
-                other_line = pair[1] if (pair[0] == line_str or pair[0][::-1] == line_str) else pair[0]
-                related_perp.append(f"Perpendicular to {other_line}")
-        related_facts["Perpendicular Relationships"] = related_perp
-
-        # 7. Check if this line is a radius, diameter, or chord of a circle
-        circle_relationships = []
-        for circle, center in self.circle_centers.items():
-            if center in line_points and any(p != center and p in line_points for p in line_points):
-                circle_relationships.append(f"Radius of circle {circle}")
-
-        for diam_tuple in self.is_diameter_of_circle:
-            diam_line, circle = diam_tuple
-            if diam_line == line_str or diam_line[::-1] == line_str:
-                circle_relationships.append(f"Diameter of circle {circle}")
-
-        related_facts["Circle Relationships"] = circle_relationships
-
-        # Remove empty categories
-        return {k: v for k, v in related_facts.items() if v}
-
-    def find_related_theorems_for_line(self, line_name, line_points):
-        """Find theorems that directly relate to the line"""
-        related_theorems = []
-        line_points_set = set(line_points)
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if line is directly mentioned in conclusions
-            for conclusion in theorem_info["conclusions"]:
-                if f"LengthOfLine({line_name})" in conclusion:
-                    is_related = True
-                    break
-
-                # Look for normalized versions
-                norm_line = self.normalize_line_name(line_name)
-                if f"LengthOfLine({norm_line})" in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if line_name in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(line_name in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            # Check if any of the points is mentioned in a side ratio or similar triangle context
-            if any("RatioOfSimilarTriangle" in c and any(p in c for p in line_points) for c in
-                   theorem_info["conclusions"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        return related_theorems
-
-
-
-
     def add_algebraic_angle(self, angle_name: str, expression: str):
         """Add an angle with an algebraic expression"""
         print(f"\nAdding algebraic angle constraint: {angle_name} = {expression}")
@@ -2141,8 +1764,8 @@ class GeometricTheorem:
             length_report += "Error: Length variable not defined.\n"
             print("Length variable not defined.")
 
-            # Generate a detailed report using the new line-specific function
-            detailed_report = self.generate_length_analysis_report(goal_line, expected, None, "undefined")
+            # Generate a detailed report
+            detailed_report = self.generate_goal_analysis_report(goal_line, expected, None, "undefined")
             length_report += f"\n{detailed_report}\n"
 
             # Write report to file
@@ -2163,8 +1786,8 @@ class GeometricTheorem:
                 error_msg = f"Failed to prove length goal: constraints don't allow the expected value."
                 length_report += f"Error: Constraints don't allow the expected value {expected}\n"
 
-                # Generate a detailed report using the new line-specific function
-                detailed_report = self.generate_length_analysis_report(goal_line, expected, None, "incompatible")
+                # Generate a detailed report
+                detailed_report = self.generate_goal_analysis_report(goal_line, expected, None, "incompatible")
                 length_report += f"\n{detailed_report}\n"
 
                 print(f"Error: Constraints don't allow the expected value {expected}")
@@ -2197,9 +1820,8 @@ class GeometricTheorem:
                 length_report += f"Error: The proof doesn't uniquely determine {normalized}.\n"
                 length_report += f"It could be {expected} but also {alt_value}\n"
 
-                # Generate a detailed report using the new line-specific function
-                detailed_report = self.generate_length_analysis_report(goal_line, expected, alt_value,
-                                                                       "multiple_values")
+                # Generate a detailed report
+                detailed_report = self.generate_goal_analysis_report(goal_line, expected, alt_value, "multiple_values")
                 length_report += f"\n{detailed_report}\n"
 
                 print(f"Error: The proof doesn't uniquely determine {normalized}.")
@@ -2223,8 +1845,8 @@ class GeometricTheorem:
             error_msg = f"Failed to prove length goal: solver is unsatisfiable."
             length_report += "Error: Solver constraints unsatisfiable when verifying length goal.\n"
 
-            # Generate a detailed report using the new line-specific function
-            detailed_report = self.generate_length_analysis_report(goal_line, expected, None, "unsatisfiable")
+            # Generate a detailed report for unsatisfiable case
+            detailed_report = self.generate_goal_analysis_report(goal_line, expected, None, "unsatisfiable")
             length_report += f"\n{detailed_report}\n"
 
             print("Solver constraints unsatisfiable when verifying length goal.")
@@ -5533,7 +5155,6 @@ class GeometricTheorem:
                                 print(f"Added algebraic length constraint: {line_name} = {expr}")
 
 
-
                     elif line.startswith("IsPerpendicularBisectorOfLine("):
                         # Match a statement like: IsPerpendicularBisectorOfLine(EF,AC)
                         match = re.match(r'IsPerpendicularBisectorOfLine\((\w+),(\w+)\)', line)
@@ -5883,37 +5504,25 @@ class GeometricTheorem:
                             self.add_algebraic_arc(arc_name, expression)
                     # --- New branch for division of line lengths:
                     elif line.startswith('Equal(Div(LengthOfLine('):
+                        # This should match a line like:
+                        # Equal(Div(LengthOfLine(AD),LengthOfLine(AE)),4)
                         match = re.match(r'Equal\(Div\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\),(.+)\)', line)
                         if match:
                             line1, line2, expression = match.groups()
                             expression = expression.strip()
                             print(
                                 f"Found division length expression in TEXT_CDL: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expression}")
-
-                            # Get the two length variables
+                            # Get the two length variables (assuming the tokens have two letters)
                             len1 = self.add_length(line1[0], line1[1])
                             len2 = self.add_length(line2[0], line2[1])
-
-                            # Try to parse the expression as a fraction first
                             try:
-                                from fractions import Fraction
-                                div_val = float(Fraction(expression))
-                                print(f"Parsed division value as fraction: {div_val}")
-                            except Exception as e:
-                                try:
-                                    # Fall back to safe evaluation with limited context
-                                    div_val = float(eval(expression, {"__builtins__": {}}, {"pi": 3.141592653589793}))
-                                    print(f"Parsed division value using eval: {div_val}")
-                                except Exception as e2:
-                                    print(f"Error parsing division value '{expression}': {str(e2)}")
-                                    continue
-
-                            # Add the division constraint (rewritten to avoid potential division by zero)
-                            self.solver.add(len1 == len2 * div_val)  # Equivalent to len1/len2 == div_val
-                            print(
-                                f"Added division constraint: {line1} = {line2} * {div_val} (equivalent to {line1}/{line2} = {div_val})")
+                                expr_val = float(eval(expression, {"pi": 3.141592653589793}))
+                            except Exception:
+                                expr_val = float(Fraction(expression))
+                            self.solver.add(len1 / len2 == expr_val)
+                            print(f"Added length division constraint: {line1}/{line2} == {expr_val}")
                         else:
-                            print(f"Error: Could not parse division expression in line: {line}")
+                            print("Error parsing Div(LengthOfLine(...)) expression in TEXT_CDL.")
                     # --- New branch for median facts:
                     elif line.startswith("IsMedianOfTriangle("):
                         # Matches a fact like: IsMedianOfTriangle(AD,ABC)
@@ -7265,11 +6874,21 @@ class GeometricTheorem:
                         expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
                         print(f"\nGoal line: {line_name}")
                         print(f"Expected answer: {expected_answer}")
-                        success, error_msg = self.verify_goal_length(line_name[0], line_name[1], expected_answer)
-                        if not success:
-                            return False, error_msg
-                        else:
+                        verified = self.verify_goal_length(line_name[0], line_name[1], expected_answer)
+                        if verified:
                             return True, ""
+                        else:
+                            feedback = f"Failed to prove length goal. Goal was: LengthOfLine({line_name}) = {expected_answer}"
+                            print(f"Error: Could not prove LengthOfLine({line_name}) = {expected_answer}")
+                            error = GeometricError(
+                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
+                                message="Failed to prove length goal from the given theorems.",
+                                details=f"Goal was: LengthOfLine({line_name}) = {expected_answer}"
+                            )
+                            print(f"\nError in {error.tier.name}: {error.message}")
+                            if error.details:
+                                print("Details:", error.details)
+                            return False, feedback
 
                 # --- Check for an angle goal of the form:
                 #     Value(MeasureOfAngle(ABC))
@@ -11459,13 +11078,9 @@ class GeometricTheorem:
                 print("2")
 
 
-
         elif theorem_name == "similar_triangle_property_line_ratio":
-
             version = args[0]
-
             if version == "1":
-
                 match = re.search(
 
                     r'Equal\(LengthOfLine\((\w+)\),'
@@ -11493,7 +11108,7 @@ class GeometricTheorem:
 
                         )
 
-                    # Look up the ratio variable
+                    # Look up the ratio variable.
 
                     if norm_tris not in self.triangle_ratios:
                         var_name = f"ratio_{norm_tris[0]}_{norm_tris[1]}"
@@ -11502,146 +11117,19 @@ class GeometricTheorem:
 
                     ratio = self.triangle_ratios[norm_tris]
 
-                    # Add the original constraint
-
                     line1_var = self.add_length(line1[0], line1[1])
 
                     line2_var = self.add_length(line2[0], line2[1])
 
                     self.solver.add(line1_var == line2_var * ratio)
 
-                    # NEW CODE: Try to determine the ratio value if possible
+                    # (Optionally, call add_all_side_ratios_for_similar_triangles if not added yet;
 
-                    if self.solver.check() == sat:
+                    #  however, our flag in added_ratio_constraints should prevent duplicates.)
 
-                        model = self.solver.model()
-
-                        # Check if line1 and line2 have uniquely determined values
-
-                        try:
-
-                            # Get current values
-
-                            len1_val = float(model.eval(line1_var).as_decimal(10).rstrip('?'))
-
-                            len2_val = float(model.eval(line2_var).as_decimal(10).rstrip('?'))
-
-                            # Create temporary solvers to check if these values are unique
-
-                            temp_solver1 = Solver()
-
-                            for c in self.solver.assertions():
-                                temp_solver1.add(c)
-
-                            epsilon = 1e-8
-
-                            temp_solver1.add(Or(
-
-                                line1_var < len1_val - epsilon,
-
-                                line1_var > len1_val + epsilon
-
-                            ))
-
-                            temp_solver2 = Solver()
-
-                            for c in self.solver.assertions():
-                                temp_solver2.add(c)
-
-                            temp_solver2.add(Or(
-
-                                line2_var < len2_val - epsilon,
-
-                                line2_var > len2_val + epsilon
-
-                            ))
-
-                            # If both sides have unique values and second side is non-zero
-
-                            if temp_solver1.check() == unsat and temp_solver2.check() == unsat and len2_val > epsilon:
-
-                                computed_ratio = len1_val / len2_val
-
-                                # Check if this ratio makes sense
-
-                                temp_solver3 = Solver()
-
-                                for c in self.solver.assertions():
-                                    temp_solver3.add(c)
-
-                                # Add the computed ratio as a constraint
-
-                                temp_solver3.add(ratio == computed_ratio)
-
-                                if temp_solver3.check() == sat:
-                                    # This ratio is consistent with existing constraints
-
-                                    self.solver.add(ratio == computed_ratio)
-
-                                    print(f"Determined similarity ratio: {computed_ratio} from {line1}/{line2}")
-
-                        except Exception as e:
-
-                            # Just log and continue - don't disrupt functionality
-
-                            print(f"Note: Could not determine unique ratio: {str(e)}")
-
-                    # Also check if the ratio is constrained by other means
-
-                    if self.solver.check() == sat:
-
-                        model = self.solver.model()
-
-                        try:
-
-                            ratio_val = float(model.eval(ratio).as_decimal(10).rstrip('?'))
-
-                            # Check if the ratio is uniquely determined
-
-                            temp_solver = Solver()
-
-                            for c in self.solver.assertions():
-                                temp_solver.add(c)
-
-                            epsilon = 1e-8
-
-                            temp_solver.add(Or(
-
-                                ratio < ratio_val - epsilon,
-
-                                ratio > ratio_val + epsilon
-
-                            ))
-
-                            if temp_solver.check() == unsat:
-
-                                # The ratio is already uniquely determined
-
-                                print(f"Triangle similarity ratio is constrained to: {ratio_val}")
-
-                            else:
-
-                                # Find an alternative value to help with debugging
-
-                                alt_model = temp_solver.model()
-
-                                alt_ratio = float(alt_model.eval(ratio).as_decimal(10).rstrip('?'))
-
-                                print(
-                                    f"Triangle similarity ratio not uniquely determined: could be {ratio_val} or {alt_ratio}")
-
-                        except Exception as e:
-
-                            # Just log and continue
-
-                            print(f"Note: Error checking ratio uniqueness: {str(e)}")
-
-                    # Original print statement
 
                     print(f"Added ratio constraints for all corresponding sides of {tri1} and {tri2}.")
-
             elif version == "2":
-
                 print("2")
 
 
@@ -12008,7 +11496,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_4923/question4923_oren_correct",print_output=True)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_4187/question4187_gt",print_output=True)
     print(f"Verification {'succeeded' if result else 'failed'}")
 
     if not result:

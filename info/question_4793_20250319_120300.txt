@@ -1,0 +1,45 @@
+Analysis Report for question_4793
+============================================================
+
+Goal: Measure of angle DCA
+Expected value: 50.0°
+
+Error: The proof doesn't uniquely determine angle DCA.
+It could be 50.0° but also 50.50000001°
+
+The proof needs additional constraints to uniquely determine this angle.
+
+Analysis Report for question_4793
+============================================================
+
+You tried to find the goal angle DCA
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - D
+  - C
+  - A
+
+Angles:
+  - Angle ADC
+  - Angle ACD
+
+These are the theorems that have to do with goal DCA in your proof:
+------------------------------------------------------------
+None. Your proof doesn't include any theorems that constrain angle DCA.
+
+Solver constraints directly related to this goal:
+------------------------------------------------------------
+1. angle_ACD >= 0
+2. angle_ACD <= 180
+3. angle_ACD == angle_ACB
+4. angle_ACD == angle_ACO
+5. angle_ACD == angle_ACO
+6. angle_ACD == angle_ACB
+
+This wasn't enough information to get a unique value for the goal angle DCA.
+Your proof allows multiple solutions for this angle.
+It could be 50.0° but also 50.50000001°
+You need to add more constraints by applying additional theorems.
+

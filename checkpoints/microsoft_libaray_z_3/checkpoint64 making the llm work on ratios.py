@@ -819,8 +819,7 @@ class GeometricTheorem:
         report += "-" * 60 + "\n"
 
         # Check for parallel lines
-        # Check for parallel lines
-        parallel_relations = set()
+        parallel_relations = []
         for pair in self.parallel_pairs:
             # Check all combinations and permutations
             pair_options = [
@@ -831,9 +830,7 @@ class GeometricTheorem:
             ]
 
             if pair in pair_options or (pair[1], pair[0]) in pair_options:
-                # Normalize the representation for consistency
-                sorted_pair = tuple(sorted([pair[0], pair[1]]))
-                parallel_relations.add(f"Lines {sorted_pair[0]} and {sorted_pair[1]} are parallel")
+                parallel_relations.append(f"Lines {pair[0]} and {pair[1]} are parallel")
 
         if parallel_relations:
             for rel in parallel_relations:
@@ -953,19 +950,11 @@ class GeometricTheorem:
         len1_var_name = f"length_{self.normalize_line_name(line1)}"
         len2_var_name = f"length_{self.normalize_line_name(line2)}"
 
-        # Use a set to store unique constraints
-        relevant_constraints_set = set()
+        relevant_constraints = []
         for c in self.solver.assertions():
             c_str = str(c)
-            if (len1_var_name in c_str or len2_var_name in c_str) and not (
-                    "1/1000" in c_str or
-                    (len1_var_name in c_str and c_str.endswith("> 0")) or
-                    (len2_var_name in c_str and c_str.endswith("> 0"))
-            ):
-                relevant_constraints_set.add(c_str)  # Using a set will eliminate duplicates
-
-        # Convert back to list
-        relevant_constraints = list(relevant_constraints_set)
+            if len1_var_name in c_str or len2_var_name in c_str:
+                relevant_constraints.append(c_str)
 
         if relevant_constraints:
             for i, constraint in enumerate(relevant_constraints):
@@ -12008,7 +11997,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_4923/question4923_oren_correct",print_output=True)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_5779/question5779_gt",print_output=True)
     print(f"Verification {'succeeded' if result else 'failed'}")
 
     if not result:
