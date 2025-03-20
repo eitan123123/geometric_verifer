@@ -9,7 +9,7 @@ Shape(BC,CO,OB)
 Collinear(AOC)
 Collinear(BOD)
 TEXT_CDL:
-Equal(LengthOfLine(AB),5)
+
 Equal(PerimeterOfTriangle(OCD),23)
 Parallelogram(ABCD)
 GOAL_CDL:

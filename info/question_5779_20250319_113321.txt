@@ -1,8 +1,0 @@
-Analysis Report for question_5779
-============================================================
-
-Goal: LengthOfLine(BC)
-Expected value: 6.0
-
-Error: The proof doesn't uniquely determine BC.
-It could be 6.0 but also 0.0
