@@ -54,10 +54,6 @@ class GeometricTheorem:
         self.variables = {}
         self.found_tier_1_or_2_error = False
         self.congruent_triangles = []
-        self.mirror_congruent_triangles = []
-        self.midsegments = {}
-
-
 
         self.quadrilateral_diagonals = set()
         self.quadrilateral_right_angles = set()
@@ -151,23 +147,6 @@ class GeometricTheorem:
         tri1_norm = ''.join(sorted(tri1.strip().upper()))
         tri2_norm = ''.join(sorted(tri2.strip().upper()))
         return tuple(sorted([tri1_norm, tri2_norm]))
-
-    def canonicalize_mirror_congruent_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
-        """
-        Normalize triangles for mirror congruence checking.
-        For mirror congruent triangles, we consider rotations only.
-        """
-        # For first triangle, generate all rotations
-        rotations1 = [tri1[i:] + tri1[:i] for i in range(len(tri1))]
-
-        # For second triangle, generate all rotations
-        rotations2 = [tri2[i:] + tri2[:i] for i in range(len(tri2))]
-
-        # Find the lexicographically smallest pair
-        canonical_pair = min((r1, r2) for r1 in rotations1 for r2 in rotations2)
-
-        return canonical_pair
-
 
     def canonicalize_congruent_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
         """
@@ -2479,324 +2458,6 @@ class GeometricTheorem:
                     ))
             elif version == "2":
                 print("2")
-
-
-        elif theorem_name == "mirror_congruent_triangle_judgment_aas":
-
-            version = args[0]
-
-            if version == "2":  # Handle version 2 as specified
-
-                if len(args) < 3:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Insufficient arguments for mirror_congruent_triangle_judgment_aas",
-
-                        details="Expected: mirror_congruent_triangle_judgment_aas(2, triangle1, triangle2)"
-
-                    ))
-
-                # Basic check for required premise components
-
-                if "Polygon" not in premise or "Equal(MeasureOfAngle" not in premise or "Equal(LengthOfLine" not in premise:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE,
-
-                        message="Missing required elements in premise",
-
-                        details="mirror_congruent_triangle_judgment_aas requires polygons, angle equalities, and a side equality"
-
-                    ))
-
-                return True, None
-
-
-        elif theorem_name == "mirror_congruent_triangle_judgment_sas":
-            version = args[0]
-            if version == "1":
-                if len(args) < 3:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Insufficient arguments for mirror_congruent_triangle_judgment_sas",
-                        details="Expected: mirror_congruent_triangle_judgment_sas(1, triangle1, triangle2)"
-                    ))
-
-                # Check for polygon definitions and side/angle equalities in premise
-                polygon_count = premise.count("Polygon(")
-                if polygon_count < 2:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message="Missing polygon definitions in premise",
-                        details="mirror_congruent_triangle_judgment_sas requires both triangles to be defined"
-                    ))
-
-                # Check for side equalities
-                side_equalities = len(re.findall(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', premise))
-                if side_equalities < 2:  # Need at least 2 side equalities for SAS
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message="Insufficient side equalities in premise",
-                        details="mirror_congruent_triangle_judgment_sas requires at least 2 equal sides"
-                    ))
-
-                # Check for angle equality
-                angle_equality = len(re.findall(r'Equal\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)', premise))
-                if angle_equality < 1:  # Need at least 1 angle equality for SAS
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message="Missing angle equality in premise",
-                        details="mirror_congruent_triangle_judgment_sas requires at least 1 equal angle"
-                    ))
-
-                return True, None
-
-        elif theorem_name == "mirror_congruent_triangle_property_angle_equal":
-            version = args[0]
-            if version == "1":
-                if len(args) < 3:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Insufficient arguments for mirror_congruent_triangle_property_angle_equal",
-                        details="Expected: mirror_congruent_triangle_property_angle_equal(1, triangle1, triangle2)"
-                    ))
-
-                tri1, tri2 = args[1].strip(), args[2].strip()
-
-                # Check for mirror congruence in premise
-                mirror_congruent_match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', premise)
-                if not mirror_congruent_match:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message="Missing MirrorCongruentBetweenTriangle(...) in premise",
-                        details="mirror_congruent_triangle_property_angle_equal requires mirror congruent triangles"
-                    ))
-
-                premise_tri1, premise_tri2 = mirror_congruent_match.groups()
-
-                # Create canonical representations
-                theorem_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
-                premise_pair = self.canonicalize_mirror_congruent_triangle_pair(premise_tri1, premise_tri2)
-
-                # Check triangles match using canonical form
-                if theorem_pair != premise_pair:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message=f"Triangles in premise ({premise_tri1}, {premise_tri2}) don't match those in theorem call ({tri1}, {tri2})",
-                        details="Triangles must match between premise and theorem call"
-                    ))
-
-                canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
-                if canonical_pair not in self.mirror_congruent_triangles:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message=f"Triangles {tri1} and {tri2} not proven mirror congruent",
-                        details="Required for mirror_congruent_triangle_property_angle_equal"
-                    ))
-
-                return True, None
-
-        elif theorem_name == "parallel_judgment_par_par":
-            version = args[0]
-            if version == "1":
-                if len(args) < 4:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Insufficient arguments for parallel_judgment_par_par",
-                        details="Expected: parallel_judgment_par_par(1, line1, middle_line, line2)"
-                    ))
-
-                line1, middle_line, line2 = args[1].strip(), args[2].strip(), args[3].strip()
-
-                # Check that the premise contains both parallel relationships
-                if "ParallelBetweenLine" not in premise:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message="Missing ParallelBetweenLine in premise",
-                        details="parallel_judgment_par_par requires two parallel line relationships"
-                    ))
-
-                # Check for the specific parallel relationships in the premise
-                parallel1_found = False
-                parallel2_found = False
-
-                for pattern in [
-                    f"ParallelBetweenLine({line1},{middle_line})",
-                    f"ParallelBetweenLine({middle_line},{line1})"
-                ]:
-                    if pattern in premise:
-                        parallel1_found = True
-                        break
-
-                for pattern in [
-                    f"ParallelBetweenLine({middle_line},{line2})",
-                    f"ParallelBetweenLine({line2},{middle_line})"
-                ]:
-                    if pattern in premise:
-                        parallel2_found = True
-                        break
-
-                if not parallel1_found:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message=f"Missing parallel relationship between {line1} and {middle_line} in premise",
-                        details="Required for parallel_judgment_par_par"
-                    ))
-
-                if not parallel2_found:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE,
-                        message=f"Missing parallel relationship between {middle_line} and {line2} in premise",
-                        details="Required for parallel_judgment_par_par"
-                    ))
-
-                return True, None
-
-
-
-        elif theorem_name == "mirror_congruent_triangle_property_line_equal":
-
-            version = args[0]
-
-            if version == "1":
-
-                if len(args) < 3:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Insufficient arguments for mirror_congruent_triangle_property_line_equal",
-
-                        details="Expected: mirror_congruent_triangle_property_line_equal(1, triangle1, triangle2)"
-
-                    ))
-
-                tri1, tri2 = args[1].strip(), args[2].strip()
-
-                # Check for mirror congruence in premise
-
-                mirror_congruent_match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', premise)
-
-                if not mirror_congruent_match:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE,
-
-                        message="Missing MirrorCongruentBetweenTriangle(...) in premise",
-
-                        details="mirror_congruent_triangle_property_line_equal requires mirror congruent triangles"
-
-                    ))
-
-                premise_tri1, premise_tri2 = mirror_congruent_match.groups()
-
-                # Create canonical representations
-
-                theorem_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
-
-                premise_pair = self.canonicalize_mirror_congruent_triangle_pair(premise_tri1, premise_tri2)
-
-                # Check triangles match using canonical form
-
-                if theorem_pair != premise_pair:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE,
-
-                        message=f"Triangles in premise ({premise_tri1}, {premise_tri2}) don't match those in theorem call ({tri1}, {tri2})",
-
-                        details="Triangles must match between premise and theorem call"
-
-                    ))
-
-                canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
-
-                if canonical_pair not in self.mirror_congruent_triangles:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE,
-
-                        message=f"Triangles {tri1} and {tri2} not proven mirror congruent",
-
-                        details="Required for mirror_congruent_triangle_property_line_equal"
-
-                    ))
-
-                return True, None
-
-
-        elif theorem_name == "midsegment_of_triangle_judgment_midpoint":
-
-            version = args[0]
-
-            if version == "1":
-
-                if len(args) < 3:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Insufficient arguments for midsegment_of_triangle_judgment_midpoint",
-
-                        details="Expected: midsegment_of_triangle_judgment_midpoint(1, segment, triangle)"
-
-                    ))
-
-                # Simple check for polygon definition and length equalities
-
-                if "Polygon" not in premise or "Equal(LengthOfLine" not in premise:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE,
-
-                        message="Missing required components in premise",
-
-                        details="midsegment_of_triangle_judgment_midpoint requires a polygon and length equalities"
-
-                    ))
-
-                return True, None
-
-
-        elif theorem_name == "midsegment_of_triangle_property_length":
-
-            version = args[0]
-
-            if version == "1":
-
-                if len(args) < 3:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Insufficient arguments for midsegment_of_triangle_property_length",
-
-                        details="Expected: midsegment_of_triangle_property_length(1, segment, triangle)"
-
-                    ))
-
-                segment, triangle = args[1].strip(), args[2].strip()
-
-                # Look for the midsegment fact in the premise directly - don't rely on self.midsegments
-
-                midsegment_match = re.search(
-                    r'IsMidsegmentOfTriangle\(' + re.escape(segment) + ',' + re.escape(triangle) + r'\)', premise)
-
-                if not midsegment_match:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE,
-
-                        message=f"Missing IsMidsegmentOfTriangle({segment},{triangle}) in premise",
-
-                        details="midsegment_of_triangle_property_length requires the segment to be established as a midsegment"
-
-                    ))
-
-                return True, None
-
         elif theorem_name == "congruent_triangle_property_angle_equal":
             version = args[0]
             if version == "1":
@@ -5795,7 +5456,6 @@ class GeometricTheorem:
                     message=f"Triangles {tri1} and {tri2} are not proven mirror similar",
                     details=f"Known mirror similar triangles: {self.mirror_similar_triangles}"
                 ))
-            return True, None
 
 
 
@@ -6639,17 +6299,6 @@ class GeometricTheorem:
                                 self.solver.add(length_var == expr)
                                 print(f"Added algebraic length constraint: {line_name} = {expr}")
 
-                    elif line.startswith('MirrorSimilarBetweenTriangle('):
-                        match = re.match(r'MirrorSimilarBetweenTriangle\((\w+),(\w+)\)', line)
-                        if match:
-                            tri1, tri2 = match.groups()
-                            # You can reuse your existing canonicalization function
-                            canonical_pair = self.canonicalize_mirror_triangle_pair(tri1, tri2)
-
-                            if canonical_pair not in self.mirror_similar_triangles:
-                                self.mirror_similar_triangles.append(canonical_pair)
-                                print(
-                                    f"Added mirror similar triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
 
                     elif line.startswith('CongruentBetweenTriangle('):
 
@@ -7210,62 +6859,13 @@ class GeometricTheorem:
                     # --- New branch for median facts:
                     elif line.startswith("IsMedianOfTriangle("):
                         # Matches a fact like: IsMedianOfTriangle(AD,ABC)
-                        match = re.match(r'IsMedianOfTriangle\((\w+),(\w{3})\)', line)
+                        match = re.match(r'IsMedianOfTriangle\((\w+),(\w+)\)', line)
                         if match:
                             median_line, triangle = match.groups()
-
-                            # Ensure the triangle name is valid
-                            if len(triangle) != 3:
-                                print(f"Error: Invalid triangle format in IsMedianOfTriangle({median_line},{triangle})")
-                                continue
-
-                            # Ensure median storage exists
                             if not hasattr(self, "medians"):
                                 self.medians = []
-
-                            # Store median information
                             self.medians.append((median_line, triangle))
                             print(f"Recorded median: IsMedianOfTriangle({median_line},{triangle})")
-
-                            # Extract vertices
-                            A, B, C = triangle
-
-                            # Identify the midpoint of the opposite side
-                            opposite_side = None
-                            if median_line[0] in triangle:
-                                opposite_side = [v for v in triangle if v != median_line[0]]
-                            else:
-                                print(f"Error: {median_line} does not start from a vertex of {triangle}")
-                                continue
-
-                            if len(opposite_side) != 2:
-                                print(f"Error: Cannot determine opposite side for median {median_line}")
-                                continue
-
-                            M = median_line[1]  # Midpoint
-                            X, Y = opposite_side  # The endpoints of the opposite side
-
-                            # Store the midpoint property
-                            if not hasattr(self, "midpoints"):
-                                self.midpoints = {}
-
-                            self.midpoints[(X, Y)] = M
-                            self.midpoints[(Y, X)] = M
-
-                            # Add equality constraint: XM = MY
-                            len1 = self.add_length(X, M)
-                            len2 = self.add_length(M, Y)
-                            self.solver.add(len1 == len2)
-
-                            # Ensure collinearity
-                            collinear_points = [X, M, Y]
-                            normalized_points = self.normalize_collinear_points(''.join(collinear_points))
-                            if not any(set(collinear_points).issubset(set(''.join(fact))) for fact in
-                                       self.collinear_facts):
-                                self.collinear_facts.append(list(normalized_points))
-                                self.add_collinear_fact(list(normalized_points))
-                                print(f"Added collinearity constraint for median: {X}, {M}, {Y}")
-
                         else:
                             print("Error parsing IsMedianOfTriangle fact in TEXT_CDL.")
                     elif line.startswith('PerpendicularBetweenLine('):
@@ -10511,14 +10111,7 @@ class GeometricTheorem:
             "median_of_triangle_judgment",
             "right_triangle_property_length_of_median",
             "congruent_triangle_property_line_equal",
-            "congruent_triangle_property_angle_equal",
-            "mirror_congruent_triangle_judgment_aas",
-            "mirror_congruent_triangle_property_line_equal",
-            "midsegment_of_triangle_judgment_midpoint",
-            "midsegment_of_triangle_property_length",
-            "parallel_judgment_par_par",
-            "mirror_congruent_triangle_judgment_sas",
-            "mirror_congruent_triangle_property_angle_equal"
+            "congruent_triangle_property_angle_equal"
         ]
 
         if theorem_name not in valid_theorems:
@@ -10553,45 +10146,6 @@ class GeometricTheorem:
                 print("2")
 
 
-        elif theorem_name == "mirror_congruent_triangle_judgment_sas":
-            version = args[0]
-            if version == "1":
-                match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', conclusions[0])
-                if match:
-                    tri1, tri2 = match.groups()
-                    canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
-
-                    if canonical_pair not in self.mirror_congruent_triangles:
-                        self.mirror_congruent_triangles.append(canonical_pair)
-
-                    print(f"Added mirror congruent triangles via SAS: {tri1} and {tri2} (canonical: {canonical_pair})")
-                else:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Conclusion format error for mirror_congruent_triangle_judgment_sas",
-                        details=f"Expected MirrorCongruentBetweenTriangle(...) but got {conclusions[0]}"
-                    )
-
-        elif theorem_name == "mirror_congruent_triangle_property_angle_equal":
-            version = args[0]
-            if version == "1":
-                match = re.search(r'Equal\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)', conclusions[0])
-                if match:
-                    angle1, angle2 = match.groups()
-                    angle1_var = self.add_angle(angle1[0], angle1[1], angle1[2])
-                    angle2_var = self.add_angle(angle2[0], angle2[1], angle2[2])
-                    self.solver.add(angle1_var == angle2_var)
-                    print(
-                        f"Added mirror congruent triangle property: MeasureOfAngle({angle1}) = MeasureOfAngle({angle2})")
-                else:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Conclusion format error for mirror_congruent_triangle_property_angle_equal",
-                        details=f"Expected format: Equal(MeasureOfAngle(XXX),MeasureOfAngle(YYY)) but got {conclusions[0]}"
-                    )
-
-
-
         # In the adding_conclution method
 
         # In the adding_conclution method
@@ -10619,172 +10173,6 @@ class GeometricTheorem:
                     f"Added right triangle median property: 2 * LengthOfLine({median_line}) = LengthOfLine({hypotenuse})")
 
                 return None
-
-
-        elif theorem_name == "mirror_congruent_triangle_judgment_aas":
-
-            version = args[0]
-
-            if version == "2":
-
-                match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', conclusions[0])
-
-                if match:
-
-                    tri1, tri2 = match.groups()
-
-                    canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
-
-                    if canonical_pair not in self.mirror_congruent_triangles:
-                        self.mirror_congruent_triangles.append(canonical_pair)
-
-                    print(f"Added mirror congruent triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
-
-                else:
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Conclusion format error for mirror_congruent_triangle_judgment_aas",
-
-                        details=f"Expected MirrorCongruentBetweenTriangle(...) but got {conclusions[0]}"
-
-                    )
-
-
-        elif theorem_name == "parallel_judgment_par_par":
-            version = args[0]
-            if version == "1":
-                match = re.search(r'ParallelBetweenLine\((\w+),(\w+)\)', conclusions[0])
-                if match:
-                    line1, line2 = match.groups()
-
-                    # Add the new parallel relationship
-                    self.parallel_pairs.add((line1, line2))
-                    self.parallel_pairs.add((line2, line1))
-
-                    print(f"Added transitive parallel relationship: {line1} || {line2} (by transitivity)")
-                else:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-                        message="Conclusion format error for parallel_judgment_par_par",
-                        details=f"Expected ParallelBetweenLine(...) but got {conclusions[0]}"
-                    )
-
-        elif theorem_name == "mirror_congruent_triangle_property_line_equal":
-
-            version = args[0]
-
-            if version == "1":
-
-                match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', conclusions[0])
-
-                if match:
-
-                    line1, line2 = match.groups()
-
-                    line1_var = self.add_length(line1[0], line1[1])
-
-                    line2_var = self.add_length(line2[0], line2[1])
-
-                    self.solver.add(line1_var == line2_var)
-
-                    print(f"Added mirror congruent triangle property: LengthOfLine({line1}) = LengthOfLine({line2})")
-
-                else:
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Conclusion format error for mirror_congruent_triangle_property_line_equal",
-
-                        details=f"Expected format: Equal(LengthOfLine(XX),LengthOfLine(YY)) but got {conclusions[0]}"
-
-                    )
-
-
-        elif theorem_name == "midsegment_of_triangle_judgment_midpoint":
-
-            version = args[0]
-
-            if version == "1":
-
-                match = re.search(r'IsMidsegmentOfTriangle\((\w+),(\w+)\)', conclusions[0])
-
-                if match:
-
-                    segment, triangle = match.groups()
-
-                    print(f"Added midsegment fact: {segment} is a midsegment of triangle {triangle}")
-
-                else:
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Conclusion format error for midsegment_of_triangle_judgment_midpoint",
-
-                        details=f"Expected IsMidsegmentOfTriangle(...) but got {conclusions[0]}"
-
-                    )
-
-
-        elif theorem_name == "midsegment_of_triangle_property_length":
-
-            version = args[0]
-
-            if version == "1":
-
-                match = re.search(r'Equal\(LengthOfLine\((\w+)\),Mul\(LengthOfLine\((\w+)\),(\d+/\d+)\)\)',
-                                  conclusions[0])
-
-                if match:
-
-                    segment, parallel_side, factor_str = match.groups()
-
-                    # Get length variables
-
-                    segment_var = self.add_length(segment[0], segment[1])
-
-                    parallel_side_var = self.add_length(parallel_side[0], parallel_side[1])
-
-                    # Parse the factor (typically 1/2)
-
-                    try:
-
-                        from fractions import Fraction
-
-                        factor_val = float(Fraction(factor_str))
-
-                    except Exception as e:
-
-                        print(f"Error parsing factor {factor_str}: {e}, defaulting to 0.5")
-
-                        factor_val = 0.5
-
-                    # Add constraint: midsegment length = factor * parallel side length
-
-                    self.solver.add(segment_var == factor_val * parallel_side_var)
-
-                    print(
-                        f"Added midsegment length constraint: LengthOfLine({segment}) = {factor_val} * LengthOfLine({parallel_side})")
-
-                else:
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Conclusion format error for midsegment_of_triangle_property_length",
-
-                        details=f"Expected format: Equal(LengthOfLine(XX),Mul(LengthOfLine(YY),factor)) but got {conclusions[0]}"
-
-                    )
-
-
 
         # Then add these handlers in the if-elif chain:
         elif theorem_name == "congruent_triangle_property_line_equal":
@@ -13878,7 +13266,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_6850/question6850_gt",print_output=True)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_3434/question3434_gt",print_output=True)
     print(f"Verification {'succeeded' if result else 'failed'}")
 
     if not result:

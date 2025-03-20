@@ -262,7 +262,7 @@ ll_bm-ll_mc
 ma_bna=90
 GOAL_SYMBOL:
 ll_ac
-GT_ANSWER:
+ANSWER:
 14
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,BNA,AND);Collinear(BND)&Angle(BNA)&Angle(AND);["Equal(Add(MeasureOfAngle(BNA),MeasureOfAngle(AND)),180)"]

@@ -1,0 +1,39 @@
+Analysis Report for question_1726
+============================================================
+
+Goal: Cosine of angle CBA
+Expected value: 0.6507936507936508
+
+Found 2 triangle(s) containing angle CBA:
+- Triangle ABC
+- Triangle ACB
+
+
+Theorems related to angle CBA in your proof:
+------------------------------------------------------------
+Step 1 - cosine_theorem(1, BAC):
+  Conclusion: Equal(Add(Pow(LengthOfLine(AC),2),Mul(2,LengthOfLine(BA),LengthOfLine(BC),Cos(MeasureOfAngle(CBA)))),Add(Pow(LengthOfLine(BA),2),Pow(LengthOfLine(BC),2)))
+
+Solver constraints directly related to this goal:
+------------------------------------------------------------
+1. angle_ABC > 0
+2. angle_ABC <= 180
+3. cos_CBA >= -1
+4. cos_CBA <= 1
+5. length_AC*length_AC ==
+length_AB*length_AB + length_BC*length_BC -
+2*length_AB*length_BC*cos_CBA
+6. cos_CBA == 1626984126984127/2500000000000000
+7. angle_ABC == 617481668750569/12500000000000
+
+Diagnosis:
+------------------------------------------------------------
+The solver found the constraints to be contradictory. This means your proof contains
+inconsistent constraints that cannot be satisfied simultaneously.
+
+Possible causes:
+1. Incorrect angle or length values in premises
+2. Improper theorem application
+3. Conclusions that contradict earlier assertions
+4. Errors in the Law of Cosines application
+
