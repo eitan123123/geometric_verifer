@@ -9220,51 +9220,13 @@ class GeometricTheorem:
 
 
 
-
-        # This code should replace the altitude handling in your adding_conclution method
-
-        # for the altitude_of_quadrilateral_judgment_left_vertex theorem:
-
         elif theorem_name == "altitude_of_quadrilateral_judgment_left_vertex":
-
             # Expected conclusion: "IsAltitudeOfQuadrilateral(AE,ACDB)"
-
-            altitude_line = args[1].strip()
-
-            quad_name = args[2].strip()
-
-            altitude_fact = f"IsAltitudeOfQuadrilateral({altitude_line},{quad_name})"
-
-            # Initialize altitudes as a set if it doesn't exist
-
-            if not hasattr(self, 'altitudes'):
-
-                self.altitudes = set()
-
-            # Convert from dict to set if it's currently a dict
-
-            elif isinstance(self.altitudes, dict):
-
-                self.altitudes = set(self.altitudes.keys())
-
-            # Now we can safely add to it as a set
-
+            altitude_fact = f"IsAltitudeOfQuadrilateral({args[1].strip()},{args[2].strip()})"
             self.altitudes.add(altitude_fact)
-
-            # Also, if you have a quad_heights dictionary, set the height
-
-            if hasattr(self, 'quad_heights'):
-                # Get the length of the altitude line
-
-                height_var = self.add_length(altitude_line[0], altitude_line[1])
-
-                self.quad_heights[quad_name] = height_var
-
-                print(f"Set quadrilateral height: {quad_name} height = {altitude_line}")
-
             print(f"Recorded altitude fact: {altitude_fact}")
-
             return None
+
         elif theorem_name == "parallelogram_property_opposite_line_equal":
             # Expected conclusion: "Equal(LengthOfLine(DC),LengthOfLine(BA))"
             match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', conclusions[0])
@@ -11386,7 +11348,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_437/question437_gt",print_output=False)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_51/question51_gt",print_output=False)
     print(f"Verification {'succeeded' if result else 'failed'}")
 
     if not result:
