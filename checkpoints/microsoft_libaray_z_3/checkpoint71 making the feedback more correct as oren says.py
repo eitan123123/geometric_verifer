@@ -8,13 +8,6 @@ from fractions import Fraction
 import logging
 
 
-CONSTRUCTION_CDL = 'CONSTRUCTION_CDL'
-TEXT_CDL = 'TEXT_CDL'
-GOAL_CDL = 'GOAL_CDL'
-CONSTRUCTION_CDL_EXTENDED = 'CONSTRUCTION_CDL_EXTENDED'
-THEOREM_SEQUENCE = 'THEOREM_SEQUENCE'
-ANSWER = 'ANSWER'
-
 class ErrorTier(Enum):
     TIER1_THEOREM_CALL = 1  # Incorrect theorem call
     TIER2_PREMISE = 2  # Premise violation
@@ -6289,17 +6282,17 @@ class GeometricTheorem:
 
             # just a scan
             normal_collinear_set = set()
-            if CONSTRUCTION_CDL in sections:
-                for line in sections[CONSTRUCTION_CDL]:
+            if 'CONSTRUCTION_CDL' in sections:
+                for line in sections['CONSTRUCTION_CDL']:
                     if line.startswith('Collinear('):
                         points = line[10:-1]  # Extract points from "Collinear(...)"
                         normalized_points = self.normalize_collinear_points(points)
                         # Here we use ''.join(...) as a simple string representation
                         normal_collinear_set.add(''.join(normalized_points))
             # Process CONSTRUCTION_CDL_EXTENDED first
-            if CONSTRUCTION_CDL_EXTENDED in sections:
+            if 'CONSTRUCTION_CDL_EXTENDED' in sections:
                 print("\nProcessing CONSTRUCTION_CDL_EXTENDED section...")
-                for line in sections[CONSTRUCTION_CDL_EXTENDED]:
+                for line in sections['CONSTRUCTION_CDL_EXTENDED']:
                     print(f"Processing line: {line}")
                     if line.startswith('ParallelBetweenLine('):
                         match = re.search(r'ParallelBetweenLine\((\w+),\s*(\w+)\)', line)
@@ -6554,9 +6547,9 @@ class GeometricTheorem:
             # Parse goal and verify
 
             # Process CONSTRUCTION_CDL facts
-            if CONSTRUCTION_CDL in sections:
+            if 'CONSTRUCTION_CDL' in sections:
                 print("\nProcessing CONSTRUCTION_CDL section...")
-                for line in sections[CONSTRUCTION_CDL]:
+                for line in sections['CONSTRUCTION_CDL']:
                     print(f"Processing line: {line}")
                     if line.startswith('Collinear('):
                         points = line[10:-1]  # Extract points
@@ -6571,9 +6564,9 @@ class GeometricTheorem:
             # Inside parse_and_verify_proof method
             # Inside parse_and_verify_proof, when processing TEXT_CDL section:
             # Inside parse_and_verify_proof, modify the TEXT_CDL section:
-            if TEXT_CDL in sections:
+            if 'TEXT_CDL' in sections:
                 from fractions import Fraction
-                for line in sections[TEXT_CDL]:
+                for line in sections['TEXT_CDL']:
                     if line.startswith('Equal(MeasureOfAngle('):
                         angle_equality_match = re.match(r'Equal\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)',
                                                         line)
@@ -7338,8 +7331,8 @@ class GeometricTheorem:
             # Process theorem sequence
             # Inside parse_and_verify_proof method
             # Process theorem sequence before verifying goal
-            if THEOREM_SEQUENCE in sections:
-                sequence_text = '\n'.join(sections[THEOREM_SEQUENCE])
+            if 'THEOREM_SEQUENCE' in sections:
+                sequence_text = '\n'.join(sections['THEOREM_SEQUENCE'])
                 # Split into individual steps
                 steps = [step.strip() for step in sequence_text.split('\n') if step.strip()]
 
@@ -7392,8 +7385,8 @@ class GeometricTheorem:
                                     print(f"Details: {error.details}")
                                 return False, f"Error in {error.tier.name}: {error.message}"
 
-            if GOAL_CDL in sections:
-                goal_line = sections[GOAL_CDL][0]
+            if 'GOAL_CDL' in sections:
+                goal_line = sections['GOAL_CDL'][0]
 
                 def parse_special_answer(answer_str):
                     """Parse answer strings including those with square root symbol."""
@@ -7441,8 +7434,8 @@ class GeometricTheorem:
                 arc_measure_match = re.search(r'Value\(MeasureOfArc\((\w+)\)\)', goal_line)
                 if arc_measure_match:
                     arc_token = arc_measure_match.group(1)
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal arc measure: {arc_token}")
                         print(f"Expected measure: {expected}")
@@ -7554,8 +7547,8 @@ class GeometricTheorem:
                 arc_length_match = re.search(r'Value\(LengthOfArc\((\w+)\)\)', goal_line)
                 if arc_length_match:
                     arc_token = arc_length_match.group(1)
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal arc length: {arc_token}")
                         print(f"Expected arc length: {expected}")
@@ -7677,8 +7670,8 @@ class GeometricTheorem:
                     line1 = sum_lengths_match.group(1)  # e.g., "DN"
                     line2 = sum_lengths_match.group(2)  # e.g., "DM"
 
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected_answer = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal sum of lengths: LengthOfLine({line1}) + LengthOfLine({line2})")
                         print(f"Expected answer: {expected_answer}")
@@ -7861,8 +7854,8 @@ class GeometricTheorem:
                 cos_match = re.search(r'Value\(Cos\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
                 if cos_match:
                     angle_token = cos_match.group(1)
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal cosine: Cos(MeasureOfAngle({angle_token}))")
                         print(f"Expected value: {expected}")
@@ -7945,8 +7938,8 @@ class GeometricTheorem:
                 sin_match = re.search(r'Value\(Sin\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
                 if sin_match:
                     angle_token = sin_match.group(1)
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal sine: Sin(MeasureOfAngle({angle_token}))")
                         print(f"Expected value: {expected}")
@@ -8147,8 +8140,8 @@ class GeometricTheorem:
                     quad_name = quad_area_match.group(1)
                     print(f"\nDetected quadrilateral area goal: AreaOfQuadrilateral({quad_name})")  # Debug print
 
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal quadrilateral area: {quad_name}")
                         print(f"Expected area: {expected}")
@@ -8267,8 +8260,8 @@ class GeometricTheorem:
                     line1 = length_div_match.group(1)  # Numerator line (e.g., "AF")
                     line2 = length_div_match.group(2)  # Denominator line (e.g., "AC")
 
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected_value = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected_value = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
                         print(f"Your answer: {expected_value}")
@@ -8475,8 +8468,8 @@ class GeometricTheorem:
                     triangle = perimeter_match.group(1)
                     print(f"\nDetected perimeter goal: PerimeterOfTriangle({triangle})")  # Debug print
 
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected_answer = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
                         print(f"\nGoal triangle perimeter: {triangle}")
                         print(f"Expected answer: {expected_answer}")
 
@@ -8602,8 +8595,8 @@ class GeometricTheorem:
                 length_match = re.search(r'Value\(LengthOfLine\((\w+)\)\)', goal_line)
                 if length_match:
                     line_name = length_match.group(1)
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected_answer = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
                         print(f"\nGoal line: {line_name}")
                         print(f"Expected answer: {expected_answer}")
                         success, error_msg = self.verify_goal_length(line_name[0], line_name[1], expected_answer)
@@ -8617,8 +8610,8 @@ class GeometricTheorem:
                 angle_match = re.search(r'Value\(MeasureOfAngle\((\w+)\)\)', goal_line)
                 if angle_match:
                     goal_angle = angle_match.group(1)
-                    if ANSWER in sections and sections[ANSWER]:
-                        expected_answer = parse_special_answer(sections[ANSWER][0].strip())
+                    if 'ANSWER' in sections and sections['ANSWER']:
+                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
                         print(f"\nGoal angle: {goal_angle}")
                         print(f"Expected answer: {expected_answer}")
 
@@ -8654,8 +8647,8 @@ class GeometricTheorem:
 
                     if self.solver.check() == sat:
                         model = self.solver.model()
-                        answer_str = sections[ANSWER][0].strip() if (
-                                ANSWER in sections and sections[ANSWER]) else None
+                        answer_str = sections['ANSWER'][0].strip() if (
+                                'ANSWER' in sections and sections['ANSWER']) else None
                         if answer_str is None:
                             error_msg = "No answer provided in ANSWER section."
                             general_report += "No answer provided in ANSWER section.\n"
@@ -9076,9 +9069,9 @@ class GeometricTheorem:
 
                         # Try to parse expected value from ANSWER section for the detailed report
                         expected_value = None
-                        if ANSWER in sections and sections[ANSWER]:
+                        if 'ANSWER' in sections and sections['ANSWER']:
                             try:
-                                expected_value = parse_special_answer(sections[ANSWER][0].strip())
+                                expected_value = parse_special_answer(sections['ANSWER'][0].strip())
                             except Exception as e:
                                 print(f"Error parsing answer: {e}")
 

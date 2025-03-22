@@ -160,6 +160,6 @@ ma_ecd=28
 GOAL_SYMBOL:
 ma_dec
 ANSWER:
-95
+100
 THEOREM_SEQUENCE:
 1;triangle_property_angle_sum(1,CDE);Polygon(CDE);["Equal(Add(MeasureOfAngle(CDE),MeasureOfAngle(DEC),MeasureOfAngle(ECD)),180)"]

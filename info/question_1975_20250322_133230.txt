@@ -1,0 +1,52 @@
+Analysis Report for question_1975
+============================================================
+
+Goal: Measure of angle DEC
+Your answer: 100.0°
+
+Error: Your answer was 100.0°, but the proof uniquely determines angle DEC to be 95.0°
+The geometric constraints lead to a different value than your submitted answer.
+
+Analysis Report for question_1975
+============================================================
+
+You tried to find the goal angle DEC
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - D
+  - E
+  - C
+
+Angles:
+  - Angle CED
+  - Angle CDE
+  - Angle DCE
+
+Polygons:
+  - Polygon CED
+  - Polygon CDE
+
+These are the theorems that have to do with goal DEC in your proof:
+------------------------------------------------------------
+Step 1 - triangle_property_angle_sum(1, CDE):
+  Conclusion: Equal(Add(MeasureOfAngle(CDE),MeasureOfAngle(DEC),MeasureOfAngle(ECD)),180)
+
+Solver constraints directly related to this goal:
+------------------------------------------------------------
+1. angle_CED > 0
+2. angle_CED <= 180
+3. angle_CED > 0
+4. angle_CED < 180
+5. angle_CED > 0
+6. angle_CED < 180
+7. angle_CED > 0
+8. angle_CED < 180
+9. angle_CED > 0
+10. angle_CED < 180
+11. angle_CDE + angle_CED + angle_DCE == 180
+
+The constraints in your proof uniquely determine angle DEC to be 95.0°, not 100.0°.
+This means your proof leads to a different value than your submitted answer.
+
