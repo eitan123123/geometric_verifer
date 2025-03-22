@@ -1,0 +1,48 @@
+Analysis Report for question_5563
+============================================================
+
+Goal: LengthOfLine(AC)
+Expected value: 6.0
+
+Error: The proof doesn't uniquely determine AC.
+It could be 6.0 but also 0.0
+
+Analysis Report for question_5563
+============================================================
+
+Goal: Length of line AC
+Your answer: 6.0
+
+Relevant geometric facts:
+------------------------------------------------------------
+Points:
+  - A
+  - C
+
+Related Lines:
+  - Line AD
+  - Line BC
+
+Triangles Containing This Line:
+  - Triangle ABC
+  - Triangle ACD
+  - Triangle ADC
+  - Triangle ACB
+
+Theorems related to line AC in your proof:
+------------------------------------------------------------
+Step 5 - sine_theorem(1, ADC):
+  Conclusion: Equal(Mul(LengthOfLine(AD),Sin(MeasureOfAngle(ADC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(DCA))))
+
+Solver constraints directly related to this line:
+------------------------------------------------------------
+1. length_AC >= 0
+2. sin_DAB*length_AC == sin_ABD*length_BC
+
+Diagnosis:
+------------------------------------------------------------
+Your proof doesn't uniquely determine the length of line AC.
+Multiple solutions are possible with the current constraints.
+It could be Your answer: 6.0 but also 0.0
+You need to add more constraints by applying additional theorems.
+

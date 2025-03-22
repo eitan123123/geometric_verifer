@@ -1,0 +1,17 @@
+Analysis details:
+------------------------------------------------------------
+
+Variables related to this goal:
+------------------------------------------------------------
+- x
+
+Solver constraints directly related to this goal:
+------------------------------------------------------------
+1. angle_DBF == x
+
+No theorems directly involving 'x' were found in your proof.
+
+Diagnosis:
+------------------------------------------------------------
+The constraints in your proof imply a different value for x than expected.
+Check that your theorem applications and premises correctly establish the expected value.

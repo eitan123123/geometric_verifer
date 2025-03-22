@@ -1,0 +1,52 @@
+Analysis Report for question_3114
+============================================================
+
+Goal: Measure of angle DPA
+Your answer: 30.0°
+
+Error: The proof doesn't uniquely determine angle DPA.
+It could be 30.0° but also 0.5°
+
+The proof needs additional constraints to uniquely determine this angle.
+
+Analysis Report for question_3114
+============================================================
+
+You tried to find the goal angle DPA
+
+In the premises you've had:
+------------------------------------------------------------
+Points:
+  - D
+  - P
+  - A
+
+Angles:
+  - Angle DAP
+  - Angle APD
+  - Angle ADP
+
+Polygons:
+  - Polygon ADP
+  - Polygon APD
+
+These are the theorems that have to do with goal DPA in your proof:
+------------------------------------------------------------
+Step 10 - triangle_property_angle_sum(1, ADP):
+  Conclusion: Equal(Add(MeasureOfAngle(ADP),MeasureOfAngle(DPA),MeasureOfAngle(PAD)),180)
+
+Solver constraints directly related to this goal:
+------------------------------------------------------------
+1. angle_APD > 0
+2. angle_APD <= 180
+3. angle_APD == angle_BPD
+4. angle_APD == angle_DPO
+5. angle_APD == angle_DPO
+6. angle_APD == angle_BPD
+7. angle_ADP + angle_APD + angle_DAP == 180
+
+This wasn't enough information to get a unique value for the goal angle DPA.
+Your proof allows multiple solutions for this angle.
+It could be 30.0° but also 0.5°
+You need to add more constraints by applying additional theorems.
+
