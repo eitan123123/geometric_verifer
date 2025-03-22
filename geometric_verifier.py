@@ -369,81 +369,10 @@ class GeometricTheorem:
         constraint_str = constraint_str.strip()
 
         return constraint_str
-    def extract_angle_constraints(self, variable_name):
-        """
-        Extract angle constraints involving a variable with improved formatting.
-        Also includes related constraints between angles that involve the variable.
 
-        Args:
-            variable_name (str): The name of the variable to search for
 
-        Returns:
-            list: A list of formatted angle constraint strings
-        """
-        angle_constraints = []
-        var_pattern = re.compile(r'(^|[^a-zA-Z0-9_])' + re.escape(variable_name) + r'([^a-zA-Z0-9_]|$)')
 
-        # First, find which angle variables have the variable name in their constraints
-        relevant_angle_vars = set()
-        angle_var_names = {}  # Map from Z3 variable to friendly name
 
-        # Look through TEXT_CDL for angle expressions with our variable
-        if hasattr(self, 'text_cdl_lines'):
-            for line in self.text_cdl_lines:
-                angle_match = re.search(r'Equal\(MeasureOfAngle\((\w+)\),(.*?)\)', line)
-                if angle_match and var_pattern.search(angle_match.group(2)):
-                    angle_name = angle_match.group(1)
-                    normalized = self.normalize_angle_name(angle_name)
-                    angle_var_name = f"angle_{normalized}"
-                    if angle_var_name in self.angles:
-                        angle_var = self.angles[angle_var_name]
-                        relevant_angle_vars.add(angle_var)
-                        angle_var_names[str(angle_var)] = angle_name
-
-        # Now check solver constraints for these specific angle variables
-        # and collect direct constraints
-        direct_constraints = set()
-
-        if relevant_angle_vars:
-            for angle_var in relevant_angle_vars:
-                angle_var_str = str(angle_var)
-
-                # Look for constraints with both this angle variable and our target variable
-                for c in self.solver.assertions():
-                    c_str = str(c)
-                    if angle_var_str in c_str and "pi ==" not in c_str:
-                        if var_pattern.search(c_str):
-                            # This is a direct constraint with the variable
-                            direct_constraints.add(c_str)
-
-        # Now collect any constraints that involve relationships between our relevant angles
-        # even if they don't directly mention our variable
-        related_constraints = set()
-
-        if len(relevant_angle_vars) >= 2:
-            relevant_var_strs = [str(var) for var in relevant_angle_vars]
-
-            for c in self.solver.assertions():
-                c_str = str(c)
-                if "pi ==" not in c_str and c_str not in direct_constraints:
-                    # Check if this constraint mentions at least two of our angle variables
-                    mentioned_vars = sum(1 for var_str in relevant_var_strs if var_str in c_str)
-                    if mentioned_vars >= 2:
-                        related_constraints.add(c_str)
-
-        # Format the constraints without the angle prefix
-        formatted_constraints = []
-
-        for c_str in direct_constraints:
-            formatted_constraints.append(c_str)
-
-        # Add a separator before related constraints
-        if related_constraints:
-            formatted_constraints.append("# Related angle constraints:")
-            for c_str in related_constraints:
-                formatted_constraints.append(c_str)
-
-        return formatted_constraints
 
     def add_mirror_similar_triangles(self, tri1: str, tri2: str):
         """Record that triangles tri1 and tri2 are mirror similar (by AA)
@@ -828,41 +757,7 @@ class GeometricTheorem:
                     break
 
         return result
-    def filter_relevant_constraints(self, variable_name, constraints):
-        """
-        Filter a list of constraints to only include those truly relevant to the variable.
 
-        Args:
-            variable_name (str): The name of the variable (e.g., 'p')
-            constraints (list): List of constraint strings to filter
-
-        Returns:
-            list: Filtered list of relevant constraints
-        """
-        filtered = []
-
-        # Regular expression to match the variable as a standalone identifier
-        # This will match 'p' but not 'pi' or 'apple'
-        var_pattern = re.compile(r'(^|[^a-zA-Z0-9_])' + re.escape(variable_name) + r'([^a-zA-Z0-9_]|$)')
-
-        # Set of substrings that indicate a constraint should be excluded
-        exclude_substrings = [
-            "pi ==",  # Exclude pi constant definition
-            "pi ==",  # Exclude other common constants
-        ]
-
-        for c_str in constraints:
-            # Skip constraints with excluded substrings
-            if any(exclude in c_str for exclude in exclude_substrings):
-                continue
-
-            # Check if the variable appears as a standalone identifier
-            if var_pattern.search(c_str):
-                # Check if the constraint length is reasonable
-                if len(c_str) < 300:  # Avoid extremely long constraints
-                    filtered.append(c_str)
-
-        return filtered
 
 
 
@@ -11386,7 +11281,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_437/question437_gt",print_output=False)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_2624/question2624_gt",print_output=False)
     print(f"Verification {'succeeded' if result else 'failed'}")
 
     if not result:

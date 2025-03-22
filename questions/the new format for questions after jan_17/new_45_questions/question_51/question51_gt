@@ -241,6 +241,6 @@ EQUATIONS:
 GOAL_SYMBOL:
 a
 ANSWER:
-23
+3
 THEOREM_SEQUENCE:
 1;parallel_property_ipsilateral_internal_angle(1,WL,XE);ParallelBetweenLine(WL,XE)&Line(WX);["Equal(Add(MeasureOfAngle(LWX),MeasureOfAngle(WXE)),180)"]
