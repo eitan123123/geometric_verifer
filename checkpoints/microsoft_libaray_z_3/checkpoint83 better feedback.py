@@ -1591,52 +1591,6 @@ class GeometricTheorem:
         # Remove empty categories
         return {k: v for k, v in related_facts.items() if v}
 
-    def generate_premise_error_feedback(self, theorem_name, args, premise, conclusions, error):
-        """Generate user-friendly feedback for premise errors with complete theorem call information"""
-
-        feedback = "verification failed.\n\n"
-
-        # Format the complete theorem call information
-        args_str = ",".join(args)
-        conclusions_str = str(conclusions)
-
-        # Mention the theorem that was attempted with full details
-        feedback += f"- You tried to use theorem: {theorem_name}({args_str});{premise};{conclusions_str}\n"
-
-        # Explain the missing premise
-        feedback += f"- Missing premise: {error.message}\n"
-
-        # Show the details if available, but filter out empty collections
-        if error.details and not (
-                "Available parallel pairs: set()" in error.details or
-                "Known parallel pairs: set()" in error.details or
-                "Available" in error.details and "set()" in error.details or
-                "Known" in error.details and "set()" in error.details
-        ):
-            feedback += f"- Details: {error.details}\n"
-
-        # Changed wording as requested
-        feedback += "Available premises up to the failed theorem:\n"
-        geometric_data = self.gather_relevant_geometric_data()
-
-        if geometric_data:
-            for category, facts in geometric_data.items():
-                if facts:  # Only show categories with facts
-                    feedback += f"  {category}:\n"
-                    for fact in facts:
-                        feedback += f"    {fact}\n"
-        else:
-            feedback += "  No relevant geometric facts found.\n"
-
-        # Final message
-        feedback += "\nPlease ensure your theorem application meets all required premises."
-
-        return feedback
-
-
-
-
-
     def find_related_theorems_for_line(self, line_name, line_points):
         """Find theorems that directly relate to the line"""
         related_theorems = []
@@ -6925,25 +6879,15 @@ class GeometricTheorem:
                             print(f"Conclusions: {conclusions}")
 
                             # Validate premises first
-                            # Validate premises first
-                            # Validate premises first
                             is_valid, error = self.validate_theorem_premises(theorem_name, args, premise)
                             if not is_valid:
                                 print(f"\nError in {error.tier.name}:")
                                 print(f"Message: {error.message}")
                                 if error.details:
                                     print(f"Details: {error.details}")
-
-                                if error.tier == ErrorTier.TIER2_PREMISE:
-                                    # Use the special formatted feedback for premise errors
-                                    return False, self.generate_premise_error_feedback(theorem_name, args, premise,
-                                                                                       conclusions, error)
-                                else:
-                                    return False, f"Error in {error.tier.name}: {error.message}"
+                                return False,f"Error in {error.tier.name}: {error.message}"
 
 
-                            # Then process theorem step
-                            # Then process theorem step
                             # Then process theorem step
                             error = self.adding_conclution(theorem_name, args, premise, conclusions)
                             if error:
@@ -6951,13 +6895,7 @@ class GeometricTheorem:
                                 print(f"Message: {error.message}")
                                 if error.details:
                                     print(f"Details: {error.details}")
-
-                                if error.tier == ErrorTier.TIER2_PREMISE:
-                                    # Use the special formatted feedback for premise errors
-                                    return False, self.generate_premise_error_feedback(theorem_name, args, premise,
-                                                                                       conclusions, error)
-                                else:
-                                    return False, f"Error in {error.tier.name}: {error.message}"
+                                return False, f"Error in {error.tier.name}: {error.message}"
 
             if GOAL_CDL in sections:
                 goal_line = sections[GOAL_CDL][0]
