@@ -376,126 +376,9 @@ class GeometricTheorem:
 
         return constraint_str
 
-    def gather_relevant_geometric_data(self, excluded_categories=None):
-        """
-        Collect all non-empty geometric facts that might be relevant for feedback.
 
-        Args:
-            excluded_categories: List of category names to exclude from the output
-        """
-        if excluded_categories is None:
-            excluded_categories = ["Polygons"]  # Exclude Polygons by default
 
-        geometric_data = {}
 
-        # Parallel lines - with proper deduplication
-        if self.parallel_pairs:
-            formatted_pairs = set()
-            for p1, p2 in self.parallel_pairs:
-                # Normalize the pair so AB ∥ CD and CD ∥ AB are considered the same
-                sorted_pair = tuple(sorted([p1, p2], key=lambda x: ''.join(sorted(x))))
-                formatted_pairs.add(f"{sorted_pair[0]} ∥ {sorted_pair[1]}")
-
-            if formatted_pairs and "Parallel Lines" not in excluded_categories:
-                geometric_data["Parallel Lines"] = sorted(formatted_pairs)
-
-        # Perpendicular lines - with proper deduplication
-        if self.perpendicular_pairs:
-            formatted_pairs = set()
-            for p1, p2 in self.perpendicular_pairs:
-                # Normalize the pair so AB ⊥ CD and CD ⊥ AB are considered the same
-                sorted_pair = tuple(sorted([p1, p2], key=lambda x: ''.join(sorted(x))))
-                formatted_pairs.add(f"{sorted_pair[0]} ⊥ {sorted_pair[1]}")
-
-            if formatted_pairs and "Perpendicular Lines" not in excluded_categories:
-                geometric_data["Perpendicular Lines"] = sorted(formatted_pairs)
-
-        # Collinear facts
-        if self.collinear_facts and "Collinear Points" not in excluded_categories:
-            formatted_facts = [f"Collinear {''.join(points)}" for points in self.collinear_facts]
-            if formatted_facts:
-                geometric_data["Collinear Points"] = sorted(set(formatted_facts))
-
-        # Right triangles
-        if self.right_triangles and "Right Triangles" not in excluded_categories:
-            formatted_triangles = [f"Right triangle {tri}" for tri in self.right_triangles]
-            if formatted_triangles:
-                geometric_data["Right Triangles"] = sorted(set(formatted_triangles))
-
-        # Similar triangles
-        if self.similar_triangles and "Similar Triangles" not in excluded_categories:
-            formatted_pairs = [f"{tri1} similar to {tri2}" for tri1, tri2 in self.similar_triangles]
-            if formatted_pairs:
-                geometric_data["Similar Triangles"] = sorted(set(formatted_pairs))
-
-        # Congruent triangles
-        if hasattr(self,
-                   'congruent_triangles') and self.congruent_triangles and "Congruent Triangles" not in excluded_categories:
-            formatted_pairs = [f"{tri1} congruent to {tri2}" for tri1, tri2 in self.congruent_triangles]
-            if formatted_pairs:
-                geometric_data["Congruent Triangles"] = sorted(set(formatted_pairs))
-
-        # Circle facts
-        if self.circle_centers and "Circles" not in excluded_categories:
-            formatted_centers = [f"{circle} with center {center}" for circle, center in self.circle_centers.items()]
-            if formatted_centers:
-                geometric_data["Circles"] = sorted(set(formatted_centers))
-
-        # Only include Polygons if explicitly requested (not excluded)
-        if self.polygons and "Polygons" not in excluded_categories:
-            formatted_polygons = [f"Polygon {poly}" for poly in self.polygons]
-            if formatted_polygons:
-                geometric_data["Polygons"] = sorted(set(formatted_polygons))
-
-        # Parallelograms
-        if hasattr(self, 'parallelograms') and self.parallelograms and "Parallelograms" not in excluded_categories:
-            formatted_parallelograms = [f"Parallelogram {para}" for para in self.parallelograms]
-            if formatted_parallelograms:
-                geometric_data["Parallelograms"] = sorted(set(formatted_parallelograms))
-
-        # Rectangles
-        if hasattr(self, 'rectangles') and self.rectangles and "Rectangles" not in excluded_categories:
-            formatted_rectangles = [f"Rectangle {rect}" for rect in self.rectangles]
-            if formatted_rectangles:
-                geometric_data["Rectangles"] = sorted(set(formatted_rectangles))
-
-        # Squares
-        if hasattr(self, 'squares') and self.squares and "Squares" not in excluded_categories:
-            formatted_squares = [f"Square {square}" for square in self.squares]
-            if formatted_squares:
-                geometric_data["Squares"] = sorted(set(formatted_squares))
-
-        # Tangent facts
-        if self.tangent_facts and "Tangents" not in excluded_categories:
-            formatted_tangents = [f"{line} tangent to circle {circle}" for line, circle in self.tangent_facts
-                                  if not isinstance(line, tuple)]  # Filter out non-line entries
-            if formatted_tangents:
-                geometric_data["Tangents"] = sorted(set(formatted_tangents))
-
-        # Altitudes
-        if hasattr(self, 'altitudes') and self.altitudes and "Altitudes" not in excluded_categories:
-            if isinstance(self.altitudes, dict):
-                formatted_altitudes = [f"{alt} is altitude of {quad}" for quad, alts in self.altitudes.items() for alt
-                                       in alts]
-            else:
-                formatted_altitudes = list(self.altitudes)
-            if formatted_altitudes:
-                geometric_data["Altitudes"] = sorted(set(formatted_altitudes))
-
-        # Mirror congruent triangles
-        if hasattr(self,
-                   'mirror_congruent_triangles') and self.mirror_congruent_triangles and "Mirror Congruent Triangles" not in excluded_categories:
-            formatted_pairs = [f"{tri1} mirror congruent to {tri2}" for tri1, tri2 in self.mirror_congruent_triangles]
-            if formatted_pairs:
-                geometric_data["Mirror Congruent Triangles"] = sorted(set(formatted_pairs))
-
-        # Midsegments
-        if hasattr(self, 'midsegments') and self.midsegments and "Midsegments" not in excluded_categories:
-            formatted_midsegments = [f"{seg} is midsegment of {tri}" for seg, tri in self.midsegments.items()]
-            if formatted_midsegments:
-                geometric_data["Midsegments"] = sorted(set(formatted_midsegments))
-
-        return geometric_data
 
     def add_mirror_similar_triangles(self, tri1: str, tri2: str):
         """Record that triangles tri1 and tri2 are mirror similar (by AA)
@@ -561,26 +444,31 @@ class GeometricTheorem:
 
         if status == "unsatisfiable":
             report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
+
         elif status == "incompatible":
             report += f"Your proof determines the {goal_type} of {goal_token} to be {computed_value}, not {expected_value}. Check your theorem applications.\n"
+
         elif status == "multiple_values":
             report += f"Your proof doesn't uniquely determine the value. It could be {expected_value}"
             if computed_value is not None:
                 report += f" or {computed_value}"
             report += ". You need additional constraints.\n"
 
-        # Add all geometric facts for context - NEW APPROACH
-        report += "- Related geometric facts:\n"
-        geometric_data = self.gather_relevant_geometric_data()
+        # Extract points from goal_token
+        goal_points = list(goal_token)
 
-        if geometric_data:
-            for category, facts in geometric_data.items():
+        # Collect meaningful related premises using the improved method
+        report += "- Related premises:\n"
+        related_facts = self.collect_related_facts(goal_points, goal_type)
+
+        if related_facts:
+            for category, facts in related_facts.items():
                 if facts:  # Only show categories with facts
                     report += f"  {category}:\n"
                     for fact in facts:
                         report += f"    {fact}\n"
         else:
-            report += "  No relevant geometric facts found.\n"
+            report += "  No meaningful geometric relationships found for this goal\n"
 
         # Add theorems related to the goal
         report += "- Theorems related to the goal:\n"
@@ -606,14 +494,6 @@ class GeometricTheorem:
                             if set(match[1]) == set(goal_token):
                                 is_related = True
                                 break
-
-            # Check if mentioned in the premise
-            if goal_token in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(goal_token in arg for arg in theorem_info["args"]):
-                is_related = True
 
             if is_related:
                 related_theorems.append({
@@ -719,28 +599,47 @@ class GeometricTheorem:
                 report += f" or {computed_value}"
             report += ". You need additional constraints.\n"
 
-        # Add geometric facts context - NEW SECTION
-        report += "- Related geometric facts:\n"
-        geometric_data = self.gather_relevant_geometric_data()
-
-        if geometric_data:
-            for category, facts in geometric_data.items():
-                if facts:  # Only show categories with facts
-                    report += f"  {category}:\n"
-                    for fact in facts:
-                        report += f"    {fact}\n"
-        else:
-            report += "  No relevant geometric facts found.\n"
-
         # Add direct constraints from premises (from TEXT_CDL section)
         report += "- Related premises:\n"
         direct_constraints = self.get_direct_variable_constraints(variable_name)
 
         if direct_constraints:
             for constraint in direct_constraints:
-                report += f"  {constraint}\n"
+                report += f"{constraint}\n"
         else:
-            report += "  None found for this variable\n"
+            report += "- none found for this variable\n"
+
+        # Identify all variables related to our goal variable (enhanced)
+        related_variables = set()
+        related_angles = set()  # Track angle names specifically
+
+        # Look through solver constraints to find variables defined in terms of our goal variable
+        for c in self.solver.assertions():
+            c_str = str(c)
+            if variable_name in c_str:
+                # Find all angle_, length_, etc. references in this constraint
+                for var_prefix in ["angle_", "length_", "arc_"]:
+                    var_matches = re.findall(r'(' + var_prefix + r'\w+)', c_str)
+                    related_variables.update(var_matches)
+
+                    # For angles, also track the actual angle name (e.g., ABC from angle_ABC)
+                    if var_prefix == "angle_":
+                        for var in var_matches:
+                            angle_name = var[6:]  # Remove "angle_" prefix
+                            related_angles.add(angle_name)
+
+        # Also extract the prettier formatted versions of these variables
+        pretty_related_vars = set()
+        for var in related_variables:
+            if var.startswith("angle_"):
+                # Convert angle_ABC to ∠ABC
+                pretty_related_vars.add(f"∠{var[6:]}")
+            elif var.startswith("length_"):
+                # Convert length_AB to |AB|
+                pretty_related_vars.add(f"|{var[7:]}|")
+            elif var.startswith("arc_"):
+                # Convert arc_ABC to arc ABC
+                pretty_related_vars.add(f"arc {var[4:]}")
 
         # Now look for theorems that relate to these variables
         report += "- Theorems related to the goal:\n"
@@ -750,28 +649,85 @@ class GeometricTheorem:
         for theorem_info in self.theorem_sequence:
             is_related = False
 
-            # Check conclusions for variable mention
+            # Check conclusions for related variables
             for conclusion in theorem_info["conclusions"]:
                 # Direct variable mention
                 if variable_name in conclusion:
                     is_related = True
                     break
 
-                # Check for algebraic expressions like "3*p+40" or "p-5"
+                # Check if any of our related variables appear in the conclusion
+                for var in related_variables:
+                    if var in conclusion:
+                        is_related = True
+                        break
+
+                # Also check for pretty variable forms
+                for var in pretty_related_vars:
+                    if var in conclusion:
+                        is_related = True
+                        break
+
+                # For algebraic expressions like "3*p+40" or "p-5"
                 if f"*{variable_name}" in conclusion or f"{variable_name}+" in conclusion or f"{variable_name}-" in conclusion:
                     is_related = True
                     break
 
-            # Also check premises for variable
-            if not is_related and variable_name in theorem_info["premise"]:
-                is_related = True
+                # Check for angle references in the form MeasureOfAngle(ABC)
+                for angle in related_angles:
+                    if f"MeasureOfAngle({angle})" in conclusion:
+                        is_related = True
+                        break
 
-            # Check if any of the theorem args contain the variable
+                # Check for normalized versions of angles (ABC vs CBA)
+                for angle in related_angles:
+                    if len(angle) == 3:  # Only normalize 3-letter angles
+                        normalized = self.normalize_angle_name(angle)
+                        if f"MeasureOfAngle({normalized})" in conclusion:
+                            is_related = True
+                            break
+
+                # Check for use in function calls like "MeasureOfAngle(LWX)"
+                angle_expr_match = re.search(r'MeasureOfAngle\((\w+)\)', conclusion)
+                if angle_expr_match:
+                    angle_name = angle_expr_match.group(1)
+                    # Check if this angle is defined in terms of our variable
+                    for constraint in direct_constraints:
+                        if angle_name in constraint and variable_name in constraint:
+                            is_related = True
+                            break
+
+                if is_related:
+                    break
+
+            # Also check premises for variable and related angles
+            if not is_related:
+                # Check for variable in premise
+                if variable_name in theorem_info["premise"]:
+                    is_related = True
+                else:
+                    # Check for related angles in premise
+                    for angle in related_angles:
+                        if angle in theorem_info["premise"]:
+                            is_related = True
+                            break
+
+                    # Check for MeasureOfAngle format in premise
+                    for angle in related_angles:
+                        if f"MeasureOfAngle({angle})" in theorem_info["premise"]:
+                            is_related = True
+                            break
+
+            # Check if any of the theorem args contain related angles or variable
             if not is_related:
                 for arg in theorem_info["args"]:
                     if variable_name in arg:
                         is_related = True
                         break
+                    for angle in related_angles:
+                        if angle in arg:
+                            is_related = True
+                            break
 
             if is_related:
                 related_theorems.append({
@@ -783,9 +739,9 @@ class GeometricTheorem:
 
         if related_theorems:
             for theorem in related_theorems:
-                report += f"  Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
+                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
         else:
-            report += "  None found that constrain this goal\n"
+            report += "None found that constrain this goal\n"
 
         # Add ALL solver constraints related to this goal
         report += "- Solver constraints directly related to this goal:\n"
@@ -820,12 +776,12 @@ class GeometricTheorem:
 
             if all_constraints:
                 for constraint in all_constraints:
-                    report += f"  {constraint}\n"
+                    report += f"{constraint}\n"
             else:
-                report += "  None found\n"
+                report += "None found\n"
         except Exception as e:
             print(f"Error finding constraints: {e}")
-            report += f"  Error finding constraints: {e}\n"
+            report += f"Error finding constraints: {e}\n"
 
         # Final message
         report += "\nPlease fix the proof."
@@ -11344,7 +11300,7 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
 #/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_2624/question2624_gt",print_output=False)
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_2614/question2614_gt",print_output=False)
 
     if feedback:
         print(feedback)

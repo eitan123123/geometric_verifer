@@ -355,14 +355,8 @@ class GeometricTheorem:
         if constraint_str.startswith('#'):
             return constraint_str
 
-        # Replace angle_ABC with ∠ABC for better readability, but be careful of word boundaries
-        constraint_str = re.sub(r'(^|[^a-zA-Z0-9_])angle_(\w+)', r'\1∠\2', constraint_str)
-
-        # Replace length_AB with |AB| for better readability
-        constraint_str = re.sub(r'(^|[^a-zA-Z0-9_])length_(\w+)', r'\1|\2|', constraint_str)
-
-        # Replace arc_ABC with arc(ABC) for better readability
-        constraint_str = re.sub(r'(^|[^a-zA-Z0-9_])arc_(\w+)', r'\1arc(\2)', constraint_str)
+        # Replace angle_ABC with ∠ABC for better readability
+        constraint_str = re.sub(r'angle_(\w+)', r'∠\1', constraint_str)
 
         # Replace common Z3 operators
         constraint_str = constraint_str.replace(' == ', ' = ')
@@ -376,126 +370,9 @@ class GeometricTheorem:
 
         return constraint_str
 
-    def gather_relevant_geometric_data(self, excluded_categories=None):
-        """
-        Collect all non-empty geometric facts that might be relevant for feedback.
 
-        Args:
-            excluded_categories: List of category names to exclude from the output
-        """
-        if excluded_categories is None:
-            excluded_categories = ["Polygons"]  # Exclude Polygons by default
 
-        geometric_data = {}
 
-        # Parallel lines - with proper deduplication
-        if self.parallel_pairs:
-            formatted_pairs = set()
-            for p1, p2 in self.parallel_pairs:
-                # Normalize the pair so AB ∥ CD and CD ∥ AB are considered the same
-                sorted_pair = tuple(sorted([p1, p2], key=lambda x: ''.join(sorted(x))))
-                formatted_pairs.add(f"{sorted_pair[0]} ∥ {sorted_pair[1]}")
-
-            if formatted_pairs and "Parallel Lines" not in excluded_categories:
-                geometric_data["Parallel Lines"] = sorted(formatted_pairs)
-
-        # Perpendicular lines - with proper deduplication
-        if self.perpendicular_pairs:
-            formatted_pairs = set()
-            for p1, p2 in self.perpendicular_pairs:
-                # Normalize the pair so AB ⊥ CD and CD ⊥ AB are considered the same
-                sorted_pair = tuple(sorted([p1, p2], key=lambda x: ''.join(sorted(x))))
-                formatted_pairs.add(f"{sorted_pair[0]} ⊥ {sorted_pair[1]}")
-
-            if formatted_pairs and "Perpendicular Lines" not in excluded_categories:
-                geometric_data["Perpendicular Lines"] = sorted(formatted_pairs)
-
-        # Collinear facts
-        if self.collinear_facts and "Collinear Points" not in excluded_categories:
-            formatted_facts = [f"Collinear {''.join(points)}" for points in self.collinear_facts]
-            if formatted_facts:
-                geometric_data["Collinear Points"] = sorted(set(formatted_facts))
-
-        # Right triangles
-        if self.right_triangles and "Right Triangles" not in excluded_categories:
-            formatted_triangles = [f"Right triangle {tri}" for tri in self.right_triangles]
-            if formatted_triangles:
-                geometric_data["Right Triangles"] = sorted(set(formatted_triangles))
-
-        # Similar triangles
-        if self.similar_triangles and "Similar Triangles" not in excluded_categories:
-            formatted_pairs = [f"{tri1} similar to {tri2}" for tri1, tri2 in self.similar_triangles]
-            if formatted_pairs:
-                geometric_data["Similar Triangles"] = sorted(set(formatted_pairs))
-
-        # Congruent triangles
-        if hasattr(self,
-                   'congruent_triangles') and self.congruent_triangles and "Congruent Triangles" not in excluded_categories:
-            formatted_pairs = [f"{tri1} congruent to {tri2}" for tri1, tri2 in self.congruent_triangles]
-            if formatted_pairs:
-                geometric_data["Congruent Triangles"] = sorted(set(formatted_pairs))
-
-        # Circle facts
-        if self.circle_centers and "Circles" not in excluded_categories:
-            formatted_centers = [f"{circle} with center {center}" for circle, center in self.circle_centers.items()]
-            if formatted_centers:
-                geometric_data["Circles"] = sorted(set(formatted_centers))
-
-        # Only include Polygons if explicitly requested (not excluded)
-        if self.polygons and "Polygons" not in excluded_categories:
-            formatted_polygons = [f"Polygon {poly}" for poly in self.polygons]
-            if formatted_polygons:
-                geometric_data["Polygons"] = sorted(set(formatted_polygons))
-
-        # Parallelograms
-        if hasattr(self, 'parallelograms') and self.parallelograms and "Parallelograms" not in excluded_categories:
-            formatted_parallelograms = [f"Parallelogram {para}" for para in self.parallelograms]
-            if formatted_parallelograms:
-                geometric_data["Parallelograms"] = sorted(set(formatted_parallelograms))
-
-        # Rectangles
-        if hasattr(self, 'rectangles') and self.rectangles and "Rectangles" not in excluded_categories:
-            formatted_rectangles = [f"Rectangle {rect}" for rect in self.rectangles]
-            if formatted_rectangles:
-                geometric_data["Rectangles"] = sorted(set(formatted_rectangles))
-
-        # Squares
-        if hasattr(self, 'squares') and self.squares and "Squares" not in excluded_categories:
-            formatted_squares = [f"Square {square}" for square in self.squares]
-            if formatted_squares:
-                geometric_data["Squares"] = sorted(set(formatted_squares))
-
-        # Tangent facts
-        if self.tangent_facts and "Tangents" not in excluded_categories:
-            formatted_tangents = [f"{line} tangent to circle {circle}" for line, circle in self.tangent_facts
-                                  if not isinstance(line, tuple)]  # Filter out non-line entries
-            if formatted_tangents:
-                geometric_data["Tangents"] = sorted(set(formatted_tangents))
-
-        # Altitudes
-        if hasattr(self, 'altitudes') and self.altitudes and "Altitudes" not in excluded_categories:
-            if isinstance(self.altitudes, dict):
-                formatted_altitudes = [f"{alt} is altitude of {quad}" for quad, alts in self.altitudes.items() for alt
-                                       in alts]
-            else:
-                formatted_altitudes = list(self.altitudes)
-            if formatted_altitudes:
-                geometric_data["Altitudes"] = sorted(set(formatted_altitudes))
-
-        # Mirror congruent triangles
-        if hasattr(self,
-                   'mirror_congruent_triangles') and self.mirror_congruent_triangles and "Mirror Congruent Triangles" not in excluded_categories:
-            formatted_pairs = [f"{tri1} mirror congruent to {tri2}" for tri1, tri2 in self.mirror_congruent_triangles]
-            if formatted_pairs:
-                geometric_data["Mirror Congruent Triangles"] = sorted(set(formatted_pairs))
-
-        # Midsegments
-        if hasattr(self, 'midsegments') and self.midsegments and "Midsegments" not in excluded_categories:
-            formatted_midsegments = [f"{seg} is midsegment of {tri}" for seg, tri in self.midsegments.items()]
-            if formatted_midsegments:
-                geometric_data["Midsegments"] = sorted(set(formatted_midsegments))
-
-        return geometric_data
 
     def add_mirror_similar_triangles(self, tri1: str, tri2: str):
         """Record that triangles tri1 and tri2 are mirror similar (by AA)
@@ -513,13 +390,14 @@ class GeometricTheorem:
 
     def generate_detailed_feedback(self, goal_type, goal_token, expected_value, computed_value=None,
                                    status="multiple_values", additional_info=None):
-        """Generate feedback in the user's preferred format with improved content filtering."""
+        """Generate feedback in the user's preferred format."""
 
         # For general variable goals, use the specialized function
         if goal_type == "general" and len(goal_token) == 1 and goal_token.isalpha():
             # It's a single letter variable like 'p'
             return self.generate_detailed_feedback_for_variable(goal_token, expected_value, computed_value, status)
 
+        # Original implementation continues for other goal types...
         # Initialize the report with verification status
         report = "verification failed.\n\n"
 
@@ -561,26 +439,30 @@ class GeometricTheorem:
 
         if status == "unsatisfiable":
             report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
+
         elif status == "incompatible":
             report += f"Your proof determines the {goal_type} of {goal_token} to be {computed_value}, not {expected_value}. Check your theorem applications.\n"
+
         elif status == "multiple_values":
             report += f"Your proof doesn't uniquely determine the value. It could be {expected_value}"
             if computed_value is not None:
                 report += f" or {computed_value}"
             report += ". You need additional constraints.\n"
 
-        # Add all geometric facts for context - NEW APPROACH
-        report += "- Related geometric facts:\n"
-        geometric_data = self.gather_relevant_geometric_data()
+        # Extract points from goal_token
+        goal_points = list(goal_token)
 
-        if geometric_data:
-            for category, facts in geometric_data.items():
+        # Collect relevant premises
+        report += "- Related premises:\n"
+        related_facts = self.collect_related_facts(goal_points, goal_type)
+
+        if related_facts:
+            for category, facts in related_facts.items():
                 if facts:  # Only show categories with facts
-                    report += f"  {category}:\n"
                     for fact in facts:
-                        report += f"    {fact}\n"
+                        report += f"{fact}\n"
         else:
-            report += "  No relevant geometric facts found.\n"
+            report += "- none found for this goal\n"
 
         # Add theorems related to the goal
         report += "- Theorems related to the goal:\n"
@@ -597,23 +479,15 @@ class GeometricTheorem:
                     is_related = True
                     break
 
-                # Check more carefully depending on goal type
-                if not is_related and goal_type in ["angle", "arc_measure", "arc_length"]:
-                    for conclusion in theorem_info["conclusions"]:
-                        pattern = rf'MeasureOf(Angle|Arc)\((\w+)\)'
-                        matches = re.findall(pattern, conclusion)
-                        for match in matches:
-                            if set(match[1]) == set(goal_token):
-                                is_related = True
-                                break
-
-            # Check if mentioned in the premise
-            if goal_token in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(goal_token in arg for arg in theorem_info["args"]):
-                is_related = True
+            # Check more carefully depending on goal type
+            if not is_related and goal_type in ["angle", "arc_measure", "arc_length"]:
+                for conclusion in theorem_info["conclusions"]:
+                    pattern = rf'MeasureOf(Angle|Arc)\((\w+)\)'
+                    matches = re.findall(pattern, conclusion)
+                    for match in matches:
+                        if set(match[1]) == set(goal_token):
+                            is_related = True
+                            break
 
             if is_related:
                 related_theorems.append({
@@ -625,9 +499,9 @@ class GeometricTheorem:
 
         if related_theorems:
             for theorem in related_theorems:
-                report += f"  Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
+                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
         else:
-            report += "  None found that constrain this goal\n"
+            report += "- none found that constrain this goal\n"
 
         # Add solver constraints
         report += "- Solver constraints directly related to this goal:\n"
@@ -669,9 +543,8 @@ class GeometricTheorem:
             c_str = str(c)
             for var_name in var_names:
                 if var_name in c_str:
-                    # Format constraint for readability
-                    formatted = self.format_constraint(c_str)
-                    unique_constraints.add(formatted)
+                    # Add to set to eliminate duplicates
+                    unique_constraints.add(c_str)
                     break
 
         # Convert to list and sort for consistent output
@@ -679,9 +552,9 @@ class GeometricTheorem:
 
         if relevant_constraints:
             for constraint in relevant_constraints:
-                report += f"  {constraint}\n"
+                report += f"{constraint}\n"
         else:
-            report += "  None found\n"
+            report += "- none found\n"
 
         # Final message
         report += "\nPlease fix the proof."
@@ -719,28 +592,40 @@ class GeometricTheorem:
                 report += f" or {computed_value}"
             report += ". You need additional constraints.\n"
 
-        # Add geometric facts context - NEW SECTION
-        report += "- Related geometric facts:\n"
-        geometric_data = self.gather_relevant_geometric_data()
-
-        if geometric_data:
-            for category, facts in geometric_data.items():
-                if facts:  # Only show categories with facts
-                    report += f"  {category}:\n"
-                    for fact in facts:
-                        report += f"    {fact}\n"
-        else:
-            report += "  No relevant geometric facts found.\n"
-
         # Add direct constraints from premises (from TEXT_CDL section)
         report += "- Related premises:\n"
         direct_constraints = self.get_direct_variable_constraints(variable_name)
 
         if direct_constraints:
             for constraint in direct_constraints:
-                report += f"  {constraint}\n"
+                report += f"{constraint}\n"
         else:
-            report += "  None found for this variable\n"
+            report += "- none found for this variable\n"
+
+        # First, find all variables (like angles or lengths) that are directly related to our goal variable
+        related_variables = set()
+
+        # Look through solver constraints to find variables that are defined in terms of our goal variable
+        for c in self.solver.assertions():
+            c_str = str(c)
+            if variable_name in c_str:
+                # Look for all angle_, length_, etc. references in this constraint
+                for var_prefix in ["angle_", "length_", "arc_"]:
+                    var_matches = re.findall(r'(' + var_prefix + r'\w+)', c_str)
+                    related_variables.update(var_matches)
+
+        # Also extract the prettier formatted versions of these variables (e.g., "∠LWX" instead of "angle_LWX")
+        pretty_related_vars = set()
+        for var in related_variables:
+            if var.startswith("angle_"):
+                # Convert angle_ABC to ∠ABC
+                pretty_related_vars.add(f"∠{var[6:]}")
+            elif var.startswith("length_"):
+                # Convert length_AB to |AB|
+                pretty_related_vars.add(f"|{var[7:]}|")
+            elif var.startswith("arc_"):
+                # Convert arc_ABC to arc ABC
+                pretty_related_vars.add(f"arc {var[4:]}")
 
         # Now look for theorems that relate to these variables
         report += "- Theorems related to the goal:\n"
@@ -750,28 +635,44 @@ class GeometricTheorem:
         for theorem_info in self.theorem_sequence:
             is_related = False
 
-            # Check conclusions for variable mention
+            # Check if the goal variable itself appears in the conclusion
             for conclusion in theorem_info["conclusions"]:
                 # Direct variable mention
                 if variable_name in conclusion:
                     is_related = True
                     break
 
-                # Check for algebraic expressions like "3*p+40" or "p-5"
+                # Check if any of our related variables appear in the conclusion
+                for var in related_variables:
+                    if var in conclusion:
+                        is_related = True
+                        break
+
+                # Also check for pretty variable forms
+                for var in pretty_related_vars:
+                    if var in conclusion:
+                        is_related = True
+                        break
+
+                # For variables like a, also look for patterns like "3*a+40"
+                # This catches expressions like MeasureOfAngle(LWX) = 3*a+40
                 if f"*{variable_name}" in conclusion or f"{variable_name}+" in conclusion or f"{variable_name}-" in conclusion:
                     is_related = True
                     break
 
-            # Also check premises for variable
-            if not is_related and variable_name in theorem_info["premise"]:
-                is_related = True
+                # Check for use in function calls like "MeasureOfAngle(LWX)"
+                # This requires looking at TEXT_CDL to find what variables those resolve to
+                angle_expr_match = re.search(r'MeasureOfAngle\((\w+)\)', conclusion)
+                if angle_expr_match:
+                    angle_name = angle_expr_match.group(1)
+                    # Check if this angle is defined in terms of our variable
+                    for constraint in direct_constraints:
+                        if angle_name in constraint and variable_name in constraint:
+                            is_related = True
+                            break
 
-            # Check if any of the theorem args contain the variable
-            if not is_related:
-                for arg in theorem_info["args"]:
-                    if variable_name in arg:
-                        is_related = True
-                        break
+                if is_related:
+                    break
 
             if is_related:
                 related_theorems.append({
@@ -783,9 +684,9 @@ class GeometricTheorem:
 
         if related_theorems:
             for theorem in related_theorems:
-                report += f"  Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
+                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
         else:
-            report += "  None found that constrain this goal\n"
+            report += "None found that constrain this goal\n"
 
         # Add ALL solver constraints related to this goal
         report += "- Solver constraints directly related to this goal:\n"
@@ -820,17 +721,18 @@ class GeometricTheorem:
 
             if all_constraints:
                 for constraint in all_constraints:
-                    report += f"  {constraint}\n"
+                    report += f"{constraint}\n"
             else:
-                report += "  None found\n"
+                report += "None found\n"
         except Exception as e:
             print(f"Error finding constraints: {e}")
-            report += f"  Error finding constraints: {e}\n"
+            report += f"Error finding constraints: {e}\n"
 
         # Final message
         report += "\nPlease fix the proof."
 
         return report
+
     def find_relevant_constraints(self, variable_name, max_constraints=200):
         """
         Find all constraints relevant to a variable.
@@ -7604,140 +7506,251 @@ class GeometricTheorem:
             return False, f"Error during proof verification: {str(e)}"
 
     def collect_related_facts(self, goal_points, goal_type=None):
-        """
-        Collect only facts that directly involve the goal token and are meaningful for debugging
-        Filters out trivial elements like individual points and basic angles
-        """
+        """Collect only facts that directly involve the complete goal token"""
         related_facts = {}
         goal_points_set = set(goal_points)
         goal_token = ''.join(goal_points)
 
-        # 1. Check for perpendicular lines relevant to the goal
+        # 1. Points directly in the goal
+        related_facts["Points"] = list(goal_points)
+
+        # Adjust filtering strategy based on goal type
+        exact_match_required = True
+        if goal_type == "length" and len(goal_points) == 2:
+            # For length goals, we only need the exact 2 points
+            exact_match_required = True
+        elif goal_type == "arc_measure" or goal_type == "arc_length":
+            # For arc goals, we need exactly those points
+            exact_match_required = True
+        elif goal_type == "angle":
+            # For angle goals, we need exactly those 3 points
+            exact_match_required = True
+        else:
+            # For other goals, we'll require exact matches too
+            exact_match_required = True
+
+        # 2. Angles that contain ALL goal points
+        related_angles = []
+        seen_angles = set()  # Track normalized angle names to avoid duplicates
+
+        for angle_name, angle_var in self.angles.items():
+            # Extract points from angle name (typically in format "angle_ABC")
+            angle_points = angle_name.split('_')[1] if '_' in angle_name else angle_name
+            angle_points_set = set(angle_points)
+
+            # Check if this angle should be included based on our filtering strategy
+            include_angle = False
+            if exact_match_required:
+                # Only include if angle has exactly the same points as the goal
+                include_angle = angle_points_set == goal_points_set
+            else:
+                # Include if angle contains ALL goal points (may have extra points)
+                include_angle = goal_points_set.issubset(angle_points_set)
+
+            if include_angle:
+                # Normalize to avoid duplicates like CED/DEC
+                normalized = self.normalize_angle_name(angle_points)
+                if normalized not in seen_angles:
+                    related_angles.append(f"Angle {angle_points}")
+                    seen_angles.add(normalized)
+
+        # Also check for non-normalized angle names that might be specifically used
+        if goal_type == "angle":
+            if goal_token not in [a.split()[1] for a in related_angles]:
+                normalized = self.normalize_angle_name(goal_token)
+                if normalized in seen_angles:
+                    related_angles.append(f"Angle {goal_token}")
+
+        related_facts["Angles"] = related_angles
+
+        # 3. Look for relevant values in the solver constraints based on goal type
+        if goal_type in ["angle", "arc_measure", "arc_length"]:
+            angle_values = []
+
+            # Check all constraints to find angle/arc values
+            for c in self.solver.assertions():
+                c_str = str(c)
+
+                # For angles
+                if goal_type == "angle":
+                    angle_match = re.search(r'angle_(\w+) == (\d+)', c_str)
+                    if angle_match:
+                        angle_name = angle_match.group(1)
+                        angle_value = angle_match.group(2)
+
+                        # Only include if it has exactly the same set of points as the goal
+                        angle_points_set = set(angle_name)
+                        if angle_points_set == goal_points_set:
+                            angle_values.append(f"∠{angle_name}={angle_value}°")
+
+                # For arcs
+                elif goal_type in ["arc_measure", "arc_length"]:
+                    arc_match = re.search(r'arc_(\w+) == (\d+)', c_str)
+                    if arc_match:
+                        arc_name = arc_match.group(1)
+                        arc_value = arc_match.group(2)
+
+                        # Only include if it has exactly the same set of points as the goal
+                        arc_points_set = set(arc_name)
+                        if arc_points_set == goal_points_set:
+                            angle_values.append(f"arc {arc_name}={arc_value}°")
+
+            if angle_values:
+                related_facts["Values"] = angle_values
+
+        # 4. For length goals, look for specific length values
+        if goal_type == "length" and len(goal_points) == 2:
+            length_values = []
+
+            # Check all constraints to find length values
+            for c in self.solver.assertions():
+                c_str = str(c)
+
+                length_match = re.search(r'length_(\w+) == (\d+)', c_str)
+                if length_match:
+                    length_name = length_match.group(1)
+                    length_value = length_match.group(2)
+
+                    # Only include if it involves exactly our two points
+                    length_points_set = set(length_name)
+                    if length_points_set == goal_points_set:
+                        length_values.append(f"|{length_name}|={length_value}")
+
+            if length_values:
+                related_facts["Length Values"] = length_values
+
+        # 5. Look for perpendicular lines involving goal points - adjust based on goal type
         perp_facts = []
-        seen_perp_pairs = set()
+        for line1, line2 in self.perpendicular_pairs:
+            line1_set = set(line1)
+            line2_set = set(line2)
 
-        for pair in self.perpendicular_pairs:
-            line1, line2 = pair
+            include_perp = False
+            if goal_type == "length" and len(goal_points) == 2:
+                # For length goals: Include if either line exactly matches our goal
+                include_perp = (line1_set == goal_points_set or line2_set == goal_points_set)
+            elif exact_match_required:
+                # For strict matching: only include if both lines are made up entirely of goal points
+                include_perp = line1_set.issubset(goal_points_set) and line2_set.issubset(goal_points_set)
+            else:
+                # For less strict matching: include if any point from both lines is in our goal
+                include_perp = (line1_set.intersection(goal_points_set) and line2_set.intersection(goal_points_set))
 
-            # Check if at least one point from goal is in these lines
-            if any(p in line1 for p in goal_points) or any(p in line2 for p in goal_points):
-                # Create a normalized key to avoid duplicates
-                key = tuple(sorted([line1, line2]))
-                if key not in seen_perp_pairs:
-                    seen_perp_pairs.add(key)
-                    perp_facts.append(f"{line1} ⊥ {line2}")
+            if include_perp:
+                perp_facts.append(f"{line1}⊥{line2}")
 
         if perp_facts:
             related_facts["Perpendicular Lines"] = perp_facts
 
-        # 2. Check for specific angle values in TEXT_CDL
-        if goal_type == "angle":
-            angle_values = []
+        # 6. Arcs that involve goal points - adjust based on goal type
+        related_arcs = []
+        for arc_name in self.arcs:
+            # Extract arc points (typically in format "arc_ABC")
+            arc_points = arc_name.split('_')[1] if '_' in arc_name else arc_name
+            arc_points_set = set(arc_points)
 
-            if hasattr(self, 'text_cdl_lines'):
-                for line in self.text_cdl_lines:
-                    # Look for direct values for this angle
-                    angle_match = re.search(r'Equal\(MeasureOfAngle\(' + re.escape(goal_token) + r'\),(.+?)\)', line)
-                    if angle_match:
-                        value = angle_match.group(1).strip()
-                        angle_values.append(f"∠{goal_token} = {value}")
+            include_arc = False
+            if exact_match_required:
+                # Only include if arc has exactly the same points as the goal
+                include_arc = arc_points_set == goal_points_set
+            else:
+                # Include if arc contains ALL goal points (may have extra points)
+                include_arc = goal_points_set.issubset(arc_points_set)
 
-            if angle_values:
-                related_facts["Angle Values"] = angle_values
+            if include_arc:
+                related_arcs.append(f"Arc {arc_points}")
 
-        # 3. Check for parallel lines involving goal points
-        parallel_facts = []
-        seen_parallel = set()
+        if related_arcs:
+            related_facts["Arcs"] = related_arcs
 
-        for pair in self.parallel_pairs:
-            line1, line2 = pair
+        # 7. Circles where the goal points are part of key relationships
+        related_circles = []
+        for circle, center in self.circle_centers.items():
+            # Adjust based on goal type
+            include_circle = False
 
-            # Check if at least one point from goal is in these lines
-            if any(p in line1 for p in goal_points) or any(p in line2 for p in goal_points):
-                # Create a normalized key to avoid duplicates
-                key = tuple(sorted([line1, line2]))
-                if key not in seen_parallel:
-                    seen_parallel.add(key)
-                    parallel_facts.append(f"{line1} ∥ {line2}")
+            if exact_match_required:
+                # Only include if circle and center are exactly our goal points
+                include_circle = set([circle, center]) == goal_points_set
+            else:
+                # More relaxed matching
+                include_circle = circle in goal_points_set and center in goal_points_set
 
-        if parallel_facts:
-            related_facts["Parallel Lines"] = parallel_facts
+            if include_circle:
+                related_circles.append(f"Circle {circle} with center {center}")
 
-        # 4. Check for special quadrilaterals
-        # First, find relevant quadrilaterals that contain points from our goal
-        special_quads = []
-        seen_quads = set()
+        if related_circles:
+            related_facts["Circles"] = related_circles
 
-        for quad in self.polygons:
-            if len(quad) == 4 and any(p in quad for p in goal_points):
-                # Skip if we've already seen a cyclic variation of this quad
-                normalized = min(quad[i:] + quad[:i] for i in range(len(quad)))
-                if normalized in seen_quads:
-                    continue
-                seen_quads.add(normalized)
+        # 8. Cocircular facts that contain goal points
+        related_cocircular = []
+        seen_cocircular = set()  # To avoid duplicates
 
-                properties = []
-                # Check for various quadrilateral types
-                if quad in self.parallelograms or any(
-                        var in self.parallelograms for var in get_cyclic_variations(quad)):
-                    properties.append("parallelogram")
+        for fact in self.cocircular_facts:
+            fact_set = set(fact)
 
-                if hasattr(self, 'rectangles'):
-                    if quad in self.rectangles or any(
-                            var in self.rectangles for var in get_cyclic_variations_rectangle(quad)):
-                        properties.append("rectangle")
+            include_cocircular = False
+            if exact_match_required:
+                # Only include if cocircular fact has exactly our goal points
+                include_cocircular = fact_set == goal_points_set
+            else:
+                # Include if fact contains ALL goal points
+                include_cocircular = goal_points_set.issubset(fact_set)
 
-                if hasattr(self, 'squares'):
-                    if quad in self.squares or any(
-                            var in self.squares for var in get_cyclic_variations_rectangle(quad)):
-                        properties.append("square")
+            if include_cocircular:
+                # Create a canonical representation to avoid duplicates
+                sorted_fact = ','.join(sorted(fact))
+                if sorted_fact not in seen_cocircular:
+                    related_cocircular.append(f"Cocircular {','.join(fact)}")
+                    seen_cocircular.add(sorted_fact)
 
-                if hasattr(self, 'rhombi'):
-                    if quad in self.rhombi or any(var in self.rhombi for var in get_cyclic_variations_rectangle(quad)):
-                        properties.append("rhombus")
+        if related_cocircular:
+            related_facts["Cocircular Points"] = related_cocircular
 
-                if properties:
-                    special_quads.append(f"Quadrilateral {quad} ({', '.join(properties)})")
+        # 9. Collinear facts that contain goal points
+        related_collinear = []
 
-        if special_quads:
-            related_facts["Special Quadrilaterals"] = special_quads
-
-        # 5. Check for collinear facts involving goal points
-        collinear_facts = []
         for collinear in self.collinear_facts:
-            if any(p in collinear for p in goal_points) and len(collinear) >= 3:
-                collinear_facts.append(f"Collinear {''.join(collinear)}")
+            collinear_set = set(collinear)
 
-        if collinear_facts:
-            related_facts["Collinear Points"] = collinear_facts
+            include_collinear = False
+            if exact_match_required:
+                # Only include if collinear fact has exactly our goal points
+                include_collinear = collinear_set == goal_points_set
+            else:
+                # Include if fact contains ALL goal points
+                include_collinear = goal_points_set.issubset(collinear_set)
 
-        # 6. Check for special triangles
-        special_triangles = []
-        seen_triangles = set()
+            if include_collinear:
+                related_collinear.append(f"Collinear {''.join(collinear)}")
 
-        for triangle in self.polygons:
-            if len(triangle) == 3 and any(p in triangle for p in goal_points):
-                # Skip if we've already seen a cyclic variation
-                normalized = self.normalize_triangle(triangle)
-                if normalized in seen_triangles:
-                    continue
-                seen_triangles.add(normalized)
+        if related_collinear:
+            related_facts["Collinear Sets"] = related_collinear
 
-                properties = []
-                # Check for right triangle
-                if triangle in self.right_triangles or normalized in self.right_triangles:
-                    properties.append("right")
+        # 10. Check for polygons containing goal points
+        related_polygons = []
 
-                # Check for isosceles
-                if hasattr(self, 'isosceles_triangles'):
-                    if triangle in self.isosceles_triangles or normalized in self.isosceles_triangles:
-                        properties.append("isosceles")
+        for polygon in self.polygons:
+            polygon_set = set(polygon)
 
-                if properties:
-                    special_triangles.append(f"Triangle {triangle} ({', '.join(properties)})")
+            include_polygon = False
+            if exact_match_required:
+                # Only include if polygon has exactly our goal points
+                include_polygon = polygon_set == goal_points_set
+            else:
+                # Include if polygon contains ALL goal points
+                include_polygon = goal_points_set.issubset(polygon_set)
 
-        if special_triangles:
-            related_facts["Special Triangles"] = special_triangles
+            if include_polygon:
+                if len(polygon) == 3:
+                    related_polygons.append(f"Triangle {polygon}")
+                elif len(polygon) == 4:
+                    related_polygons.append(f"Quadrilateral {polygon}")
+                else:
+                    related_polygons.append(f"Polygon {polygon}")
+
+        if related_polygons:
+            related_facts["Polygons"] = related_polygons
 
         # Remove empty categories
         return {k: v for k, v in related_facts.items() if v}
