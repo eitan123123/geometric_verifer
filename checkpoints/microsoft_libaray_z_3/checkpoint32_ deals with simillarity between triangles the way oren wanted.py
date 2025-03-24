@@ -2506,20 +2506,20 @@ class GeometricTheorem:
                                             return False
                                         computed_value = area_circle_val - area_triangle_val
                                         try:
-                                            expected_value = eval(answer_str, {"pi": 3.141592653589793})
+                                            model_answer = eval(answer_str, {"pi": 3.141592653589793})
                                         except Exception as e:
-                                            expected_value = float(Fraction(answer_str))
+                                            model_answer = float(Fraction(answer_str))
                                         epsilon = 1e-8
-                                        if abs(computed_value - expected_value) < epsilon:
+                                        if abs(computed_value - model_answer) < epsilon:
                                             print("Success: Goal expression (Sub form) matches expected value.")
                                             return True
                                         else:
                                             print(
-                                                f"Error: Computed value {computed_value} != expected {expected_value}")
+                                                f"Error: Computed value {computed_value} != expected {model_answer}")
                                             error = GeometricError(
                                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                                 message="Failed to prove goal (Sub form).",
-                                                details=f"Computed: {computed_value}, expected: {expected_value}"
+                                                details=f"Computed: {computed_value}, expected: {model_answer}"
                                             )
                                             print(f"\nError in {error.tier.name}: {error.message}")
                                             if error.details:
@@ -2552,19 +2552,19 @@ class GeometricTheorem:
                             print("Error evaluating general goal expression:", e)
                             return False
                         try:
-                            expected_value = eval(answer_str, {"pi": 3.141592653589793})
+                            model_answer = eval(answer_str, {"pi": 3.141592653589793})
                         except Exception as e:
-                            expected_value = float(Fraction(answer_str))
+                            model_answer = float(Fraction(answer_str))
                         epsilon = 1e-8
-                        if abs(computed_value - expected_value) < epsilon:
+                        if abs(computed_value - model_answer) < epsilon:
                             print("Success: General goal expression matches expected value.")
                             return True
                         else:
-                            print(f"Error: Computed general goal value {computed_value} != expected {expected_value}")
+                            print(f"Error: Computed general goal value {computed_value} != expected {model_answer}")
                             error = GeometricError(
                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                 message="Failed to prove general goal expression.",
-                                details=f"Computed: {computed_value}, expected: {expected_value}"
+                                details=f"Computed: {computed_value}, expected: {model_answer}"
                             )
                             print(f"\nError in {error.tier.name}: {error.message}")
                             if error.details:

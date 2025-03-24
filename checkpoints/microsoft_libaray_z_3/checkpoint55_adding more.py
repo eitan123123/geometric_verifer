@@ -5570,12 +5570,12 @@ class GeometricTheorem:
                         answer_str = sections['ANSWER'][0].strip()
                         try:
                             import math
-                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
+                            model_answer = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception:
-                            expected_value = float(Fraction(answer_str))
+                            model_answer = float(Fraction(answer_str))
 
                         print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
-                        print(f"Expected value: {expected_value}")
+                        print(f"Expected value: {model_answer}")
 
                         len1 = self.add_length(line1[0], line1[1])
                         len2 = self.add_length(line2[0], line2[1])
@@ -5603,12 +5603,12 @@ class GeometricTheorem:
                                 print(f"Computed division: {computed_value}")
 
                                 epsilon = 1e-8
-                                if abs(computed_value - expected_value) >= epsilon:
-                                    print(f"Error: Computed division {computed_value} != expected {expected_value}")
+                                if abs(computed_value - model_answer) >= epsilon:
+                                    print(f"Error: Computed division {computed_value} != expected {model_answer}")
                                     error = GeometricError(
                                         tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                         message="Failed to prove length division goal: computed value doesn't match expected.",
-                                        details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expected_value}, computed: {computed_value}"
+                                        details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}, computed: {computed_value}"
                                     )
                                     print(f"\nError in {error.tier.name}: {error.message}")
                                     if error.details:
@@ -5620,12 +5620,12 @@ class GeometricTheorem:
                                 for c in self.solver.assertions():
                                     temp_solver.add(c)
 
-                                # We want to check if there's a model where len1/len2 != expected_value
-                                # This is equivalent to len1 != expected_value * len2
+                                # We want to check if there's a model where len1/len2 != model_answer
+                                # This is equivalent to len1 != model_answer * len2
                                 temp_solver.add(
                                     Or(
-                                        len1 < (expected_value - epsilon) * len2,
-                                        len1 > (expected_value + epsilon) * len2
+                                        len1 < (model_answer - epsilon) * len2,
+                                        len1 > (model_answer + epsilon) * len2
                                     )
                                 )
 
@@ -5641,7 +5641,7 @@ class GeometricTheorem:
                                     error = GeometricError(
                                         tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                         message="Failed to prove length division goal: constraints allow multiple values.",
-                                        details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expected_value}, but could also be {alt_ratio}"
+                                        details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}, but could also be {alt_ratio}"
                                     )
                                     print(f"\nError in {error.tier.name}: {error.message}")
                                     if error.details:
@@ -5649,7 +5649,7 @@ class GeometricTheorem:
                                     return False
 
                                 print(
-                                    f"Success: The length ratio {line1}/{line2} is uniquely determined to be {expected_value}.")
+                                    f"Success: The length ratio {line1}/{line2} is uniquely determined to be {model_answer}.")
                                 return True
 
                             except Exception as e:
@@ -5660,7 +5660,7 @@ class GeometricTheorem:
                             error = GeometricError(
                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                 message="Failed to prove length division goal: solver is unsatisfiable.",
-                                details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expected_value}"
+                                details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}"
                             )
                             print(f"\nError in {error.tier.name}: {error.message}")
                             if error.details:
@@ -5862,25 +5862,25 @@ class GeometricTheorem:
 
                                         try:
                                             import math
-                                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
+                                            model_answer = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                                         except Exception as e:
-                                            expected_value = float(Fraction(answer_str))
+                                            model_answer = float(Fraction(answer_str))
 
                                         epsilon = 1e-8
-                                        if abs(computed_value - expected_value) >= epsilon:
+                                        if abs(computed_value - model_answer) >= epsilon:
                                             print(
-                                                f"Error: Computed value {computed_value} != expected {expected_value}")
+                                                f"Error: Computed value {computed_value} != expected {model_answer}")
                                             error = GeometricError(
                                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                                 message="Failed to prove goal (Sub form).",
-                                                details=f"Computed: {computed_value}, expected: {expected_value}"
+                                                details=f"Computed: {computed_value}, expected: {model_answer}"
                                             )
                                             print(f"\nError in {error.tier.name}: {error.message}")
                                             if error.details:
                                                 print("Details:", error.details)
                                             return False
 
-                                        # Check uniqueness - can area difference be something other than expected_value?
+                                        # Check uniqueness - can area difference be something other than model_answer?
                                         temp_solver = Solver()
                                         for c in self.solver.assertions():
                                             temp_solver.add(c)
@@ -5888,8 +5888,8 @@ class GeometricTheorem:
                                         # Add constraint that sub-expression result must be outside epsilon range of expected
                                         temp_solver.add(
                                             Or(
-                                                circle_area_var - triangle_area_var < expected_value - epsilon,
-                                                circle_area_var - triangle_area_var > expected_value + epsilon
+                                                circle_area_var - triangle_area_var < model_answer - epsilon,
+                                                circle_area_var - triangle_area_var > model_answer + epsilon
                                             )
                                         )
 
@@ -5908,7 +5908,7 @@ class GeometricTheorem:
                                             error = GeometricError(
                                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                                 message="Failed to prove goal (Sub form): constraints allow multiple values.",
-                                                details=f"Goal was: Sub({expr1_str},{expr2_str}) = {expected_value}, but could also be {alt_value}"
+                                                details=f"Goal was: Sub({expr1_str},{expr2_str}) = {model_answer}, but could also be {alt_value}"
                                             )
                                             print(f"\nError in {error.tier.name}: {error.message}")
                                             if error.details:
@@ -5961,17 +5961,17 @@ class GeometricTheorem:
                             return False
 
                         try:
-                            expected_value = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
+                            model_answer = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
                         except Exception as e:
-                            expected_value = float(Fraction(answer_str))
+                            model_answer = float(Fraction(answer_str))
 
                         epsilon = 1e-8
-                        if abs(computed_value - expected_value) >= epsilon:
-                            print(f"Error: Computed general goal value {computed_value} != expected {expected_value}")
+                        if abs(computed_value - model_answer) >= epsilon:
+                            print(f"Error: Computed general goal value {computed_value} != expected {model_answer}")
                             error = GeometricError(
                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                 message="Failed to prove general goal expression.",
-                                details=f"Computed: {computed_value}, expected: {expected_value}"
+                                details=f"Computed: {computed_value}, expected: {model_answer}"
                             )
                             print(f"\nError in {error.tier.name}: {error.message}")
                             if error.details:
@@ -6020,7 +6020,7 @@ class GeometricTheorem:
                                         alt_value = eval(goal_expr, alt_mapping)
 
                                         # If the alternative evaluation gives a different value
-                                        if abs(alt_value - expected_value) >= epsilon:
+                                        if abs(alt_value - model_answer) >= epsilon:
                                             print(
                                                 f"Error: The proof doesn't uniquely determine the result of {goal_expr}.")
                                             print(f"It could be {computed_value} but could also be {alt_value}")
@@ -6028,7 +6028,7 @@ class GeometricTheorem:
                                             error = GeometricError(
                                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                                 message="Failed to prove general goal: constraints allow multiple values.",
-                                                details=f"Goal was: {goal_expr} = {expected_value}, but could also evaluate to {alt_value}"
+                                                details=f"Goal was: {goal_expr} = {model_answer}, but could also evaluate to {alt_value}"
                                             )
                                             print(f"\nError in {error.tier.name}: {error.message}")
                                             if error.details:

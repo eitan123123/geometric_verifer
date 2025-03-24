@@ -148,14 +148,14 @@ class GeometricTheorem:
         tri2_norm = ''.join(sorted(tri2.strip().upper()))
         return tuple(sorted([tri1_norm, tri2_norm]))
 
-    def generate_general_goal_analysis_report(self, goal_expr, expected_value=None):
+    def generate_general_goal_analysis_report(self, goal_expr, model_answer=None):
         """Generate a focused report for general expressions like 'x'"""
         # Create the report content as a string
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal expression: {goal_expr}\n"
-        if expected_value is not None:
-            report += f"Expected value: {expected_value}\n"
+        if model_answer is not None:
+            report += f"Expected value: {model_answer}\n"
         report += "\n"
 
         # Find all variables directly related to this expression
@@ -362,7 +362,7 @@ class GeometricTheorem:
 
         return min(candidates)
 
-    def generate_sine_analysis_report(self, angle_token, expected_value, alt_value=None,
+    def generate_sine_analysis_report(self, angle_token, model_answer, alt_value=None,
                                       solver_state="multiple_values"):
         """Generate a detailed report for sine goals that couldn't be verified."""
 
@@ -370,7 +370,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Sine of angle {angle_token}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the angle
         goal_points = list(angle_token)
@@ -452,8 +452,8 @@ class GeometricTheorem:
                                 # If our angle is the right angle, sin = 1
                                 if right_angle_vertex == angle_token[1]:
                                     report += f"Since {angle_token} is the right angle, its sine should be 1.0\n"
-                                    if abs(expected_value - 1.0) >= epsilon:
-                                        report += f"Error: Expected sine {expected_value} doesn't match 1.0\n"
+                                    if abs(model_answer - 1.0) >= epsilon:
+                                        report += f"Error: Expected sine {model_answer} doesn't match 1.0\n"
                                 else:
                                     # Otherwise, use sin = opposite/hypotenuse
                                     hypotenuse_vertices = [v for v in triangle if v != right_angle_vertex]
@@ -484,8 +484,8 @@ class GeometricTheorem:
                                         calculated_sin = opposite_val_our_angle / hypotenuse_val
                                         report += f"Calculated sin({angle_token}) = {calculated_sin} (opposite/hypotenuse)\n"
 
-                                        if abs(calculated_sin - expected_value) >= epsilon:
-                                            report += f"Error: Calculated sine {calculated_sin} doesn't match expected {expected_value}\n"
+                                        if abs(calculated_sin - model_answer) >= epsilon:
+                                            report += f"Error: Calculated sine {calculated_sin} doesn't match expected {model_answer}\n"
                         else:
                             # Not a right triangle - use Law of Sines
                             # First, get the angle value
@@ -528,11 +528,11 @@ class GeometricTheorem:
                                 law_of_sines_sin = (opposite_val * other_angle_sin) / other_opposite_val
                                 report += f"Using Law of Sines: sin({angle_token}) = {law_of_sines_sin}\n"
 
-                                if abs(law_of_sines_sin - expected_value) >= epsilon:
-                                    report += f"Error: Law of Sines gives sine = {law_of_sines_sin}, which doesn't match expected {expected_value}\n"
+                                if abs(law_of_sines_sin - model_answer) >= epsilon:
+                                    report += f"Error: Law of Sines gives sine = {law_of_sines_sin}, which doesn't match expected {model_answer}\n"
 
-                            if abs(calculated_sin - expected_value) >= epsilon:
-                                report += f"Error: Calculated sine {calculated_sin} doesn't match expected {expected_value}\n"
+                            if abs(calculated_sin - model_answer) >= epsilon:
+                                report += f"Error: Calculated sine {calculated_sin} doesn't match expected {model_answer}\n"
                     else:
                         report += "Triangle sides are not uniquely determined.\n"
                         report += "This means your proof doesn't establish a specific shape for the triangle.\n"
@@ -566,8 +566,8 @@ class GeometricTheorem:
                     expected_sin = math.sin(math.radians(angle_val))
                     report += f"Its sine should be {expected_sin}\n\n"
 
-                    if abs(expected_sin - expected_value) >= epsilon:
-                        report += f"Error: Calculated sine {expected_sin} doesn't match expected {expected_value}\n"
+                    if abs(expected_sin - model_answer) >= epsilon:
+                        report += f"Error: Calculated sine {expected_sin} doesn't match expected {model_answer}\n"
                 else:
                     alt_model = temp_solver.model()
                     alt_angle = float(alt_model.eval(angle_var).as_decimal(10).rstrip('?'))
@@ -598,8 +598,8 @@ class GeometricTheorem:
                 if temp_solver.check() == unsat:
                     report += f"The value of sin({angle_token}) is uniquely determined to be {sine_val}\n"
 
-                    if abs(sine_val - expected_value) >= epsilon:
-                        report += f"Error: Determined sine {sine_val} doesn't match expected {expected_value}\n"
+                    if abs(sine_val - model_answer) >= epsilon:
+                        report += f"Error: Determined sine {sine_val} doesn't match expected {model_answer}\n"
                 else:
                     alt_model = temp_solver.model()
                     alt_sine = float(alt_model.eval(sine_var).as_decimal(10).rstrip('?'))
@@ -690,7 +690,7 @@ class GeometricTheorem:
             report += "3. Conclusions that contradict earlier assertions\n"
             report += "4. Errors in the Law of Sines application\n\n"
         elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow sin({angle_token}) to be {expected_value}.\n"
+            report += f"The geometric constraints in your proof don't allow sin({angle_token}) to be {model_answer}.\n"
             report += "This means your proof implies a different sine value than expected.\n\n"
             report += "Check that:\n"
             report += "1. Your triangle side lengths are correctly specified\n"
@@ -700,13 +700,13 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine sin({angle_token}).\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n\n"
+                report += f"It could be {model_answer} but also {alt_value}\n\n"
             report += "You need to add more constraints by applying additional theorems.\n"
             report += "Focus on fixing the shape of the triangle containing this angle.\n"
 
         return report
 
-    def generate_division_analysis_report(self, line1, line2, expected_value, alt_value=None,
+    def generate_division_analysis_report(self, line1, line2, model_answer, alt_value=None,
                                           solver_state="multiple_values"):
         """Generate a detailed report for division goals that couldn't be verified."""
 
@@ -714,7 +714,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Division of lines {line1}/{line2}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the goal lines
         goal_points = list(set(line1 + line2))
@@ -748,8 +748,8 @@ class GeometricTheorem:
                     report += f"Computed ratio: {line1}/{line2} = {computed_value}\n\n"
 
                     epsilon = 1e-8
-                    if abs(computed_value - expected_value) >= epsilon:
-                        report += f"Error: Computed ratio {computed_value} doesn't match expected {expected_value}\n"
+                    if abs(computed_value - model_answer) >= epsilon:
+                        report += f"Error: Computed ratio {computed_value} doesn't match expected {model_answer}\n"
                         report += "This suggests an inconsistency between your proof and the expected answer.\n\n"
 
                 # Check if these lengths are uniquely determined
@@ -790,10 +790,10 @@ class GeometricTheorem:
                     temp_solver3.add(c)
 
                 # We want to check if len1/len2 can have a different value
-                # This is equivalent to len1 != expected_value * len2
+                # This is equivalent to len1 != model_answer * len2
                 temp_solver3.add(Or(
-                    len1_var < (expected_value - epsilon) * len2_var,
-                    len1_var > (expected_value + epsilon) * len2_var
+                    len1_var < (model_answer - epsilon) * len2_var,
+                    len1_var > (model_answer + epsilon) * len2_var
                 ))
 
                 if temp_solver3.check() == sat:
@@ -987,7 +987,7 @@ class GeometricTheorem:
             report += "3. Conclusions that contradict earlier assertions\n"
             report += "4. Errors in the ratio or proportion calculations\n\n"
         elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the ratio {line1}/{line2} to be {expected_value}.\n"
+            report += f"The geometric constraints in your proof don't allow the ratio {line1}/{line2} to be {model_answer}.\n"
             report += "This means your proof implies a different ratio than expected.\n\n"
             report += "Check that:\n"
             report += "1. Your line length values are correctly specified\n"
@@ -997,14 +997,14 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine the ratio {line1}/{line2}.\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n\n"
+                report += f"It could be {model_answer} but also {alt_value}\n\n"
             report += "You need to add more constraints by applying additional theorems.\n"
             report += "Consider using theorems about similar triangles, parallel lines,\n"
             report += "or other geometric relationships that fix the proportion between these lines.\n"
 
         return report
 
-    def generate_cosine_analysis_report(self, angle_token, expected_value, alt_value=None,
+    def generate_cosine_analysis_report(self, angle_token, model_answer, alt_value=None,
                                         solver_state="multiple_values"):
         """Generate a detailed report for cosine goals that couldn't be verified."""
 
@@ -1012,7 +1012,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Cosine of angle {angle_token}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the angle
         goal_points = list(angle_token)
@@ -1085,8 +1085,8 @@ class GeometricTheorem:
 
                             report += f"Calculated cos({angle_token}) = {cos_val} using Law of Cosines\n\n"
 
-                            if abs(cos_val - expected_value) >= epsilon:
-                                report += f"Error: Calculated cosine value {cos_val} doesn't match expected {expected_value}\n"
+                            if abs(cos_val - model_answer) >= epsilon:
+                                report += f"Error: Calculated cosine value {cos_val} doesn't match expected {model_answer}\n"
                         else:
                             report += "Error: Zero length side(s) in triangle - cannot calculate cosine\n"
                     else:
@@ -1123,8 +1123,8 @@ class GeometricTheorem:
                     expected_cos = math.cos(math.radians(angle_val))
                     report += f"Its cosine should be {expected_cos}\n\n"
 
-                    if abs(expected_cos - expected_value) >= epsilon:
-                        report += f"Error: Calculated cosine {expected_cos} doesn't match expected {expected_value}\n"
+                    if abs(expected_cos - model_answer) >= epsilon:
+                        report += f"Error: Calculated cosine {expected_cos} doesn't match expected {model_answer}\n"
                 else:
                     alt_model = temp_solver.model()
                     alt_angle = float(alt_model.eval(angle_var).as_decimal(10).rstrip('?'))
@@ -1215,7 +1215,7 @@ class GeometricTheorem:
             report += "3. Conclusions that contradict earlier assertions\n"
             report += "4. Errors in the Law of Cosines application\n\n"
         elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow cos({angle_token}) to be {expected_value}.\n"
+            report += f"The geometric constraints in your proof don't allow cos({angle_token}) to be {model_answer}.\n"
             report += "This means your proof implies a different cosine value than expected.\n\n"
             report += "Check that:\n"
             report += "1. Your triangle side lengths are correctly specified\n"
@@ -1225,7 +1225,7 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine cos({angle_token}).\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n\n"
+                report += f"It could be {model_answer} but also {alt_value}\n\n"
             report += "You need to add more constraints by applying additional theorems.\n"
             report += "Focus on fixing the shape of the triangle containing this angle.\n"
 
@@ -1669,7 +1669,7 @@ class GeometricTheorem:
             print(f"Error parsing expression '{expr}': {str(e)}")
             raise
 
-    def generate_length_analysis_report(self, line_name, expected_value, alt_value=None,
+    def generate_length_analysis_report(self, line_name, model_answer, alt_value=None,
                                         solver_state="multiple_values"):
         """Generate a focused report about why the line length goal couldn't be uniquely determined"""
 
@@ -1677,7 +1677,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Length of line {line_name}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the line
         line_points = list(line_name)
@@ -1756,7 +1756,7 @@ class GeometricTheorem:
             report += "This means there's an inconsistency in your geometric setup or theorem applications.\n"
             report += "Check for contradictory premises or incorrectly applied theorems.\n"
         elif solver_state == "incompatible":
-            report += f"The constraints in your proof are consistent, but don't allow line {line_name} to be {expected_value}.\n"
+            report += f"The constraints in your proof are consistent, but don't allow line {line_name} to be {model_answer}.\n"
             report += "This means your proof implies a different value for this line than expected.\n"
         elif solver_state == "undefined":
             report += f"The line {line_name} is not defined in your proof's context.\n"
@@ -1766,7 +1766,7 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine the length of line {line_name}.\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n"
+                report += f"It could be {model_answer} but also {alt_value}\n"
             report += "You need to add more constraints by applying additional theorems.\n"
 
         return report
@@ -7705,10 +7705,10 @@ class GeometricTheorem:
                     line2 = length_div_match.group(2)  # Denominator line (e.g., "AC")
 
                     if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_value = parse_special_answer(sections['ANSWER'][0].strip())
+                        model_answer = parse_special_answer(sections['ANSWER'][0].strip())
 
                         print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
-                        print(f"Expected value: {expected_value}")
+                        print(f"Expected value: {model_answer}")
 
                         # Get the length variables for both lines
                         len1 = self.add_length(line1[0], line1[1])
@@ -7720,14 +7720,14 @@ class GeometricTheorem:
                             for c in self.solver.assertions():
                                 temp_solver1.add(c)
 
-                            # Add constraint: len1/len2 = expected_value
-                            # This is equivalent to: len1 = expected_value * len2
+                            # Add constraint: len1/len2 = model_answer
+                            # This is equivalent to: len1 = model_answer * len2
                             epsilon = 1e-8
                             temp_solver1.add(And(
                                 len2 > epsilon,  # Avoid division by zero
                                 And(
-                                    len1 >= (expected_value - epsilon) * len2,
-                                    len1 <= (expected_value + epsilon) * len2
+                                    len1 >= (model_answer - epsilon) * len2,
+                                    len1 <= (model_answer + epsilon) * len2
                                 )
                             ))
 
@@ -7735,14 +7735,14 @@ class GeometricTheorem:
                                 error_msg = "Failed to prove length division goal: constraints don't allow the expected value."
 
                                 # Generate detailed report for this case
-                                div_report = self.generate_division_analysis_report(line1, line2, expected_value, None,
+                                div_report = self.generate_division_analysis_report(line1, line2, model_answer, None,
                                                                                     "incompatible")
 
-                                print(f"Error: Constraints don't allow {line1}/{line2} = {expected_value}")
+                                print(f"Error: Constraints don't allow {line1}/{line2} = {model_answer}")
                                 error = GeometricError(
                                     tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                     message=error_msg,
-                                    details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expected_value}"
+                                    details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}"
                                 )
                                 print(f"\nError in {error.tier.name}: {error.message}")
                                 if error.details:
@@ -7764,7 +7764,7 @@ class GeometricTheorem:
                                     error_msg = "Division by zero in length ratio"
 
                                     # Generate detailed report for this case
-                                    div_report = self.generate_division_analysis_report(line1, line2, expected_value,
+                                    div_report = self.generate_division_analysis_report(line1, line2, model_answer,
                                                                                         None, "incompatible")
                                     div_report += "\nERROR: Division by zero detected. Line " + line2 + " has length approximately 0.\n"
 
@@ -7791,11 +7791,11 @@ class GeometricTheorem:
                                     temp_solver2.add(c)
 
                                 # We want to check if len1/len2 can have a different value
-                                # This is equivalent to len1 != expected_value * len2
+                                # This is equivalent to len1 != model_answer * len2
                                 temp_solver2.add(
                                     Or(
-                                        len1 < (expected_value - epsilon) * len2,
-                                        len1 > (expected_value + epsilon) * len2
+                                        len1 < (model_answer - epsilon) * len2,
+                                        len1 > (model_answer + epsilon) * len2
                                     )
                                 )
 
@@ -7815,7 +7815,7 @@ class GeometricTheorem:
 
                                         # Generate detailed report for this case
                                         div_report = self.generate_division_analysis_report(line1, line2,
-                                                                                            expected_value, alt_ratio,
+                                                                                            model_answer, alt_ratio,
                                                                                             "multiple_values")
 
                                         print(f"Error: The proof doesn't uniquely determine the ratio {line1}/{line2}.")
@@ -7824,7 +7824,7 @@ class GeometricTheorem:
                                         error = GeometricError(
                                             tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                             message=error_msg,
-                                            details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expected_value}, but could also be {alt_ratio}"
+                                            details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}, but could also be {alt_ratio}"
                                         )
                                         print(f"\nError in {error.tier.name}: {error.message}")
                                         if error.details:
@@ -7835,18 +7835,18 @@ class GeometricTheorem:
                                         return False, div_report
 
                                 # Check if computed value matches expected value
-                                if abs(computed_value - expected_value) >= epsilon:
-                                    error_msg = f"Failed to prove length division goal: computed value {computed_value} doesn't match expected {expected_value}."
+                                if abs(computed_value - model_answer) >= epsilon:
+                                    error_msg = f"Failed to prove length division goal: computed value {computed_value} doesn't match expected {model_answer}."
 
                                     # Generate detailed report for this case
-                                    div_report = self.generate_division_analysis_report(line1, line2, expected_value,
+                                    div_report = self.generate_division_analysis_report(line1, line2, model_answer,
                                                                                         computed_value, "incompatible")
 
-                                    print(f"Error: Computed division {computed_value} != expected {expected_value}")
+                                    print(f"Error: Computed division {computed_value} != expected {model_answer}")
                                     error = GeometricError(
                                         tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                         message=error_msg,
-                                        details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expected_value}, computed: {computed_value}"
+                                        details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}, computed: {computed_value}"
                                     )
                                     print(f"\nError in {error.tier.name}: {error.message}")
                                     if error.details:
@@ -7857,14 +7857,14 @@ class GeometricTheorem:
                                     return False, div_report
 
                                 print(
-                                    f"Success: The length ratio {line1}/{line2} is uniquely determined to be {expected_value}.")
+                                    f"Success: The length ratio {line1}/{line2} is uniquely determined to be {model_answer}.")
                                 return True, ""
 
                             except Exception as e:
                                 error_msg = f"Error converting length values: {str(e)}"
 
                                 # Generate detailed report for this case
-                                div_report = self.generate_division_analysis_report(line1, line2, expected_value, None,
+                                div_report = self.generate_division_analysis_report(line1, line2, model_answer, None,
                                                                                     "incompatible")
                                 div_report += f"\nERROR: {str(e)}\n"
 
@@ -7885,14 +7885,14 @@ class GeometricTheorem:
                             error_msg = "Failed to prove length division goal: solver is unsatisfiable."
 
                             # Generate detailed report for unsatisfiable case
-                            div_report = self.generate_division_analysis_report(line1, line2, expected_value, None,
+                            div_report = self.generate_division_analysis_report(line1, line2, model_answer, None,
                                                                                 "unsatisfiable")
 
                             print("Solver constraints unsat when evaluating division-of-lengths goal.")
                             error = GeometricError(
                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                 message=error_msg,
-                                details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expected_value}"
+                                details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}"
                             )
                             print(f"\nError in {error.tier.name}: {error.message}")
                             if error.details:
@@ -8101,8 +8101,8 @@ class GeometricTheorem:
 
                         # Add expected value to report
                         try:
-                            expected_value = parse_special_answer(answer_str)
-                            general_report += f"Expected value: {expected_value}\n\n"
+                            model_answer = parse_special_answer(answer_str)
+                            general_report += f"Expected value: {model_answer}\n\n"
                         except Exception as e:
                             error_msg = f"Error parsing answer '{answer_str}': {str(e)}"
                             general_report += f"Error parsing answer '{answer_str}': {str(e)}\n"
@@ -8142,15 +8142,15 @@ class GeometricTheorem:
                                     general_report += f"Computed difference: {computed_value}\n"
 
                                     epsilon = 1e-8
-                                    if abs(computed_value - expected_value) >= epsilon:
+                                    if abs(computed_value - model_answer) >= epsilon:
                                         error_msg = "Failed to prove angle subtraction goal."
-                                        general_report += f"Error: Computed value {computed_value} != expected {expected_value}\n"
+                                        general_report += f"Error: Computed value {computed_value} != expected {model_answer}\n"
 
-                                        print(f"Error: Computed value {computed_value} != expected {expected_value}")
+                                        print(f"Error: Computed value {computed_value} != expected {model_answer}")
                                         error = GeometricError(
                                             tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                             message=error_msg,
-                                            details=f"Computed: {computed_value}, expected: {expected_value}"
+                                            details=f"Computed: {computed_value}, expected: {model_answer}"
                                         )
                                         print(f"\nError in {error.tier.name}: {error.message}")
                                         if error.details:
@@ -8161,7 +8161,7 @@ class GeometricTheorem:
                                                                   general_report)
                                         return False, general_report
 
-                                    # Check uniqueness - can angle difference be something other than expected_value?
+                                    # Check uniqueness - can angle difference be something other than model_answer?
                                     temp_solver = Solver()
                                     for c in self.solver.assertions():
                                         temp_solver.add(c)
@@ -8169,8 +8169,8 @@ class GeometricTheorem:
                                     # Add constraint that difference must be outside epsilon range of expected
                                     temp_solver.add(
                                         Or(
-                                            angle1_var - angle2_var < expected_value - epsilon,
-                                            angle1_var - angle2_var > expected_value + epsilon
+                                            angle1_var - angle2_var < model_answer - epsilon,
+                                            angle1_var - angle2_var > model_answer + epsilon
                                         )
                                     )
 
@@ -8191,7 +8191,7 @@ class GeometricTheorem:
                                         error = GeometricError(
                                             tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                             message=error_msg,
-                                            details=f"Goal was: {goal_expr} = {expected_value}, but could also be {alt_value}"
+                                            details=f"Goal was: {goal_expr} = {model_answer}, but could also be {alt_value}"
                                         )
                                         print(f"\nError in {error.tier.name}: {error.message}")
                                         if error.details:
@@ -8203,7 +8203,7 @@ class GeometricTheorem:
                                         return False, general_report
 
                                     print(
-                                        f"Success: Angle difference {angle1_name} - {angle2_name} = {expected_value} is verified.")
+                                        f"Success: Angle difference {angle1_name} - {angle2_name} = {model_answer} is verified.")
                                     return True, ""
 
                                 # Handle area subtraction (existing code)
@@ -8237,16 +8237,16 @@ class GeometricTheorem:
                                         general_report += f"Computed value: {computed_value}\n"
 
                                         epsilon = 1e-8
-                                        if abs(computed_value - expected_value) >= epsilon:
+                                        if abs(computed_value - model_answer) >= epsilon:
                                             error_msg = "Failed to prove goal (Sub form)."
-                                            general_report += f"Error: Computed value {computed_value} != expected {expected_value}\n"
+                                            general_report += f"Error: Computed value {computed_value} != expected {model_answer}\n"
 
                                             print(
-                                                f"Error: Computed value {computed_value} != expected {expected_value}")
+                                                f"Error: Computed value {computed_value} != expected {model_answer}")
                                             error = GeometricError(
                                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                                 message=error_msg,
-                                                details=f"Computed: {computed_value}, expected: {expected_value}"
+                                                details=f"Computed: {computed_value}, expected: {model_answer}"
                                             )
                                             print(f"\nError in {error.tier.name}: {error.message}")
                                             if error.details:
@@ -8256,7 +8256,7 @@ class GeometricTheorem:
                                             self.write_failure_report(f"sub_expr_{circle}_{tri}", general_report)
                                             return False, general_report
 
-                                        # Check uniqueness - can area difference be something other than expected_value?
+                                        # Check uniqueness - can area difference be something other than model_answer?
                                         temp_solver = Solver()
                                         for c in self.solver.assertions():
                                             temp_solver.add(c)
@@ -8264,8 +8264,8 @@ class GeometricTheorem:
                                         # Add constraint that sub-expression result must be outside epsilon range of expected
                                         temp_solver.add(
                                             Or(
-                                                circle_area_var - triangle_area_var < expected_value - epsilon,
-                                                circle_area_var - triangle_area_var > expected_value + epsilon
+                                                circle_area_var - triangle_area_var < model_answer - epsilon,
+                                                circle_area_var - triangle_area_var > model_answer + epsilon
                                             )
                                         )
 
@@ -8288,7 +8288,7 @@ class GeometricTheorem:
                                             error = GeometricError(
                                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                                 message=error_msg,
-                                                details=f"Goal was: Sub({expr1_str},{expr2_str}) = {expected_value}, but could also be {alt_value}"
+                                                details=f"Goal was: Sub({expr1_str},{expr2_str}) = {model_answer}, but could also be {alt_value}"
                                             )
                                             print(f"\nError in {error.tier.name}: {error.message}")
                                             if error.details:
@@ -8382,15 +8382,15 @@ class GeometricTheorem:
                             return False, general_report
 
                         epsilon = 1e-8
-                        if abs(computed_value - expected_value) >= epsilon:
+                        if abs(computed_value - model_answer) >= epsilon:
                             error_msg = "Failed to prove general goal expression."
-                            general_report += f"Error: Computed general goal value {computed_value} != expected {expected_value}\n"
+                            general_report += f"Error: Computed general goal value {computed_value} != expected {model_answer}\n"
 
-                            print(f"Error: Computed general goal value {computed_value} != expected {expected_value}")
+                            print(f"Error: Computed general goal value {computed_value} != expected {model_answer}")
                             error = GeometricError(
                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                 message=error_msg,
-                                details=f"Computed: {computed_value}, expected: {expected_value}"
+                                details=f"Computed: {computed_value}, expected: {model_answer}"
                             )
                             print(f"\nError in {error.tier.name}: {error.message}")
                             if error.details:
@@ -8443,7 +8443,7 @@ class GeometricTheorem:
                                         alt_value = eval(goal_expr, alt_mapping)
 
                                         # If the alternative evaluation gives a different value
-                                        if abs(alt_value - expected_value) >= epsilon:
+                                        if abs(alt_value - model_answer) >= epsilon:
                                             error_msg = "Failed to prove general goal: constraints allow multiple values."
                                             general_report += f"Error: The proof doesn't uniquely determine the result of {goal_expr}.\n"
                                             general_report += f"It could be {computed_value} but could also be {alt_value}\n"
@@ -8455,7 +8455,7 @@ class GeometricTheorem:
                                             error = GeometricError(
                                                 tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                                 message=error_msg,
-                                                details=f"Goal was: {goal_expr} = {expected_value}, but could also evaluate to {alt_value}"
+                                                details=f"Goal was: {goal_expr} = {model_answer}, but could also evaluate to {alt_value}"
                                             )
                                             print(f"\nError in {error.tier.name}: {error.message}")
                                             if error.details:
@@ -8477,10 +8477,10 @@ class GeometricTheorem:
                         error_msg = "Failed to prove general goal: solver is unsatisfiable."
 
                         # Try to parse expected value from ANSWER section for the detailed report
-                        expected_value = None
+                        model_answer = None
                         if 'ANSWER' in sections and sections['ANSWER']:
                             try:
-                                expected_value = parse_special_answer(sections['ANSWER'][0].strip())
+                                model_answer = parse_special_answer(sections['ANSWER'][0].strip())
                             except Exception as e:
                                 print(f"Error parsing answer: {e}")
 
@@ -8503,7 +8503,7 @@ class GeometricTheorem:
                                     detailed_report = f"Analysis Report for {self.question_name}\n"
                                     detailed_report += "=" * 60 + "\n\n"
                                     detailed_report += f"Goal: {goal_expr}\n"
-                                    detailed_report += f"Expected value: {expected_value}\n\n"
+                                    detailed_report += f"Expected value: {model_answer}\n\n"
                                     detailed_report += f"This goal represents the difference between two angles:\n"
                                     detailed_report += f"- First angle: {expr1_str} ({angle1_name})\n"
                                     detailed_report += f"- Second angle: {expr2_str} ({angle2_name})\n\n"
@@ -8582,13 +8582,13 @@ class GeometricTheorem:
                                     return False, detailed_report
 
                         # Generate the general analysis report for other cases
-                        detailed_report = self.generate_general_goal_analysis_report(goal_expr, expected_value)
+                        detailed_report = self.generate_general_goal_analysis_report(goal_expr, model_answer)
 
                         print("Solver constraints unsat when evaluating general goal.")
                         error = GeometricError(
                             tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                             message=error_msg,
-                            details=f"Goal: {goal_expr} = {expected_value if expected_value is not None else '?'}"
+                            details=f"Goal: {goal_expr} = {model_answer if model_answer is not None else '?'}"
                         )
                         print(f"\nError in {error.tier.name}: {error.message}")
                         if error.details:
@@ -8753,7 +8753,7 @@ class GeometricTheorem:
 
         return related_theorems
 
-    def generate_perimeter_analysis_report(self, triangle, expected_value, alt_value=None,
+    def generate_perimeter_analysis_report(self, triangle, model_answer, alt_value=None,
                                            solver_state="multiple_values"):
         """Generate a detailed report for triangle perimeter goals that couldn't be verified."""
 
@@ -8761,7 +8761,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Perimeter of triangle {triangle}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the triangle
         tri_points = list(triangle)
@@ -8823,8 +8823,8 @@ class GeometricTheorem:
         if len(side_lengths) == 3:
             calculated_perimeter = sum(side_lengths)
             report += f"\nCalculated perimeter: {calculated_perimeter}\n"
-            if abs(calculated_perimeter - expected_value) >= 1e-8:
-                report += f"This doesn't match the expected value {expected_value}.\n"
+            if abs(calculated_perimeter - model_answer) >= 1e-8:
+                report += f"This doesn't match the expected value {model_answer}.\n"
 
         # Check if perimeter variable exists
         if triangle in self.triangle_perimeters:
@@ -8836,8 +8836,8 @@ class GeometricTheorem:
                     perimeter_val = float(model.eval(self.triangle_perimeters[triangle]).as_decimal(10).rstrip('?'))
                     report += f"Current perimeter value: {perimeter_val}\n"
 
-                    if abs(perimeter_val - expected_value) >= 1e-8:
-                        report += f"This doesn't match the expected value {expected_value}.\n"
+                    if abs(perimeter_val - model_answer) >= 1e-8:
+                        report += f"This doesn't match the expected value {model_answer}.\n"
                 except Exception as e:
                     report += f"Error evaluating perimeter: {str(e)}\n"
         else:
@@ -8916,7 +8916,7 @@ class GeometricTheorem:
             report += "3. Conclusions that contradict earlier assertions\n"
             report += "4. Errors in the perimeter calculation\n\n"
         elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the perimeter of {triangle} to be {expected_value}.\n"
+            report += f"The geometric constraints in your proof don't allow the perimeter of {triangle} to be {model_answer}.\n"
             report += "This means your proof implies a different perimeter than expected.\n\n"
             report += "Check that:\n"
             report += "1. Your side length values are correctly specified\n"
@@ -8926,12 +8926,12 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine the perimeter of triangle {triangle}.\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n\n"
+                report += f"It could be {model_answer} but also {alt_value}\n\n"
             report += "You need to add more constraints by applying additional theorems.\n"
             report += "Focus on fixing the lengths of each side of the triangle.\n"
 
         return report
-    def generate_quadrilateral_area_analysis_report(self, quad_name, expected_value, alt_value=None,
+    def generate_quadrilateral_area_analysis_report(self, quad_name, model_answer, alt_value=None,
                                                     solver_state="multiple_values"):
         """Generate a detailed report for quadrilateral area goals that couldn't be verified."""
 
@@ -8939,7 +8939,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Area of quadrilateral {quad_name}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the quadrilateral
         quad_points = list(quad_name)
@@ -8978,8 +8978,8 @@ class GeometricTheorem:
                     area_val = float(model.eval(self.quad_areas[quad_name]).as_decimal(10).rstrip('?'))
                     report += f"Current calculated area: {area_val}\n\n"
 
-                    if abs(area_val - expected_value) >= 1e-8:
-                        report += f"This doesn't match the expected value {expected_value}.\n\n"
+                    if abs(area_val - model_answer) >= 1e-8:
+                        report += f"This doesn't match the expected value {model_answer}.\n\n"
                 except Exception as e:
                     report += f"Error evaluating area: {str(e)}\n\n"
         else:
@@ -9103,7 +9103,7 @@ class GeometricTheorem:
             report += "3. Conclusions that contradict earlier assertions\n"
             report += "4. Errors in the area formula application\n\n"
         elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the area of {quad_name} to be {expected_value}.\n"
+            report += f"The geometric constraints in your proof don't allow the area of {quad_name} to be {model_answer}.\n"
             report += "This means your proof implies a different area than expected.\n\n"
             report += "Check that:\n"
             report += "1. Your altitude and base values are correctly specified\n"
@@ -9113,12 +9113,12 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine the area of quadrilateral {quad_name}.\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n\n"
+                report += f"It could be {model_answer} but also {alt_value}\n\n"
             report += "You need to add more constraints by applying additional theorems.\n"
             report += "Focus on fixing the dimensions of the quadrilateral or establishing specific relationships.\n"
 
         return report
-    def generate_arc_length_analysis_report(self, arc_token, expected_value, alt_value=None,
+    def generate_arc_length_analysis_report(self, arc_token, model_answer, alt_value=None,
                                             solver_state="multiple_values"):
         """Generate a detailed report for arc length goals that couldn't be verified."""
 
@@ -9126,7 +9126,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Length of arc {arc_token}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the arc
         goal_points = list(arc_token)
@@ -9169,8 +9169,8 @@ class GeometricTheorem:
                         import math
                         computed_length = (arc_val / 180) * math.pi * radius_val
                         report += f"Computed arc length: {computed_length}\n"
-                        if abs(computed_length - expected_value) >= 1e-8:
-                            report += f"This doesn't match expected value {expected_value}.\n"
+                        if abs(computed_length - model_answer) >= 1e-8:
+                            report += f"This doesn't match expected value {model_answer}.\n"
                 except Exception as e:
                     report += f"Error evaluating radius: {str(e)}\n"
         else:
@@ -9246,7 +9246,7 @@ class GeometricTheorem:
             report += "3. Conclusions that contradict earlier assertions\n"
             report += "4. Errors in the arc length formula application\n\n"
         elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the arc length of {arc_token} to be {expected_value}.\n"
+            report += f"The geometric constraints in your proof don't allow the arc length of {arc_token} to be {model_answer}.\n"
             report += "This means your proof implies a different arc length than expected.\n\n"
             report += "Check that:\n"
             report += "1. Your arc measure and radius values are correctly specified\n"
@@ -9256,12 +9256,12 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine the length of arc {arc_token}.\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n\n"
+                report += f"It could be {model_answer} but also {alt_value}\n\n"
             report += "You need to add more constraints by applying additional theorems.\n"
             report += "Focus on fixing the measure of the arc and/or the radius of the circle.\n"
 
         return report
-    def generate_sum_analysis_report(self, line1, line2, expected_value, alt_value=None,
+    def generate_sum_analysis_report(self, line1, line2, model_answer, alt_value=None,
                                      solver_state="multiple_values"):
         """Generate a detailed report for sum goals that couldn't be verified."""
 
@@ -9269,7 +9269,7 @@ class GeometricTheorem:
         report = f"Analysis Report for {self.question_name}\n"
         report += "=" * 60 + "\n\n"
         report += f"Goal: Sum of lines {line1} + {line2}\n"
-        report += f"Expected value: {expected_value}\n\n"
+        report += f"Expected value: {model_answer}\n\n"
 
         # Extract points involved in the goal lines
         goal_points = list(set(line1 + line2))
@@ -9298,8 +9298,8 @@ class GeometricTheorem:
                 report += f"Computed sum: {line1} + {line2} = {computed_value}\n\n"
 
                 epsilon = 1e-8
-                if abs(computed_value - expected_value) >= epsilon:
-                    report += f"Error: Computed sum {computed_value} doesn't match expected {expected_value}\n"
+                if abs(computed_value - model_answer) >= epsilon:
+                    report += f"Error: Computed sum {computed_value} doesn't match expected {model_answer}\n"
                     report += "This suggests an inconsistency between your proof and the expected answer.\n\n"
 
                 # Check if these lengths are uniquely determined
@@ -9341,8 +9341,8 @@ class GeometricTheorem:
 
                 # We want to check if len1 + len2 can have a different value
                 temp_solver3.add(Or(
-                    len1_var + len2_var < expected_value - epsilon,
-                    len1_var + len2_var > expected_value + epsilon
+                    len1_var + len2_var < model_answer - epsilon,
+                    len1_var + len2_var > model_answer + epsilon
                 ))
 
                 if temp_solver3.check() == sat:
@@ -9555,7 +9555,7 @@ class GeometricTheorem:
             report += "3. Conclusions that contradict earlier assertions\n"
             report += "4. Errors in the sum or perimeter calculations\n\n"
         elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the sum {line1} + {line2} to be {expected_value}.\n"
+            report += f"The geometric constraints in your proof don't allow the sum {line1} + {line2} to be {model_answer}.\n"
             report += "This means your proof implies a different sum than expected.\n\n"
             report += "Check that:\n"
             report += "1. Your line length values are correctly specified\n"
@@ -9565,7 +9565,7 @@ class GeometricTheorem:
             report += f"Your proof doesn't uniquely determine the sum {line1} + {line2}.\n"
             report += "Multiple solutions are possible with the current constraints.\n"
             if alt_value is not None:
-                report += f"It could be {expected_value} but also {alt_value}\n\n"
+                report += f"It could be {model_answer} but also {alt_value}\n\n"
             report += "You need to add more constraints by applying additional theorems.\n"
             report += "Consider using theorems that fix the individual lengths of these lines,\n"
             report += "such as the Pythagorean theorem, similar triangles, or other geometric relationships.\n"

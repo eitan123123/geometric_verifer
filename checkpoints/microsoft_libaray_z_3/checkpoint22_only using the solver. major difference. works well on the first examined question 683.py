@@ -1447,7 +1447,7 @@ class GeometricTheorem:
                         # Replace 'pi' with its numeric approximation.
                         numeric_ans_expr = ans_str.replace('pi', '3.141592653589793')
                         try:
-                            expected_value = float(eval(numeric_ans_expr))
+                            model_answer = float(eval(numeric_ans_expr))
                         except Exception as e:
                             print(f"Error parsing ANSWER expression: {e}")
                             return False
@@ -1465,14 +1465,14 @@ class GeometricTheorem:
                                 return False
 
                             epsilon = 1e-7
-                            if abs(calculated_value - expected_value) < epsilon:
+                            if abs(calculated_value - model_answer) < epsilon:
                                 print("Success: The difference matches the expected value.")
                                 return True
                             else:
                                 error = GeometricError(
                                     tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
                                     message="The calculated difference does not match the expected value.",
-                                    details=f"Calculated difference: {calculated_value}, Expected difference: {expected_value}."
+                                    details=f"Calculated difference: {calculated_value}, Expected difference: {model_answer}."
                                 )
                                 print(f"\nError in {error.tier.name}: {error.message}")
                                 if error.details:

@@ -502,14 +502,14 @@ class GeometricTheorem:
             print(f"Created mirror similar ratio variable: {var_name}")
         # self.add_all_side_mirror_ratio_constraints(tri1, tri2)
 
-    def generate_detailed_feedback(self, goal_type, goal_token, expected_value, computed_value=None,
+    def generate_detailed_feedback(self, goal_type, goal_token, model_answer, computed_value=None,
                                    status="multiple_values", additional_info=None):
         """Generate feedback in the user's preferred format with improved content filtering."""
 
         # For general variable goals, use the specialized function
         if goal_type == "general" and len(goal_token) == 1 and goal_token.isalpha():
             # It's a single letter variable like 'p'
-            return self.generate_detailed_feedback_for_variable(goal_token, expected_value, computed_value, status)
+            return self.generate_detailed_feedback_for_variable(goal_token, model_answer, computed_value, status)
 
         # Initialize the report with verification status
         report = "verification failed.\n\n"
@@ -541,7 +541,7 @@ class GeometricTheorem:
             report += f"- Goal: value of {goal_token}\n"
 
         # Add your answer and expected/computed value
-        report += f"- Your answer: {expected_value}\n"
+        report += f"- Your answer: {model_answer}\n"
 
         if computed_value is not None and status == "incompatible":
             report += f"- Expected answer: {computed_value}\n"
@@ -553,9 +553,9 @@ class GeometricTheorem:
         if status == "unsatisfiable":
             report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
         elif status == "incompatible":
-            report += f"Your proof determines the {goal_type} of {goal_token} to be {computed_value}, not {expected_value}. Check your theorem applications.\n"
+            report += f"Your proof determines the {goal_type} of {goal_token} to be {computed_value}, not {model_answer}. Check your theorem applications.\n"
         elif status == "multiple_values":
-            report += f"Your proof doesn't uniquely determine the value. It could be {expected_value}"
+            report += f"Your proof doesn't uniquely determine the value. It could be {model_answer}"
             if computed_value is not None:
                 report += f" or {computed_value}"
             report += ". You need additional constraints.\n"
@@ -679,7 +679,7 @@ class GeometricTheorem:
 
         return report
 
-    def generate_detailed_feedback_for_variable(self, variable_name, expected_value, computed_value=None,
+    def generate_detailed_feedback_for_variable(self, variable_name, model_answer, computed_value=None,
                                                 status="multiple_values"):
         """Generate detailed feedback specifically for a variable goal with improved formatting."""
 
@@ -690,7 +690,7 @@ class GeometricTheorem:
         report += f"- Goal: value of {variable_name}\n"
 
         # Add your answer and expected/computed value
-        report += f"- Your answer: {expected_value}\n"
+        report += f"- Your answer: {model_answer}\n"
 
         if computed_value is not None and status == "incompatible":
             report += f"- Expected answer: {computed_value}\n"
@@ -702,9 +702,9 @@ class GeometricTheorem:
         if status == "unsatisfiable":
             report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
         elif status == "incompatible":
-            report += f"Your proof determines the value of {variable_name} to be {computed_value}, not {expected_value}. Check your theorem applications.\n"
+            report += f"Your proof determines the value of {variable_name} to be {computed_value}, not {model_answer}. Check your theorem applications.\n"
         elif status == "multiple_values":
-            report += f"Your proof doesn't uniquely determine the value of {variable_name}. It could be {expected_value}"
+            report += f"Your proof doesn't uniquely determine the value of {variable_name}. It could be {model_answer}"
             if computed_value is not None:
                 report += f" or {computed_value}"
             report += ". You need additional constraints.\n"
@@ -1399,7 +1399,7 @@ class GeometricTheorem:
             print(f"Error parsing expression '{expr}': {str(e)}")
             raise
 
-    def generate_length_analysis_report(self, line_name, expected_value, alt_value=None,
+    def generate_length_analysis_report(self, line_name, model_answer, alt_value=None,
                                         solver_state="multiple_values"):
         """Generate a focused report about why the line length goal couldn't be uniquely determined"""
 

@@ -7,6 +7,13 @@ from typing import Tuple, Optional
 from fractions import Fraction
 import logging
 
+CONSTRUCTION_CDL = 'CONSTRUCTION_CDL'
+TEXT_CDL = 'TEXT_CDL'
+GOAL_CDL = 'GOAL_CDL'
+CONSTRUCTION_CDL_EXTENDED = 'CONSTRUCTION_CDL_EXTENDED'
+THEOREM_SEQUENCE = 'THEOREM_SEQUENCE'
+ANSWER = 'ANSWER'
+
 
 class ErrorTier(Enum):
     TIER1_THEOREM_CALL = 1  # Incorrect theorem call
@@ -28,8 +35,6 @@ class GeometricPoint:
 
 class GeometricTheorem:
     def __init__(self):
-
-
 
         # Solver and basic geometric elements
         self.solver = Solver()
@@ -54,10 +59,11 @@ class GeometricTheorem:
         self.variables = {}
         self.found_tier_1_or_2_error = False
         self.congruent_triangles = []
+        self.mirror_congruent_triangles = []
+        self.midsegments = {}
 
         self.quadrilateral_diagonals = set()
         self.quadrilateral_right_angles = set()
-
 
         # Add these new attributes for length handling
         self.lengths = {}  # Store line lengths
@@ -100,6 +106,8 @@ class GeometricTheorem:
 
         self.proven_area_relationships = []
 
+        self.added_basic_constraints = set()
+
     def extract_variables(self, expression: str) -> Set[str]:
         """Extract variable names from an algebraic expression"""
         # Use regex to find single letters that aren't part of numbers
@@ -121,8 +129,6 @@ class GeometricTheorem:
             # Constrain the angle to be between 0 and 180.
             self.solver.add(self.angles[angle_name] > 0, self.angles[angle_name] <= 180)
         return self.angles[angle_name]
-
-
 
     def add_length(self, p1: str, p2: str) -> Real:
         """Return the Z3 variable for the length of the segment between p1 and p2.
@@ -148,6 +154,22 @@ class GeometricTheorem:
         tri2_norm = ''.join(sorted(tri2.strip().upper()))
         return tuple(sorted([tri1_norm, tri2_norm]))
 
+    def canonicalize_mirror_congruent_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
+        """
+        Normalize triangles for mirror congruence checking.
+        For mirror congruent triangles, we consider rotations only.
+        """
+        # For first triangle, generate all rotations
+        rotations1 = [tri1[i:] + tri1[:i] for i in range(len(tri1))]
+
+        # For second triangle, generate all rotations
+        rotations2 = [tri2[i:] + tri2[:i] for i in range(len(tri2))]
+
+        # Find the lexicographically smallest pair
+        canonical_pair = min((r1, r2) for r1 in rotations1 for r2 in rotations2)
+
+        return canonical_pair
+
     def canonicalize_congruent_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
         """
         Normalize triangles for congruence checking.
@@ -172,114 +194,296 @@ class GeometricTheorem:
 
         return canonical_pair
 
+    def collect_variable_references(self, variable_name, max_constraints=50):
+        """
+        Collect all references to a specific variable in the proof using a generalized approach.
 
-    def generate_general_goal_analysis_report(self, goal_expr, model_answer=None):
-        """Generate a focused report for general expressions like 'x'"""
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal expression: {goal_expr}\n"
-        if model_answer is not None:
-            report += f"Expected value: {model_answer}\n"
-        report += "\n"
+        Args:
+            variable_name (str): The name of the variable to search for (e.g., 'p')
+            max_constraints (int): Maximum number of constraints to collect
 
-        # Find all variables directly related to this expression
-        related_vars = set()
-        if goal_expr in self.variables:
-            related_vars.add(goal_expr)
+        Returns:
+            dict: A dictionary containing different types of references to the variable
+        """
+        references = {
+            "angle_expressions": [],  # Expressions like MeasureOfAngle(ABC) = 3*p+5
+            "length_expressions": [],  # Expressions like LengthOfLine(AB) = 2*p
+            "arc_expressions": [],  # Expressions like MeasureOfArc(ABC) = p+10
+            "algebraic_constraints": [],  # Direct algebraic constraints like p = 25
+            "solver_constraints": [],  # Z3 solver constraints involving p
+            "related_constraints": [],  # Related constraints between variables
+            "related_theorems": []  # Theorems that establish values related to p
+        }
 
-        # Add any variables that relate to this goal expression
-        for var_name in self.variables:
-            if goal_expr in var_name:  # e.g., 'sin_x' for goal 'x'
-                related_vars.add(var_name)
+        # Regular expression to match the variable as a standalone identifier
+        var_pattern = re.compile(r'(^|[^a-zA-Z0-9_])' + re.escape(variable_name) + r'([^a-zA-Z0-9_]|$)')
 
-        if related_vars:
-            report += "Variables related to this goal:\n"
-            report += "-" * 60 + "\n"
-            for var in related_vars:
-                report += f"- {var}\n"
-            report += "\n"
-        else:
-            report += f"No variables directly related to '{goal_expr}' were found in the system.\n\n"
+        # 1. Search TEXT_CDL section if available
+        if hasattr(self, 'text_cdl_lines'):
+            for line in self.text_cdl_lines:
+                # Look for angle expressions containing the variable
+                angle_match = re.search(r'Equal\(MeasureOfAngle\((\w+)\),(.*?)\)', line)
+                if angle_match and var_pattern.search(angle_match.group(2)):
+                    angle_name, expr = angle_match.groups()
+                    references["angle_expressions"].append(f"∠{angle_name} = {expr.strip()}")
 
-        # Find all constraints that mention this goal
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if goal_expr in c_str:
-                relevant_constraints.append(c_str)
+                # Look for length expressions containing the variable
+                length_match = re.search(r'Equal\(LengthOfLine\((\w+)\),(.*?)\)', line)
+                if length_match and var_pattern.search(length_match.group(2)):
+                    line_name, expr = length_match.groups()
+                    references["length_expressions"].append(f"|{line_name}| = {expr.strip()}")
 
-        if relevant_constraints:
-            report += "Solver constraints directly related to this goal:\n"
-            report += "-" * 60 + "\n"
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += f"No constraints directly involving '{goal_expr}' were found in the solver.\n\n"
+                # Look for arc expressions containing the variable
+                arc_match = re.search(r'Equal\(MeasureOfArc\((\w+)\),(.*?)\)', line)
+                if arc_match and var_pattern.search(arc_match.group(2)):
+                    arc_name, expr = arc_match.groups()
+                    references["arc_expressions"].append(f"arc {arc_name} = {expr.strip()}")
 
-        # Find theorems that relate to this goal
-        related_theorems = []
+                # Look for direct algebraic constraints on the variable
+                direct_match = re.search(rf'Equal\({variable_name},(.*?)\)', line)
+                if direct_match:
+                    references["algebraic_constraints"].append(f"{variable_name} = {direct_match.group(1).strip()}")
+                elif re.search(rf'{variable_name}\s*=', line):
+                    references["algebraic_constraints"].append(line.strip())
+
+        # 2. Use our new generalized constraint finder
+        try:
+            relevant_constraints = self.find_relevant_constraints(variable_name)
+            references["solver_constraints"] = relevant_constraints["direct_constraints"]
+            references["related_constraints"] = relevant_constraints["related_constraints"]
+        except Exception as e:
+            print(f"Error finding constraints: {e}")
+            # If general approach fails, provide a simple fallback
+            for c in self.solver.assertions():
+                c_str = str(c)
+                if var_pattern.search(c_str) and "pi ==" not in c_str:
+                    references["solver_constraints"].append(self.format_constraint(c_str))
+
+        # 3. Check theorem sequence for conclusions involving the variable
         for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the goal expression is mentioned in the conclusions
             for conclusion in theorem_info["conclusions"]:
-                if goal_expr in conclusion:
-                    is_related = True
+                if var_pattern.search(conclusion):
+                    references["related_theorems"].append({
+                        "step": theorem_info["step_number"],
+                        "theorem": theorem_info["theorem_name"],
+                        "args": theorem_info["args"],
+                        "conclusion": conclusion
+                    })
+                    break  # Only add each theorem once
+
+            # Also check premises for the variable
+            if var_pattern.search(theorem_info["premise"]):
+                # Add this as a related theorem since the variable appears in the premise
+                if not any(t["step"] == theorem_info["step_number"] for t in references["related_theorems"]):
+                    references["related_theorems"].append({
+                        "step": theorem_info["step_number"],
+                        "theorem": theorem_info["theorem_name"],
+                        "args": theorem_info["args"],
+                        "conclusion": "Variable in premise: " + theorem_info["premise"]
+                    })
+
+        return references
+
+    def get_direct_variable_constraints(self, variable_name):
+        """
+        A simpler, more efficient approach to get just the algebraic constraints on a variable.
+        This should be fast even with many angles and assertions.
+        """
+        constraints = []
+
+        # Regular expression to match the variable as a standalone identifier
+        var_pattern = re.compile(r'(^|[^a-zA-Z0-9_])' + re.escape(variable_name) + r'([^a-zA-Z0-9_]|$)')
+
+        # 1. Check TEXT_CDL for direct expressions with the variable
+        if hasattr(self, 'text_cdl_lines'):
+            for line in self.text_cdl_lines:
+                if var_pattern.search(line):
+                    # Angle expressions
+                    angle_match = re.search(r'Equal\(MeasureOfAngle\((\w+)\),(.*?)\)', line)
+                    if angle_match and var_pattern.search(angle_match.group(2)):
+                        angle_name, expr = angle_match.groups()
+                        constraints.append(f"∠{angle_name} = {expr.strip()}")
+                        continue
+
+                    # Length expressions
+                    length_match = re.search(r'Equal\(LengthOfLine\((\w+)\),(.*?)\)', line)
+                    if length_match and var_pattern.search(length_match.group(2)):
+                        line_name, expr = length_match.groups()
+                        constraints.append(f"|{line_name}| = {expr.strip()}")
+                        continue
+
+                    # Direct variable assignments
+                    direct_match = re.search(rf'Equal\({variable_name},(.*?)\)', line)
+                    if direct_match:
+                        constraints.append(f"{variable_name} = {direct_match.group(1).strip()}")
+                        continue
+
+                    # Basic assignment (variable = value)
+                    simple_match = re.search(rf'{variable_name}\s*=\s*(.*?)(?:$|[,);])', line)
+                    if simple_match:
+                        constraints.append(f"{variable_name} = {simple_match.group(1).strip()}")
+                        continue
+
+        # 2. For the theorem sequence, just show theorems that establish equations with the variable
+        for theorem_info in self.theorem_sequence:
+            for conclusion in theorem_info["conclusions"]:
+                if "Equal" in conclusion and var_pattern.search(conclusion):
+                    constraints.append(
+                        f"Step {theorem_info['step_number']} - {theorem_info['theorem_name']} establishes: {conclusion}"
+                    )
                     break
 
-            # Check if goal is mentioned in the premise
-            if goal_expr in theorem_info["premise"]:
-                is_related = True
+        return constraints
 
-            # Check if goal is mentioned in the args
-            if any(goal_expr in arg for arg in theorem_info["args"]):
-                is_related = True
+    def format_constraint(self, constraint_str):
+        """
+        Format a Z3 constraint string to be more readable.
 
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "premise": theorem_info["premise"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
+        Args:
+            constraint_str (str): The original constraint string from Z3
 
-        if related_theorems:
-            report += f"Theorems related to goal {goal_expr}:\n"
-            report += "-" * 60 + "\n"
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Premise: {theorem['premise']}\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving '{goal_expr}' were found in your proof.\n\n"
+        Returns:
+            str: A more readable formatted constraint
+        """
+        # Skip if this is a comment or special marker
+        if constraint_str.startswith('#'):
+            return constraint_str
 
-        # Check if the solver is unsatisfiable and suggest possible reasons
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
+        # Remove leading "0 + " that commonly appears in sum expressions
+        constraint_str = re.sub(r'^0\s*\+\s*', '', constraint_str)
 
-        if self.solver.check() == unsat:
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-        else:
-            report += "The solver can find a solution, but there may be other issues preventing verification:\n\n"
+        # Replace angle_ABC with ∠ABC for better readability, but be careful of word boundaries
+        constraint_str = re.sub(r'(^|[^a-zA-Z0-9_])angle_(\w+)', r'\1∠\2', constraint_str)
 
-        report += "Possible causes:\n"
-        report += "1. Incorrect angle or length values in premises\n"
-        report += "2. Improper theorem application\n"
-        report += "3. Conclusions that contradict earlier assertions\n"
-        report += "4. Incorrect algebraic relationships between variables\n\n"
+        # Replace length_AB with |AB| for better readability
+        constraint_str = re.sub(r'(^|[^a-zA-Z0-9_])length_(\w+)', r'\1|\2|', constraint_str)
 
-        report += "Try checking your theorem applications, especially those relating directly to\n"
-        report += f"the value of {goal_expr}, and verify that your premises are consistent.\n"
+        # Replace arc_ABC with arc(ABC) for better readability
+        constraint_str = re.sub(r'(^|[^a-zA-Z0-9_])arc_(\w+)', r'\1arc(\2)', constraint_str)
 
-        # Return the report content
-        return report
+        # Replace common Z3 operators
+        constraint_str = constraint_str.replace(' == ', ' = ')
+        constraint_str = constraint_str.replace(' + ', ' + ')
+        constraint_str = constraint_str.replace(' - ', ' - ')
+        constraint_str = constraint_str.replace(' * ', ' × ')
+        constraint_str = constraint_str.replace(' / ', ' ÷ ')
 
+        # Remove leading/trailing spaces
+        constraint_str = constraint_str.strip()
 
+        return constraint_str
 
+    def gather_relevant_geometric_data(self, excluded_categories=None, goal_variable=None):
+        """
+        Collect all non-empty geometric facts that might be relevant for feedback.
+
+        Args:
+            excluded_categories: List of category names to exclude from the output
+            goal_variable: If specified, filter facts to only show those relevant to this variable
+        """
+        if excluded_categories is None:
+            excluded_categories = ["Polygons"]  # Exclude Polygons by default
+
+        geometric_data = {}
+
+        # Get related angles and lengths if goal_variable is provided
+        related_points = set()
+        if goal_variable and hasattr(self, 'text_cdl_lines'):
+            for line in self.text_cdl_lines:
+                if goal_variable in line:
+                    # Extract angle points related to goal variable
+                    angle_match = re.search(r'Equal\(MeasureOfAngle\((\w+)\),(.*?)\)', line)
+                    if angle_match and goal_variable in angle_match.group(2):
+                        angle_points = angle_match.group(1)
+                        for point in angle_points:
+                            related_points.add(point)
+
+                    # Extract length points related to goal variable
+                    length_match = re.search(r'Equal\(LengthOfLine\((\w+)\),(.*?)\)', line)
+                    if length_match and goal_variable in length_match.group(2):
+                        length_points = length_match.group(1)
+                        for point in length_points:
+                            related_points.add(point)
+
+        # Parallel lines - with proper deduplication
+        if self.parallel_pairs:
+            formatted_pairs = set()
+            for p1, p2 in self.parallel_pairs:
+                # Normalize each line by sorting characters within the line
+                line1 = ''.join(sorted(p1))
+                line2 = ''.join(sorted(p2))
+
+                # Normalize the pair by sorting the normalized lines
+                sorted_pair = tuple(sorted([line1, line2]))
+                formatted_pairs.add(f"{sorted_pair[0]} ∥ {sorted_pair[1]}")
+
+            if formatted_pairs and "Parallel Lines" not in excluded_categories:
+                geometric_data["Parallel Lines"] = sorted(formatted_pairs)
+
+        # Perpendicular lines - with proper deduplication
+        if self.perpendicular_pairs:
+            formatted_pairs = set()
+            for p1, p2 in self.perpendicular_pairs:
+                # Normalize each line by sorting characters within the line
+                line1 = ''.join(sorted(p1))
+                line2 = ''.join(sorted(p2))
+
+                # Normalize the pair by sorting the normalized lines
+                sorted_pair = tuple(sorted([line1, line2]))
+                formatted_pairs.add(f"{sorted_pair[0]} ⊥ {sorted_pair[1]}")
+
+            if formatted_pairs and "Perpendicular Lines" not in excluded_categories:
+                geometric_data["Perpendicular Lines"] = sorted(formatted_pairs)
+
+        # Collinear facts - filter by relevant points if goal_variable provided
+        if self.collinear_facts and "Collinear Points" not in excluded_categories:
+            filtered_facts = []
+
+            for points in self.collinear_facts:
+                # If we have a goal variable, only include collinear facts containing related points
+                if goal_variable and related_points:
+                    if any(p in related_points for p in points):
+                        filtered_facts.append(f"Collinear {''.join(points)}")
+                else:
+                    # Otherwise include all collinear facts
+                    filtered_facts.append(f"Collinear {''.join(points)}")
+
+            if filtered_facts:
+                geometric_data["Collinear Points"] = sorted(set(filtered_facts))
+
+        # Right triangles
+        if self.right_triangles and "Right Triangles" not in excluded_categories:
+            formatted_triangles = [f"Right triangle {tri}" for tri in self.right_triangles]
+            if formatted_triangles:
+                geometric_data["Right Triangles"] = sorted(set(formatted_triangles))
+
+        # Similar triangles
+        if self.similar_triangles and "Similar Triangles" not in excluded_categories:
+            formatted_pairs = [f"{tri1} similar to {tri2}" for tri1, tri2 in self.similar_triangles]
+            if formatted_pairs:
+                geometric_data["Similar Triangles"] = sorted(set(formatted_pairs))
+
+        # Congruent triangles
+        if hasattr(self,
+                   'congruent_triangles') and self.congruent_triangles and "Congruent Triangles" not in excluded_categories:
+            formatted_pairs = [f"{tri1} congruent to {tri2}" for tri1, tri2 in self.congruent_triangles]
+            if formatted_pairs:
+                geometric_data["Congruent Triangles"] = sorted(set(formatted_pairs))
+
+        # Circle facts
+        if self.circle_centers and "Circles" not in excluded_categories:
+            formatted_centers = [f"{circle} with center {center}" for circle, center in self.circle_centers.items()]
+            if formatted_centers:
+                geometric_data["Circles"] = sorted(set(formatted_centers))
+
+        # Only include Polygons if explicitly requested (not excluded)
+        if self.polygons and "Polygons" not in excluded_categories:
+            formatted_polygons = [f"Polygon {poly}" for poly in self.polygons]
+            if formatted_polygons:
+                geometric_data["Polygons"] = sorted(set(formatted_polygons))
+
+        # Remove empty categories
+        return {k: v for k, v in geometric_data.items() if v}
 
     def add_mirror_similar_triangles(self, tri1: str, tri2: str):
         """Record that triangles tri1 and tri2 are mirror similar (by AA)
@@ -294,6 +498,361 @@ class GeometricTheorem:
             self.mirror_triangle_ratios[canonical_pair] = Real(var_name)
             print(f"Created mirror similar ratio variable: {var_name}")
         # self.add_all_side_mirror_ratio_constraints(tri1, tri2)
+
+    def generate_detailed_feedback(self, goal_type, goal_token, model_answer, verifier_expected_answer=None,
+                                   status="multiple_values", additional_info=None):
+        """Generate feedback in the user's preferred format with improved content filtering."""
+
+        # For general variable goals, use the specialized function
+        if goal_type == "general" and len(goal_token) == 1 and goal_token.isalpha():
+            # It's a single letter variable like 'p'
+            return self.generate_detailed_feedback_for_variable(goal_token, model_answer, verifier_expected_answer,
+                                                                status)
+
+        # Initialize the report with verification status
+        report = "verification failed.\n\n"
+
+        # Format goal description based on type
+        if goal_type == "angle":
+            report += f"- Goal: measure of angle {goal_token}\n"
+        elif goal_type == "length":
+            report += f"- Goal: length of line {goal_token}\n"
+        elif goal_type == "arc_measure":
+            report += f"- Goal: measure of arc {goal_token}\n"
+        elif goal_type == "arc_length":
+            report += f"- Goal: length of arc {goal_token}\n"
+        elif goal_type == "cosine":
+            report += f"- Goal: cosine of angle {goal_token}\n"
+        elif goal_type == "sine":
+            report += f"- Goal: sine of angle {goal_token}\n"
+        elif goal_type == "sum":
+            tokens = goal_token.split('+')
+            report += f"- Goal: sum of lines {tokens[0]} + {tokens[1]}\n"
+        elif goal_type == "ratio":
+            tokens = goal_token.split('/')
+            report += f"- Goal: ratio of lines {tokens[0]} / {tokens[1]}\n"
+        elif goal_type == "perimeter":
+            report += f"- Goal: perimeter of triangle {goal_token}\n"
+        elif goal_type == "quad_area":
+            report += f"- Goal: area of quadrilateral {goal_token}\n"
+        elif goal_type == "general":
+            report += f"- Goal: value of {goal_token}\n"
+
+        # Add your answer and expected/computed value
+        # Add your answer
+        report += f"- Model answer: {model_answer}\n"
+
+        # Only add expected answer line if there is an incompatible value
+        if verifier_expected_answer is not None and status == "incompatible":
+            report += f"- Verifier expected answer: {verifier_expected_answer}\n"
+
+        report += "- Error: "
+
+        if status == "unsatisfiable":
+            report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
+        elif status == "incompatible":
+            report += f"From your proof the verifier determines the {goal_type} of {goal_token} to be {verifier_expected_answer}, not {model_answer} as you said. Check your theorem applications.\n"
+        elif status == "multiple_values":
+            report += f"Your proof doesn't uniquely determine the value. You need additional constraints.\n"
+
+        # Add all geometric facts for context - MODIFIED TO USE "Related premises" INSTEAD
+        report += "- Available premises:\n"
+        geometric_data = self.gather_relevant_geometric_data()
+
+        if geometric_data:
+            for category, facts in geometric_data.items():
+                if facts:  # Only show categories with facts
+                    report += f"  {category}:\n"
+                    for fact in facts:
+                        report += f"    {fact}\n"
+        else:
+            report += "  No relevant geometric facts found.\n"
+
+        # Add theorems related to the goal
+        report += "- Theorems related to the goal:\n"
+
+        # Find theorems directly related to the goal
+        related_theorems = []
+
+        for theorem_info in self.theorem_sequence:
+            is_related = False
+
+            # Check for direct mention of the goal in conclusions
+            for conclusion in theorem_info["conclusions"]:
+                if goal_token in conclusion:
+                    is_related = True
+                    break
+
+                # Check more carefully depending on goal type
+                if not is_related and goal_type in ["angle", "arc_measure", "arc_length"]:
+                    for conclusion in theorem_info["conclusions"]:
+                        pattern = rf'MeasureOf(Angle|Arc)\((\w+)\)'
+                        matches = re.findall(pattern, conclusion)
+                        for match in matches:
+                            if set(match[1]) == set(goal_token):
+                                is_related = True
+                                break
+
+            # Check if mentioned in the premise
+            if goal_token in theorem_info["premise"]:
+                is_related = True
+
+            # Check if mentioned in args
+            if any(goal_token in arg for arg in theorem_info["args"]):
+                is_related = True
+
+            if is_related:
+                related_theorems.append({
+                    "step": theorem_info["step_number"],
+                    "theorem": theorem_info["theorem_name"],
+                    "args": theorem_info["args"],
+                    "conclusion": ", ".join(theorem_info["conclusions"])
+                })
+
+        if related_theorems:
+            for theorem in related_theorems:
+                report += f"  Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
+        else:
+            report += "  None found that constrain this goal\n"
+
+        # Add solver constraints
+        report += "- Solver constraints directly related to this goal:\n"
+
+        # Determine appropriate variable names based on goal type
+        var_names = []
+        if goal_type == "arc_length":
+            var_names.append(f"lengthArc_{self.normalize_arc(goal_token)}")
+            var_names.append(f"arc_{self.normalize_arc(goal_token)}")
+        elif goal_type == "arc_measure":
+            var_names.append(f"arc_{self.normalize_arc(goal_token)}")
+        elif goal_type == "length":
+            var_names.append(f"length_{self.normalize_line_name(goal_token)}")
+        elif goal_type == "angle":
+            var_names.append(f"angle_{self.normalize_angle_name(goal_token)}")
+        elif goal_type == "cosine":
+            var_names.append(f"cos_{goal_token}")
+            var_names.append(f"angle_{self.normalize_angle_name(goal_token)}")
+        elif goal_type == "sine":
+            var_names.append(f"sin_{goal_token}")
+            var_names.append(f"angle_{self.normalize_angle_name(goal_token)}")
+        elif goal_type == "sum":
+            tokens = goal_token.split('+')
+            for token in tokens:
+                var_names.append(f"length_{self.normalize_line_name(token)}")
+        elif goal_type == "ratio":
+            tokens = goal_token.split('/')
+            for token in tokens:
+                var_names.append(f"length_{self.normalize_line_name(token)}")
+        elif goal_type == "perimeter":
+            var_names.append(f"perimeter_{goal_token}")
+        elif goal_type == "quad_area":
+            var_names.append(f"areaQuadr_{goal_token}")
+
+        # Use a set to track unique constraints
+        unique_constraints = set()
+
+        for c in self.solver.assertions():
+            c_str = str(c)
+            for var_name in var_names:
+                if var_name in c_str:
+                    # Format constraint for readability
+                    formatted = self.format_constraint(c_str)
+                    unique_constraints.add(formatted)
+                    break
+
+        # Convert to list and sort for consistent output
+        relevant_constraints = sorted(list(unique_constraints))
+
+        if relevant_constraints:
+            for constraint in relevant_constraints:
+                report += f"  {constraint}\n"
+        else:
+            report += "  None found\n"
+
+        # Final message
+        report += "\nPlease fix the proof."
+
+        return report
+
+    def generate_detailed_feedback_for_variable(self, variable_name, model_answer, verifier_expected_answer=None,
+                                                status="multiple_values"):
+        """Generate detailed feedback specifically for a variable goal with improved formatting."""
+
+        # Initialize the report with verification status
+        report = "verification failed.\n\n"
+
+        # Format goal description
+        report += f"- Goal: value of {variable_name}\n"
+
+        # Add your answer and expected/computed value
+        # Add your answer
+        report += f"- Model answer: {model_answer}\n"
+
+        # Only add expected answer line if there is an incompatible value
+        if verifier_expected_answer is not None and status == "incompatible":
+            report += f"- Verifier expected answer: {verifier_expected_answer}\n"
+
+        report += "- Error: "
+
+        if status == "unsatisfiable":
+            report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
+        elif status == "incompatible":
+            report += f"From your proof the verifier determines the value of {variable_name} to be {verifier_expected_answer}, not {model_answer} as you said. Check your theorem applications.\n"
+        elif status == "multiple_values":
+            report += f"Your proof doesn't uniquely determine the value. You need additional constraints.\n"
+
+        # Add direct constraints from premises and relevant geometric facts - KEEP SAME TITLE
+        report += "- Available premises:\n"
+
+        # First get direct constraints (equations with the variable)
+        direct_constraints = self.get_direct_variable_constraints(variable_name)
+
+        # Get geometric facts filtered to show only those relevant to this variable
+        geometric_data = self.gather_relevant_geometric_data(goal_variable=variable_name)
+
+        # First show equations with the variable as a separate group
+        if direct_constraints:
+            report += "  Equations:\n"
+            for constraint in direct_constraints:
+                report += f"    {constraint}\n"
+
+        # Then show geometric facts organized by category
+        if geometric_data:
+            for category, facts in geometric_data.items():
+                if facts:  # Only show categories with facts
+                    report += f"  {category}:\n"
+                    for fact in facts:
+                        report += f"    {fact}\n"
+
+        if not direct_constraints and not geometric_data:
+            report += "  None found for this variable\n"
+
+        # Now look for theorems that relate to the variable using the new function
+        report += "- Theorems related to the goal:\n"
+        related_theorems = self.find_related_theorems_for_variable(variable_name)
+
+        if related_theorems:
+            for theorem in related_theorems:
+                report += f"  Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}): {theorem['conclusion']}\n"
+        else:
+            report += "  None found that constrain this goal\n"
+
+        # Add solver constraints
+        report += "- Solver constraints directly related to this goal:\n"
+        unique_constraints = set()
+
+        try:
+            result = self.find_relevant_constraints(variable_name)
+
+            # Add direct constraints first
+            for constraint in result["direct_constraints"]:
+                unique_constraints.add(constraint)
+
+            # Then add related constraints
+            for constraint in result["related_constraints"]:
+                unique_constraints.add(constraint)
+
+            # Convert to list and sort
+            all_constraints = list(unique_constraints)
+
+            def constraint_sort_key(constraint):
+                priority = 0 if variable_name in constraint else 1
+                return (priority, constraint)
+
+            all_constraints.sort(key=constraint_sort_key)
+
+            if all_constraints:
+                for constraint in all_constraints:
+                    report += f"  {constraint}\n"
+            else:
+                report += "  None found\n"
+        except Exception as e:
+            print(f"Error finding constraints: {e}")
+            report += f"  Error finding constraints: {e}\n"
+
+        # Final message
+        report += "\nPlease fix the proof."
+
+        return report
+
+    def find_relevant_constraints(self, variable_name, max_constraints=200):
+        """
+        Find all constraints relevant to a variable.
+        This will find both direct constraints and constraints on related variables.
+
+        Args:
+            variable_name (str): The name of the variable to search for
+            max_constraints (int): Maximum number of constraints to return
+
+        Returns:
+            dict: Dictionary with direct and related constraints
+        """
+        result = {
+            "direct_constraints": [],  # Constraints that directly contain the variable
+            "related_constraints": []  # Constraints on variables that appear with our target
+        }
+
+        # Regular expression to match the variable as a standalone identifier
+        var_pattern = re.compile(r'(^|[^a-zA-Z0-9_])' + re.escape(variable_name) + r'([^a-zA-Z0-9_]|$)')
+
+        # Track variables related to our target
+        related_vars = set()
+
+        # Keep track of all constraint strings we've seen to avoid duplicates
+        seen_constraints = set()
+
+        # First pass: find all direct constraints and collect related variables
+        for c in self.solver.assertions():
+            c_str = str(c)
+
+            # Skip pi constant definitions
+            if "pi ==" in c_str:
+                continue
+
+            # Check if this constraint directly involves our variable
+            if var_pattern.search(c_str):
+                formatted = self.format_constraint(c_str)
+
+                # Only add if we haven't seen this formatted constraint before
+                if formatted not in seen_constraints:
+                    result["direct_constraints"].append(formatted)
+                    seen_constraints.add(formatted)
+
+                # Find variables in this constraint using different variable patterns
+                for var_prefix in ["angle_", "length_", "arc_"]:
+                    var_matches = re.findall(r'(' + var_prefix + r'\w+)', c_str)
+                    for var_match in var_matches:
+                        related_vars.add(var_match)
+
+        # Second pass: find all constraints on related variables
+        for c in self.solver.assertions():
+            c_str = str(c)
+
+            # Skip pi constants
+            if "pi ==" in c_str:
+                continue
+
+            # Format constraint first to compare against seen_constraints
+            formatted = self.format_constraint(c_str)
+
+            # Skip if we've already seen this constraint
+            if formatted in seen_constraints:
+                continue
+
+            # Check if any related variable appears in this constraint
+            for var in related_vars:
+                if var in c_str:
+                    # Add to related constraints and mark as seen
+                    result["related_constraints"].append(formatted)
+                    seen_constraints.add(formatted)
+                    break
+
+        # Limit the number of constraints returned
+        if max_constraints > 0:
+            result["direct_constraints"] = result["direct_constraints"][:max_constraints // 2]
+            result["related_constraints"] = result["related_constraints"][:max_constraints // 2]
+
+        return result
 
     def add_all_side_mirror_ratio_constraints(self, tri1: str, tri2: str):
         """For mirror similar triangles, add side‐ratio constraints for each corresponding side.
@@ -386,879 +945,6 @@ class GeometricTheorem:
             candidates.append(candidate)
 
         return min(candidates)
-
-    def generate_sine_analysis_report(self, angle_token, model_answer, alt_value=None,
-                                      solver_state="multiple_values"):
-        """Generate a detailed report for sine goals that couldn't be verified."""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Sine of angle {angle_token}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the angle
-        goal_points = list(angle_token)
-
-        # Find triangles containing this angle
-        containing_triangles = []
-        for poly in self.polygons:
-            if len(poly) == 3 and angle_token[1] in poly:  # Middle letter is the vertex
-                containing_triangles.append(poly)
-
-        if containing_triangles:
-            report += f"Found {len(containing_triangles)} triangle(s) containing angle {angle_token}:\n"
-            for tri in containing_triangles:
-                report += f"- Triangle {tri}\n"
-                # Check if it's a right triangle
-                if tri in self.right_triangles:
-                    report += f"  (This is a right triangle)\n"
-            report += "\n"
-
-            # For the first triangle, try to analyze the sides
-            triangle = containing_triangles[0]
-            if self.solver.check() == sat:
-                model = self.solver.model()
-
-                # Get vertex indices
-                vertex_idx = triangle.index(angle_token[1])
-                prev_idx = (vertex_idx - 1) % 3
-                next_idx = (vertex_idx + 1) % 3
-
-                # For sine, we need to identify the side opposite to our angle and another side
-                opposite_side = self.add_length(triangle[prev_idx], triangle[next_idx])  # Side opposite to vertex
-                adjacent1 = self.add_length(triangle[prev_idx], triangle[vertex_idx])  # One adjacent side
-                adjacent2 = self.add_length(triangle[vertex_idx], triangle[next_idx])  # Other adjacent side
-
-                try:
-                    # Get values
-                    opposite_val = float(model.eval(opposite_side).as_decimal(10).rstrip('?'))
-                    adjacent1_val = float(model.eval(adjacent1).as_decimal(10).rstrip('?'))
-                    adjacent2_val = float(model.eval(adjacent2).as_decimal(10).rstrip('?'))
-
-                    report += f"Side {triangle[prev_idx]}{triangle[next_idx]} (opposite to angle) = {opposite_val}\n"
-                    report += f"Side {triangle[prev_idx]}{triangle[vertex_idx]} = {adjacent1_val}\n"
-                    report += f"Side {triangle[vertex_idx]}{triangle[next_idx]} = {adjacent2_val}\n\n"
-
-                    # Check if sides are uniquely determined
-                    temp_solver = Solver()
-                    for c in self.solver.assertions():
-                        temp_solver.add(c)
-
-                    # See if we can have different side values
-                    epsilon = 1e-8
-                    temp_solver.add(Or(
-                        Or(opposite_side < opposite_val - epsilon, opposite_side > opposite_val + epsilon),
-                        Or(adjacent1 < adjacent1_val - epsilon, adjacent1 > adjacent1_val + epsilon),
-                        Or(adjacent2 < adjacent2_val - epsilon, adjacent2 > adjacent2_val + epsilon)
-                    ))
-
-                    if temp_solver.check() == unsat:
-                        report += "Triangle sides are uniquely determined.\n"
-
-                        # Calculate sine using Law of Sines or right triangle rules
-                        if tri in self.right_triangles:
-                            # For a right triangle, check if our angle is the right angle
-                            right_angle_vertex = None
-                            for i in range(3):
-                                v = triangle[i]
-                                prev = triangle[(i - 1) % 3]
-                                next = triangle[(i + 1) % 3]
-                                angle_name = f"{prev}{v}{next}"
-                                angle_var = self.add_angle(angle_name[0], angle_name[1], angle_name[2])
-                                angle_val = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
-                                if abs(angle_val - 90) < 0.1:
-                                    right_angle_vertex = v
-                                    break
-
-                            if right_angle_vertex:
-                                report += f"Vertex {right_angle_vertex} has the right angle.\n"
-
-                                # If our angle is the right angle, sin = 1
-                                if right_angle_vertex == angle_token[1]:
-                                    report += f"Since {angle_token} is the right angle, its sine should be 1.0\n"
-                                    if abs(model_answer - 1.0) >= epsilon:
-                                        report += f"Error: Expected sine {model_answer} doesn't match 1.0\n"
-                                else:
-                                    # Otherwise, use sin = opposite/hypotenuse
-                                    hypotenuse_vertices = [v for v in triangle if v != right_angle_vertex]
-                                    hypotenuse = self.add_length(hypotenuse_vertices[0], hypotenuse_vertices[1])
-                                    hypotenuse_val = float(model.eval(hypotenuse).as_decimal(10).rstrip('?'))
-                                    report += f"Hypotenuse (opposite to right angle) = {hypotenuse_val}\n"
-
-                                    # For our angle, find opposite side
-                                    our_vertex = angle_token[1]
-                                    if our_vertex == right_angle_vertex:
-                                        # Shouldn't happen as we checked above
-                                        pass
-                                    else:
-                                        other_vertices = [v for v in triangle if v != our_vertex]
-                                        opposite_to_our_angle = next(
-                                            v for v in other_vertices if v != right_angle_vertex)
-                                        side_opposite_to_us = next(
-                                            v for v in triangle if v != our_vertex and v != opposite_to_our_angle)
-
-                                        opposite_side_our_angle = self.add_length(opposite_to_our_angle,
-                                                                                  side_opposite_to_us)
-                                        opposite_val_our_angle = float(
-                                            model.eval(opposite_side_our_angle).as_decimal(10).rstrip('?'))
-
-                                        report += f"Side opposite to {angle_token} = {opposite_val_our_angle}\n"
-
-                                        # sin = opposite/hypotenuse
-                                        calculated_sin = opposite_val_our_angle / hypotenuse_val
-                                        report += f"Calculated sin({angle_token}) = {calculated_sin} (opposite/hypotenuse)\n"
-
-                                        if abs(calculated_sin - model_answer) >= epsilon:
-                                            report += f"Error: Calculated sine {calculated_sin} doesn't match expected {model_answer}\n"
-                        else:
-                            # Not a right triangle - use Law of Sines
-                            # First, get the angle value
-                            angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-                            angle_val = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
-                            report += f"Angle {angle_token} = {angle_val}°\n"
-
-                            import math
-                            calculated_sin = math.sin(math.radians(angle_val))
-                            report += f"Calculated sin({angle_token}) = {calculated_sin} from angle measure\n"
-
-                            # Validate using Law of Sines
-                            # sin(A)/a = sin(B)/b = sin(C)/c
-                            # Get another angle in the triangle
-                            other_vertex_idx = (vertex_idx + 1) % 3
-                            prev_vertex = triangle[(other_vertex_idx - 1) % 3]
-                            next_vertex = triangle[(other_vertex_idx + 1) % 3]
-                            other_angle_name = f"{prev_vertex}{triangle[other_vertex_idx]}{next_vertex}"
-                            other_angle_var = self.add_angle(other_angle_name[0], other_angle_name[1],
-                                                             other_angle_name[2])
-                            other_angle_val = float(model.eval(other_angle_var).as_decimal(10).rstrip('?'))
-
-                            other_angle_sin = math.sin(math.radians(other_angle_val))
-                            report += f"Other angle {other_angle_name} = {other_angle_val}° with sine = {other_angle_sin}\n"
-
-                            # Get the side opposite to this other angle
-                            other_opposite_side = None
-                            for i in range(3):
-                                if i != other_vertex_idx and i != vertex_idx:
-                                    other_opposite_idx = i
-                                    break
-
-                            other_opposite_side = self.add_length(triangle[(other_opposite_idx + 1) % 3],
-                                                                  triangle[(other_opposite_idx + 2) % 3])
-                            other_opposite_val = float(model.eval(other_opposite_side).as_decimal(10).rstrip('?'))
-
-                            # Law of Sines: sin(A)/a = sin(B)/b
-                            # Therefore sin(A) = a * sin(B)/b
-                            if other_opposite_val > 0 and other_angle_sin > 0:
-                                law_of_sines_sin = (opposite_val * other_angle_sin) / other_opposite_val
-                                report += f"Using Law of Sines: sin({angle_token}) = {law_of_sines_sin}\n"
-
-                                if abs(law_of_sines_sin - model_answer) >= epsilon:
-                                    report += f"Error: Law of Sines gives sine = {law_of_sines_sin}, which doesn't match expected {model_answer}\n"
-
-                            if abs(calculated_sin - model_answer) >= epsilon:
-                                report += f"Error: Calculated sine {calculated_sin} doesn't match expected {model_answer}\n"
-                    else:
-                        report += "Triangle sides are not uniquely determined.\n"
-                        report += "This means your proof doesn't establish a specific shape for the triangle.\n"
-                except Exception as e:
-                    report += f"Error analyzing triangle sides: {str(e)}\n"
-        else:
-            report += f"No triangles containing angle {angle_token} were found.\n"
-            report += "A triangle containing this angle is needed to calculate its sine.\n\n"
-
-        # Look for direct constraints on the angle
-        angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-        if self.solver.check() == sat:
-            model = self.solver.model()
-            try:
-                angle_val = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
-                report += f"Current value of angle {angle_token} = {angle_val}°\n"
-
-                # Check if this angle is uniquely determined
-                temp_solver = Solver()
-                for c in self.solver.assertions():
-                    temp_solver.add(c)
-
-                epsilon = 1e-8
-                temp_solver.add(Or(angle_var < angle_val - epsilon, angle_var > angle_val + epsilon))
-
-                if temp_solver.check() == unsat:
-                    report += f"Angle {angle_token} is uniquely determined to be {angle_val}°\n"
-
-                    # Calculate expected sine
-                    import math
-                    expected_sin = math.sin(math.radians(angle_val))
-                    report += f"Its sine should be {expected_sin}\n\n"
-
-                    if abs(expected_sin - model_answer) >= epsilon:
-                        report += f"Error: Calculated sine {expected_sin} doesn't match expected {model_answer}\n"
-                else:
-                    alt_model = temp_solver.model()
-                    alt_angle = float(alt_model.eval(angle_var).as_decimal(10).rstrip('?'))
-                    report += f"Angle {angle_token} is not uniquely determined - could also be {alt_angle}°\n"
-                    report += "Your proof needs more constraints to fix this angle to a specific value.\n"
-            except Exception as e:
-                report += f"Error evaluating angle: {str(e)}\n"
-
-        # Look for direct sine variable
-        sine_var_name = f"sin_{angle_token}"
-        if sine_var_name in self.variables:
-            report += f"\nFound direct sine variable: {sine_var_name}\n"
-            sine_var = self.variables[sine_var_name]
-
-            if self.solver.check() == sat:
-                model = self.solver.model()
-                sine_val = float(model.eval(sine_var).as_decimal(10).rstrip('?'))
-                report += f"Current value of sin({angle_token}) = {sine_val}\n"
-
-                # Check if sine is uniquely determined
-                temp_solver = Solver()
-                for c in self.solver.assertions():
-                    temp_solver.add(c)
-
-                epsilon = 1e-8
-                temp_solver.add(Or(sine_var < sine_val - epsilon, sine_var > sine_val + epsilon))
-
-                if temp_solver.check() == unsat:
-                    report += f"The value of sin({angle_token}) is uniquely determined to be {sine_val}\n"
-
-                    if abs(sine_val - model_answer) >= epsilon:
-                        report += f"Error: Determined sine {sine_val} doesn't match expected {model_answer}\n"
-                else:
-                    alt_model = temp_solver.model()
-                    alt_sine = float(alt_model.eval(sine_var).as_decimal(10).rstrip('?'))
-                    report += f"The sine value is not uniquely determined - could also be {alt_sine}\n"
-
-        # Find theorems relevant to this angle
-        report += f"\nTheorems related to angle {angle_token} in your proof:\n"
-        report += "-" * 60 + "\n"
-        related_theorems = []
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the angle is mentioned in the conclusions
-            for conclusion in theorem_info["conclusions"]:
-                angle_pattern = f"MeasureOfAngle({angle_token})"
-                if angle_pattern in conclusion:
-                    is_related = True
-                    break
-
-                # Check for normalized variants
-                normalized_angle = self.normalize_angle_name(angle_token)
-                norm_pattern = f"MeasureOfAngle({normalized_angle})"
-                if norm_pattern in conclusion:
-                    is_related = True
-                    break
-
-                # Also check for Sin(MeasureOfAngle(...))
-                sine_pattern = f"Sin(MeasureOfAngle({angle_token}))"
-                if sine_pattern in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if angle_token in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(angle_token in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving angle {angle_token} were found in your proof.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        # Normalize the angle name for looking up in solver
-        normalized_angle = self.normalize_angle_name(angle_token)
-        angle_var_name = f"angle_{normalized_angle}"
-
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if angle_var_name in c_str or sine_var_name in c_str or f"Sin(MeasureOfAngle({angle_token}))" in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this angle's measure or sine.\n\n"
-
-        # Add an explanation based on the solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-            report += "Possible causes:\n"
-            report += "1. Incorrect angle or length values in premises\n"
-            report += "2. Improper theorem application\n"
-            report += "3. Conclusions that contradict earlier assertions\n"
-            report += "4. Errors in the Law of Sines application\n\n"
-        elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow sin({angle_token}) to be {model_answer}.\n"
-            report += "This means your proof implies a different sine value than expected.\n\n"
-            report += "Check that:\n"
-            report += "1. Your triangle side lengths are correctly specified\n"
-            report += "2. You've correctly identified the angle in question\n"
-            report += "3. There are no errors in your angle constraints\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine sin({angle_token}).\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-            report += "Focus on fixing the shape of the triangle containing this angle.\n"
-
-        return report
-
-    def generate_division_analysis_report(self, line1, line2, model_answer, alt_value=None,
-                                          solver_state="multiple_values"):
-        """Generate a detailed report for division goals that couldn't be verified."""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Division of lines {line1}/{line2}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the goal lines
-        goal_points = list(set(line1 + line2))
-
-        # Check if the lines exist in our geometry
-        report += "Analysis of line segments:\n"
-        report += "-" * 60 + "\n"
-
-        # Get or create length variables
-        len1_var = self.add_length(line1[0], line1[1])
-        len2_var = self.add_length(line2[0], line2[1])
-
-        # Check if the solver is satisfiable
-        if self.solver.check() == sat:
-            model = self.solver.model()
-
-            try:
-                # Get current values from the model
-                len1_val = float(model.eval(len1_var).as_decimal(10).rstrip('?'))
-                len2_val = float(model.eval(len2_var).as_decimal(10).rstrip('?'))
-
-                report += f"Length of {line1}: {len1_val}\n"
-                report += f"Length of {line2}: {len2_val}\n"
-
-                # Check for division by zero
-                if abs(len2_val) < 1e-10:
-                    report += f"Error: Division by zero - line {line2} has length approximately 0\n"
-                    report += "This creates a mathematical error when computing the ratio.\n\n"
-                else:
-                    computed_value = len1_val / len2_val
-                    report += f"Computed ratio: {line1}/{line2} = {computed_value}\n\n"
-
-                    epsilon = 1e-8
-                    if abs(computed_value - model_answer) >= epsilon:
-                        report += f"Error: Computed ratio {computed_value} doesn't match expected {model_answer}\n"
-                        report += "This suggests an inconsistency between your proof and the expected answer.\n\n"
-
-                # Check if these lengths are uniquely determined
-                report += "Checking uniqueness of line lengths:\n"
-
-                # Check if line1 can have different values
-                temp_solver1 = Solver()
-                for c in self.solver.assertions():
-                    temp_solver1.add(c)
-
-                epsilon = 1e-8
-                temp_solver1.add(Or(len1_var < len1_val - epsilon, len1_var > len1_val + epsilon))
-
-                if temp_solver1.check() == sat:
-                    alt_model = temp_solver1.model()
-                    alt_len1 = float(alt_model.eval(len1_var).as_decimal(10).rstrip('?'))
-                    report += f"- Line {line1} is not uniquely determined (could also be {alt_len1})\n"
-                else:
-                    report += f"- Line {line1} is uniquely determined to be {len1_val}\n"
-
-                # Check if line2 can have different values
-                temp_solver2 = Solver()
-                for c in self.solver.assertions():
-                    temp_solver2.add(c)
-
-                temp_solver2.add(Or(len2_var < len2_val - epsilon, len2_var > len2_val + epsilon))
-
-                if temp_solver2.check() == sat:
-                    alt_model = temp_solver2.model()
-                    alt_len2 = float(alt_model.eval(len2_var).as_decimal(10).rstrip('?'))
-                    report += f"- Line {line2} is not uniquely determined (could also be {alt_len2})\n"
-                else:
-                    report += f"- Line {line2} is uniquely determined to be {len2_val}\n"
-
-                # Check if the ratio itself can be different while satisfying all constraints
-                temp_solver3 = Solver()
-                for c in self.solver.assertions():
-                    temp_solver3.add(c)
-
-                # We want to check if len1/len2 can have a different value
-                # This is equivalent to len1 != model_answer * len2
-                temp_solver3.add(Or(
-                    len1_var < (model_answer - epsilon) * len2_var,
-                    len1_var > (model_answer + epsilon) * len2_var
-                ))
-
-                if temp_solver3.check() == sat:
-                    alt_model = temp_solver3.model()
-                    alt_len1 = float(alt_model.eval(len1_var).as_decimal(10).rstrip('?'))
-                    alt_len2 = float(alt_model.eval(len2_var).as_decimal(10).rstrip('?'))
-
-                    # Avoid division by zero
-                    if abs(alt_len2) >= 1e-10:
-                        alt_ratio = alt_len1 / alt_len2
-                        report += f"\nThe ratio {line1}/{line2} is not uniquely determined.\n"
-                        report += f"It could be {computed_value} but also {alt_ratio}.\n\n"
-                    else:
-                        report += f"\nAlternative solution has division by zero issue.\n"
-                else:
-                    report += f"\nThe ratio {line1}/{line2} is uniquely determined to be {computed_value}.\n\n"
-
-            except Exception as e:
-                report += f"Error evaluating line lengths: {str(e)}\n\n"
-
-        # Find geometric relationships that might be relevant
-        report += "Geometric relationships involving these line segments:\n"
-        report += "-" * 60 + "\n"
-
-        # Check for parallel lines
-        # Check for parallel lines
-        parallel_relations = set()
-        for pair in self.parallel_pairs:
-            # Check all combinations and permutations
-            pair_options = [
-                (line1, line2), (line2, line1),
-                (line1[::-1], line2), (line2, line1[::-1]),
-                (line1, line2[::-1]), (line2[::-1], line1),
-                (line1[::-1], line2[::-1]), (line2[::-1], line1[::-1])
-            ]
-
-            if pair in pair_options or (pair[1], pair[0]) in pair_options:
-                # Normalize the representation for consistency
-                sorted_pair = tuple(sorted([pair[0], pair[1]]))
-                parallel_relations.add(f"Lines {sorted_pair[0]} and {sorted_pair[1]} are parallel")
-
-        if parallel_relations:
-            for rel in parallel_relations:
-                report += f"- {rel}\n"
-        else:
-            report += "- No parallel relationships found involving these lines\n"
-
-        # Check for perpendicular lines
-        perpendicular_relations = []
-        for pair in self.perpendicular_pairs:
-            # Check all combinations and permutations
-            pair_options = [
-                (line1, line2), (line2, line1),
-                (line1[::-1], line2), (line2, line1[::-1]),
-                (line1, line2[::-1]), (line2[::-1], line1),
-                (line1[::-1], line2[::-1]), (line2[::-1], line1[::-1])
-            ]
-
-            if pair in pair_options or (pair[1], pair[0]) in pair_options:
-                perpendicular_relations.append(f"Lines {pair[0]} and {pair[1]} are perpendicular")
-
-        if perpendicular_relations:
-            for rel in perpendicular_relations:
-                report += f"- {rel}\n"
-        else:
-            report += "- No perpendicular relationships found involving these lines\n"
-
-        # Check if the lines form a triangle with another line
-        triangles_containing_lines = []
-        for tri in self.polygons:
-            if len(tri) == 3:  # It's a triangle
-                if (line1[0] in tri and line1[1] in tri) or (line2[0] in tri and line2[1] in tri):
-                    triangles_containing_lines.append(tri)
-
-        if triangles_containing_lines:
-            report += "\nTriangles containing these lines:\n"
-            for tri in triangles_containing_lines:
-                report += f"- Triangle {tri}"
-                if tri in self.right_triangles:
-                    report += " (right triangle)"
-                if hasattr(self, "isosceles_triangles") and tri in self.isosceles_triangles:
-                    report += " (isosceles triangle)"
-                report += "\n"
-        else:
-            report += "\nNo triangles found containing these lines\n"
-
-        # Check for similar triangles that might establish the ratio
-        if hasattr(self, "similar_triangles"):
-            similar_triangles_found = []
-            for tri_pair in self.similar_triangles:
-                # Check if the lines belong to corresponding sides of similar triangles
-                tri1, tri2 = tri_pair
-                if (all(p in tri1 for p in line1) and all(p in tri2 for p in line2)) or \
-                        (all(p in tri2 for p in line1) and all(p in tri1 for p in line2)):
-                    similar_triangles_found.append(tri_pair)
-
-            if similar_triangles_found:
-                report += "\nSimilar triangles that may establish this ratio:\n"
-                for tri_pair in similar_triangles_found:
-                    report += f"- Triangles {tri_pair[0]} and {tri_pair[1]} are similar\n"
-                    if tri_pair in self.triangle_ratios:
-                        ratio_var = self.triangle_ratios[tri_pair]
-                        if self.solver.check() == sat:
-                            model = self.solver.model()
-                            ratio_val = float(model.eval(ratio_var).as_decimal(10).rstrip('?'))
-                            report += f"  (similarity ratio: {ratio_val})\n"
-            else:
-                report += "\nNo similar triangles found that would establish this ratio\n"
-
-        # Find theorems relevant to these lines
-        report += f"\nTheorems related to lines {line1} and {line2} in your proof:\n"
-        report += "-" * 60 + "\n"
-        related_theorems = []
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the lines are mentioned in the conclusions
-            for conclusion in theorem_info["conclusions"]:
-                if f"LengthOfLine({line1})" in conclusion or f"LengthOfLine({line2})" in conclusion:
-                    is_related = True
-                    break
-
-                # Check for division expressions
-                if f"Div(LengthOfLine({line1}),LengthOfLine({line2}))" in conclusion or \
-                        f"Div(LengthOfLine({line2}),LengthOfLine({line1}))" in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if line1 in theorem_info["premise"] or line2 in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(line1 in arg or line2 in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving lines {line1} or {line2} were found in your proof.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        len1_var_name = f"length_{self.normalize_line_name(line1)}"
-        len2_var_name = f"length_{self.normalize_line_name(line2)}"
-
-        # Use a set to store unique constraints
-        relevant_constraints_set = set()
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if (len1_var_name in c_str or len2_var_name in c_str) and not (
-                    "1/1000" in c_str or
-                    (len1_var_name in c_str and c_str.endswith("> 0")) or
-                    (len2_var_name in c_str and c_str.endswith("> 0"))
-            ):
-                relevant_constraints_set.add(c_str)  # Using a set will eliminate duplicates
-
-        # Convert back to list
-        relevant_constraints = list(relevant_constraints_set)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving these lines' lengths.\n\n"
-
-        # Add an explanation based on the solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-            report += "Possible causes:\n"
-            report += "1. Incorrect length values in premises\n"
-            report += "2. Improper theorem application\n"
-            report += "3. Conclusions that contradict earlier assertions\n"
-            report += "4. Errors in the ratio or proportion calculations\n\n"
-        elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the ratio {line1}/{line2} to be {model_answer}.\n"
-            report += "This means your proof implies a different ratio than expected.\n\n"
-            report += "Check that:\n"
-            report += "1. Your line length values are correctly specified\n"
-            report += "2. You've correctly identified the lines in question\n"
-            report += "3. Your theorems about proportions or ratios are correctly applied\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine the ratio {line1}/{line2}.\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-            report += "Consider using theorems about similar triangles, parallel lines,\n"
-            report += "or other geometric relationships that fix the proportion between these lines.\n"
-
-        return report
-
-    def generate_cosine_analysis_report(self, angle_token, model_answer, alt_value=None,
-                                        solver_state="multiple_values"):
-        """Generate a detailed report for cosine goals that couldn't be verified."""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Cosine of angle {angle_token}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the angle
-        goal_points = list(angle_token)
-
-        # Find triangles containing this angle
-        containing_triangles = []
-        for poly in self.polygons:
-            if len(poly) == 3 and angle_token[1] in poly:  # Middle letter is the vertex
-                containing_triangles.append(poly)
-
-        if containing_triangles:
-            report += f"Found {len(containing_triangles)} triangle(s) containing angle {angle_token}:\n"
-            for tri in containing_triangles:
-                report += f"- Triangle {tri}\n"
-                # Check if it's a right triangle
-                if tri in self.right_triangles:
-                    report += f"  (This is a right triangle)\n"
-            report += "\n"
-
-            # For the first triangle, try to analyze the sides
-            triangle = containing_triangles[0]
-            if self.solver.check() == sat:
-                model = self.solver.model()
-
-                # Get vertex indices
-                vertex_idx = triangle.index(angle_token[1])
-                prev_idx = (vertex_idx - 1) % 3
-                next_idx = (vertex_idx + 1) % 3
-
-                # Get sides - for cosine, we need the two sides adjacent to our angle
-                side1 = self.add_length(triangle[prev_idx], triangle[vertex_idx])  # One adjacent side
-                side2 = self.add_length(triangle[vertex_idx], triangle[next_idx])  # Other adjacent side
-                opposite = self.add_length(triangle[prev_idx], triangle[next_idx])  # Opposite side
-
-                try:
-                    # Get values
-                    side1_val = float(model.eval(side1).as_decimal(10).rstrip('?'))
-                    side2_val = float(model.eval(side2).as_decimal(10).rstrip('?'))
-                    opposite_val = float(model.eval(opposite).as_decimal(10).rstrip('?'))
-
-                    report += f"Side {triangle[prev_idx]}{triangle[vertex_idx]} = {side1_val}\n"
-                    report += f"Side {triangle[vertex_idx]}{triangle[next_idx]} = {side2_val}\n"
-                    report += f"Side {triangle[prev_idx]}{triangle[next_idx]} = {opposite_val}\n\n"
-
-                    # Check if sides are uniquely determined
-                    temp_solver = Solver()
-                    for c in self.solver.assertions():
-                        temp_solver.add(c)
-
-                    # See if we can have different side values
-                    epsilon = 1e-8
-                    temp_solver.add(Or(
-                        Or(side1 < side1_val - epsilon, side1 > side1_val + epsilon),
-                        Or(side2 < side2_val - epsilon, side2 > side2_val + epsilon),
-                        Or(opposite < opposite_val - epsilon, opposite > opposite_val + epsilon)
-                    ))
-
-                    if temp_solver.check() == unsat:
-                        report += "Triangle sides are uniquely determined.\n"
-
-                        # Calculate cosine using Law of Cosines
-                        # cos(A) = (b² + c² - a²)/(2bc)
-                        # where A is our angle, b & c are adjacent sides, and a is opposite side
-                        if side1_val > 0 and side2_val > 0:  # Ensure no division by zero
-                            cos_val = (side1_val ** 2 + side2_val ** 2 - opposite_val ** 2) / (
-                                        2 * side1_val * side2_val)
-
-                            # Ensure the value is in valid range for cosine
-                            cos_val = max(-1, min(1, cos_val))
-
-                            report += f"Calculated cos({angle_token}) = {cos_val} using Law of Cosines\n\n"
-
-                            if abs(cos_val - model_answer) >= epsilon:
-                                report += f"Error: Calculated cosine value {cos_val} doesn't match expected {model_answer}\n"
-                        else:
-                            report += "Error: Zero length side(s) in triangle - cannot calculate cosine\n"
-                    else:
-                        report += "Triangle sides are not uniquely determined.\n"
-                        report += "This means your proof doesn't establish a specific shape for the triangle.\n"
-
-                except Exception as e:
-                    report += f"Error analyzing triangle sides: {str(e)}\n"
-        else:
-            report += f"No triangles containing angle {angle_token} were found.\n"
-            report += "A triangle containing this angle is needed to calculate its cosine.\n\n"
-
-        # Look for direct constraints on the angle
-        angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-        if self.solver.check() == sat:
-            model = self.solver.model()
-            try:
-                angle_val = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
-                report += f"Current value of angle {angle_token} = {angle_val}°\n"
-
-                # Check if this angle is uniquely determined
-                temp_solver = Solver()
-                for c in self.solver.assertions():
-                    temp_solver.add(c)
-
-                epsilon = 1e-8
-                temp_solver.add(Or(angle_var < angle_val - epsilon, angle_var > angle_val + epsilon))
-
-                if temp_solver.check() == unsat:
-                    report += f"Angle {angle_token} is uniquely determined to be {angle_val}°\n"
-
-                    # Calculate expected cosine
-                    import math
-                    expected_cos = math.cos(math.radians(angle_val))
-                    report += f"Its cosine should be {expected_cos}\n\n"
-
-                    if abs(expected_cos - model_answer) >= epsilon:
-                        report += f"Error: Calculated cosine {expected_cos} doesn't match expected {model_answer}\n"
-                else:
-                    alt_model = temp_solver.model()
-                    alt_angle = float(alt_model.eval(angle_var).as_decimal(10).rstrip('?'))
-                    report += f"Angle {angle_token} is not uniquely determined - could also be {alt_angle}°\n"
-                    report += "Your proof needs more constraints to fix this angle to a specific value.\n"
-            except Exception as e:
-                report += f"Error evaluating angle: {str(e)}\n"
-
-        # Find theorems relevant to this angle
-        report += f"\nTheorems related to angle {angle_token} in your proof:\n"
-        report += "-" * 60 + "\n"
-        related_theorems = []
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the angle is mentioned in the conclusions
-            for conclusion in theorem_info["conclusions"]:
-                angle_pattern = f"MeasureOfAngle({angle_token})"
-                if angle_pattern in conclusion:
-                    is_related = True
-                    break
-
-                # Check for normalized variants
-                normalized_angle = self.normalize_angle_name(angle_token)
-                norm_pattern = f"MeasureOfAngle({normalized_angle})"
-                if norm_pattern in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if angle_token in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(angle_token in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving angle {angle_token} were found in your proof.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        # Normalize the angle name for looking up in solver
-        normalized_angle = self.normalize_angle_name(angle_token)
-        angle_var_name = f"angle_{normalized_angle}"
-
-        # Look for cosine variable
-        cos_var_name = f"cos_{angle_token}"
-
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if angle_var_name in c_str or cos_var_name in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this angle's measure or cosine.\n\n"
-
-        # Add an explanation based on the solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-            report += "Possible causes:\n"
-            report += "1. Incorrect angle or length values in premises\n"
-            report += "2. Improper theorem application\n"
-            report += "3. Conclusions that contradict earlier assertions\n"
-            report += "4. Errors in the Law of Cosines application\n\n"
-        elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow cos({angle_token}) to be {model_answer}.\n"
-            report += "This means your proof implies a different cosine value than expected.\n\n"
-            report += "Check that:\n"
-            report += "1. Your triangle side lengths are correctly specified\n"
-            report += "2. You've correctly identified the angle in question\n"
-            report += "3. There are no errors in your angle constraints\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine cos({angle_token}).\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-            report += "Focus on fixing the shape of the triangle containing this angle.\n"
-
-        return report
-
-
-
-
 
     def canonicalize_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
         """
@@ -1443,7 +1129,6 @@ class GeometricTheorem:
 
         return ratio_var  # Return the ratio variable for convenience
 
-
     def calculate_perimeter(self, triangle: str) -> Optional[Real]:
         """Calculate perimeter of a triangle"""
         if len(triangle) != 3:
@@ -1475,7 +1160,6 @@ class GeometricTheorem:
 
         # Add 90° angle constraint
         angle_var = self.add_angle(points[0], points[1], points[2])
-
 
     def normalize_similar_triangles(self, tri1: str, tri2: str) -> Optional[Tuple[str, str]]:
         if len(tri1) != 3 or len(tri2) != 3:
@@ -1613,9 +1297,9 @@ class GeometricTheorem:
                         # These angles must be supplementary
                         # Each angle must be between 0° and 180°
                         self.solver.add(angle1_var > 0)
-                        self.solver.add(angle1_var < 180)
+                        self.solver.add(angle1_var <= 180)
                         self.solver.add(angle2_var > 0)
-                        self.solver.add(angle2_var < 180)
+                        self.solver.add(angle2_var <= 180)
 
             # Process endpoints for this order
             if len(point_order) >= 3:
@@ -1693,108 +1377,6 @@ class GeometricTheorem:
         except Exception as e:
             print(f"Error parsing expression '{expr}': {str(e)}")
             raise
-
-    def generate_length_analysis_report(self, line_name, model_answer, alt_value=None,
-                                        solver_state="multiple_values"):
-        """Generate a focused report about why the line length goal couldn't be uniquely determined"""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Length of line {line_name}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the line
-        line_points = list(line_name)
-
-        # Get all related facts from our knowledge base
-        related_facts = self.collect_related_facts_for_line(line_points)
-
-        if related_facts:
-            report += "Relevant geometric facts:\n"
-            report += "-" * 60 + "\n"
-            for category, facts in related_facts.items():
-                if facts:  # Only show categories with facts
-                    report += f"{category}:\n"
-                    for fact in facts:
-                        report += f"  - {fact}\n"
-                    report += "\n"
-        else:
-            report += "No facts directly involving line " + line_name + " were found in the premises.\n\n"
-
-        # Find theorems that mention the line or its components
-        report += f"Theorems related to line {line_name} in your proof:\n"
-        report += "-" * 60 + "\n"
-
-        related_theorems = self.find_related_theorems_for_line(line_name, line_points)
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving line {line_name} were found in your proof.\n\n"
-
-        # Add solver constraints related to this line
-        report += "Solver constraints directly related to this line:\n"
-        report += "-" * 60 + "\n"
-
-        # Normalize the line name for looking up in solver
-        normalized_line = self.normalize_line_name(line_name)
-        length_var_name = f"length_{normalized_line}"
-
-        # More precise constraint filtering
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            # Only include constraints that directly mention the exact line variable name
-            if length_var_name in c_str:
-                # Check for direct relationships with this line
-                patterns = [
-                    f"{length_var_name} " in c_str,
-                    f"{length_var_name}=" in c_str,
-                    f"{length_var_name}+" in c_str,
-                    f"{length_var_name}-" in c_str,
-                    f"{length_var_name}*" in c_str,
-                    f"{length_var_name}/" in c_str
-                ]
-                if any(patterns):
-                    relevant_constraints.append(c_str)
-
-            # Also include constraints that set the line value
-            elif f" == {length_var_name}" in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this line length.\n\n"
-
-        # Add different explanations based on solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += f"The solver found the constraints to be contradictory when trying to evaluate length of {line_name}.\n"
-            report += "This means there's an inconsistency in your geometric setup or theorem applications.\n"
-            report += "Check for contradictory premises or incorrectly applied theorems.\n"
-        elif solver_state == "incompatible":
-            report += f"The constraints in your proof are consistent, but don't allow line {line_name} to be {model_answer}.\n"
-            report += "This means your proof implies a different value for this line than expected.\n"
-        elif solver_state == "undefined":
-            report += f"The line {line_name} is not defined in your proof's context.\n"
-            report += "This usually means you haven't created constraints for this line in your theorems.\n"
-            report += "Check that you've properly established this line using appropriate theorems.\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine the length of line {line_name}.\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-
-        return report
 
     def collect_related_facts_for_line(self, line_points):
         """Collect only facts where at least one point is part of the line"""
@@ -1878,6 +1460,48 @@ class GeometricTheorem:
         # Remove empty categories
         return {k: v for k, v in related_facts.items() if v}
 
+    def generate_premise_error_feedback(self, theorem_name, args, premise, conclusions, error):
+        """Generate user-friendly feedback for premise errors with complete theorem call information"""
+
+        feedback = "verification failed.\n\n"
+
+        # Format the complete theorem call information
+        args_str = ",".join(args)
+        conclusions_str = str(conclusions)
+
+        # Mention the theorem that was attempted with full details
+        feedback += f"- You tried to use theorem: {theorem_name}({args_str});{premise};{conclusions_str}\n"
+
+        # Explain the missing premise
+        feedback += f"- Missing premise: {error.message}\n"
+
+        # Show the details if available, but filter out empty collections
+        if error.details and not (
+                "Available parallel pairs: set()" in error.details or
+                "Known parallel pairs: set()" in error.details or
+                "Available" in error.details and "set()" in error.details or
+                "Known" in error.details and "set()" in error.details
+        ):
+            feedback += f"- Details: {error.details}\n"
+
+        # Changed wording as requested
+        feedback += "Available premises up to the failed theorem:\n"
+        geometric_data = self.gather_relevant_geometric_data()
+
+        if geometric_data:
+            for category, facts in geometric_data.items():
+                if facts:  # Only show categories with facts
+                    feedback += f"  {category}:\n"
+                    for fact in facts:
+                        feedback += f"    {fact}\n"
+        else:
+            feedback += "  No relevant geometric facts found.\n"
+
+        # Final message
+        feedback += "\nPlease ensure your theorem application meets all required premises."
+
+        return feedback
+
     def find_related_theorems_for_line(self, line_name, line_points):
         """Find theorems that directly relate to the line"""
         related_theorems = []
@@ -1920,9 +1544,6 @@ class GeometricTheorem:
                 })
 
         return related_theorems
-
-
-
 
     def add_algebraic_angle(self, angle_name: str, expression: str):
         """Add an angle with an algebraic expression"""
@@ -2007,262 +1628,6 @@ class GeometricTheorem:
                         self.solver.add(self.triangle_areas[tri_name] >= 0)
                     self.solver.add(self.triangle_areas[tri_name] == area_val)
                     print(f"[apply_triangle_area_sine] Set AreaOfTriangle({tri_name}) = {area_val:.3f}")
-
-    def write_failure_report(self, goal_token, report_content):
-        """Write a failure report to a file with timestamp"""
-        import os
-        import datetime
-
-        # Create the directory if it doesn't exist
-        output_dir = "info"
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Create a timestamped filename - use ONLY the question name, not the goal token
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{output_dir}/{self.question_name}_{timestamp}.txt"
-
-        # Write the analysis file
-        with open(filename, 'w') as f:
-            f.write(report_content)
-
-        print(f"\nDetailed analysis written to: {filename}")
-        return filename
-
-    # Modified verify_goal_arc function with enhanced feedback
-    def verify_goal_arc(self, arc_name: str, expected: float, epsilon: float = 1e-8) -> tuple:
-        goal_arc = arc_name
-        print(f"\nVerifying arc goal: {goal_arc}")
-
-        # Create a report
-        arc_report = f"Analysis Report for {self.question_name}\n"
-        arc_report += "=" * 60 + "\n\n"
-        arc_report += f"Goal: MeasureOfArc({goal_arc})\n"
-        arc_report += f"Expected value: {expected}\n\n"
-
-        arc_var = self.arcs.get(f"arc_{self.normalize_arc(arc_name)}")
-        if arc_var is None:
-            error_msg = "Arc variable not defined."
-            arc_report += "Error: Arc variable not defined.\n"
-            print("Arc variable not defined.")
-
-            # Generate a detailed report for this case
-            goal_points = list(arc_name)
-            detailed_report = self.generate_goal_analysis_report(arc_name, expected, None, "undefined")
-            arc_report += f"\n{detailed_report}\n"
-
-            # Write report to file
-            self.write_failure_report(f"arc_{goal_arc}", arc_report)
-            return False, arc_report
-
-        if self.solver.check() == sat:
-            # First check if constraints allow the expected value
-            temp_solver1 = Solver()
-            for c in self.solver.assertions():
-                temp_solver1.add(c)
-
-            # Add constraint that arc_var == expected (within epsilon)
-            temp_solver1.add(And(arc_var >= expected - epsilon, arc_var <= expected + epsilon))
-
-            if temp_solver1.check() != sat:
-                error_msg = f"Failed to prove arc measure goal: constraints don't allow the expected value."
-                arc_report += f"Error: Constraints don't allow the expected arc measure {expected}\n"
-
-                # Generate a detailed report for this case
-                detailed_report = self.generate_goal_analysis_report(arc_name, expected, None, "incompatible")
-                arc_report += f"\n{detailed_report}\n"
-
-                print(f"Error: Constraints don't allow the expected arc measure {expected}")
-                error = GeometricError(
-                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                    message=error_msg,
-                    details=f"Goal was: MeasureOfArc({arc_name}) = {expected}"
-                )
-                print(f"\nError in {error.tier.name}: {error.message}")
-
-                # Write report to file
-                self.write_failure_report(f"arc_{goal_arc}", arc_report)
-                return False, arc_report
-
-            # Now check if any other value is allowed
-            temp_solver2 = Solver()
-            for c in self.solver.assertions():
-                temp_solver2.add(c)
-
-            # Add constraint: arc_var != expected (outside epsilon range)
-            temp_solver2.add(Or(arc_var < expected - epsilon, arc_var > expected + epsilon))
-
-            if temp_solver2.check() == sat:
-                alt_model = temp_solver2.model()
-                alt_value = float(alt_model.eval(arc_var).as_decimal(10).rstrip('?'))
-
-                error_msg = f"Failed to prove arc measure goal: constraints allow multiple values."
-                arc_report += f"Error: The proof doesn't uniquely determine arc measure {goal_arc}.\n"
-                arc_report += f"It could be {expected} but also {alt_value}\n"
-
-                # Generate a detailed report for this case
-                detailed_report = self.generate_goal_analysis_report(arc_name, expected, alt_value, "multiple_values")
-                arc_report += f"\n{detailed_report}\n"
-
-                print(f"Error: The proof doesn't uniquely determine arc measure {goal_arc}.")
-                print(f"It could be {expected} but also {alt_value}")
-
-                error = GeometricError(
-                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                    message=error_msg,
-                    details=f"Goal was: MeasureOfArc({arc_name}) = {expected}, but could also be {alt_value}"
-                )
-                print(f"\nError in {error.tier.name}: {error.message}")
-
-                # Write report to file
-                self.write_failure_report(f"arc_{goal_arc}", arc_report)
-                return False, arc_report
-
-            # If we get here, the constraints uniquely determine the value to be expected
-            model = self.solver.model()
-            calc_expr = model.eval(arc_var)
-            val_str = calc_expr.as_decimal(10)
-            if val_str.endswith('?'):
-                val_str = val_str[:-1]
-            calculated_value = float(val_str)
-            print(f"Calculated value for MeasureOfArc({arc_name}) is {calculated_value}")
-            print(f"Success: Arc measure {goal_arc} is uniquely determined to be {expected}.")
-            return True, ""
-        else:
-            error_msg = "Failed to prove arc measure goal: solver is unsatisfiable."
-            arc_report += "Error: Solver constraints unsatisfiable when verifying arc goal.\n"
-
-            # Generate a detailed report for unsatisfiable case
-            detailed_report = self.generate_goal_analysis_report(arc_name, expected, None, "unsatisfiable")
-            arc_report += f"\n{detailed_report}\n"
-
-            print("Solver constraints unsatisfiable when verifying arc goal.")
-            error = GeometricError(
-                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                message=error_msg,
-                details=f"Goal: MeasureOfArc({arc_name}) = {expected}"
-            )
-            print(f"\nError in {error.tier.name}: {error.message}")
-
-            # Write report to file
-            self.write_failure_report(f"arc_{goal_arc}", arc_report)
-            return False, arc_report
-
-    def verify_goal_length(self, p1: str, p2: str, expected: float, epsilon: float = 1e-8) -> tuple:
-        goal_line = p1 + p2
-        normalized = self.normalize_line_name(goal_line)
-        print(f"\nVerifying length goal: {normalized}")
-        print(f"Expected value: {expected}")
-
-        # Create a report
-        length_report = f"Analysis Report for {self.question_name}\n"
-        length_report += "=" * 60 + "\n\n"
-        length_report += f"Goal: LengthOfLine({normalized})\n"
-        length_report += f"Expected value: {expected}\n\n"
-
-        # Get the length variable.
-        length_var = self.lengths.get(f"length_{normalized}")
-        if length_var is None:
-            error_msg = "Length variable not defined."
-            length_report += "Error: Length variable not defined.\n"
-            print("Length variable not defined.")
-
-            # Generate a detailed report using the new line-specific function
-            detailed_report = self.generate_length_analysis_report(goal_line, expected, None, "undefined")
-            length_report += f"\n{detailed_report}\n"
-
-            # Write report to file
-            self.write_failure_report(f"length_{normalized}", length_report)
-            return False, length_report
-
-        if self.solver.check() == sat:
-            # Check if the length is forced to be exactly expected
-            temp_solver1 = Solver()
-            for c in self.solver.assertions():
-                temp_solver1.add(c)
-
-            # Add constraint that length_var == expected (within epsilon)
-            temp_solver1.add(And(length_var >= expected - epsilon, length_var <= expected + epsilon))
-
-            # If this is unsat, the constraints don't allow the expected value
-            if temp_solver1.check() != sat:
-                error_msg = f"Failed to prove length goal: constraints don't allow the expected value."
-                length_report += f"Error: Constraints don't allow the expected value {expected}\n"
-
-                # Generate a detailed report using the new line-specific function
-                detailed_report = self.generate_length_analysis_report(goal_line, expected, None, "incompatible")
-                length_report += f"\n{detailed_report}\n"
-
-                print(f"Error: Constraints don't allow the expected value {expected}")
-                error = GeometricError(
-                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                    message=error_msg,
-                    details=f"Goal was: LengthOfLine({normalized}) = {expected}"
-                )
-                print(f"\nError in {error.tier.name}: {error.message}")
-
-                # Write report to file
-                self.write_failure_report(f"length_{normalized}", length_report)
-                return False, length_report
-
-            # Now check if any other value is allowed
-            temp_solver2 = Solver()
-            for c in self.solver.assertions():
-                temp_solver2.add(c)
-
-            # Add constraint: length_var != expected (with exact equality check)
-            # For floating point values, check if outside epsilon range
-            temp_solver2.add(Or(length_var < expected - epsilon, length_var > expected + epsilon))
-
-            # If this is sat, the system allows other values - it's not uniquely determined
-            if temp_solver2.check() == sat:
-                alt_model = temp_solver2.model()
-                alt_value = float(alt_model.eval(length_var).as_decimal(10).rstrip('?'))
-
-                error_msg = f"Failed to prove length goal: constraints allow multiple values."
-                length_report += f"Error: The proof doesn't uniquely determine {normalized}.\n"
-                length_report += f"It could be {expected} but also {alt_value}\n"
-
-                # Generate a detailed report using the new line-specific function
-                detailed_report = self.generate_length_analysis_report(goal_line, expected, alt_value,
-                                                                       "multiple_values")
-                length_report += f"\n{detailed_report}\n"
-
-                print(f"Error: The proof doesn't uniquely determine {normalized}.")
-                print(f"It could be {expected} but also {alt_value}")
-
-                error = GeometricError(
-                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                    message=error_msg,
-                    details=f"Goal was: LengthOfLine({normalized}) = {expected}, but could also be {alt_value}"
-                )
-                print(f"\nError in {error.tier.name}: {error.message}")
-
-                # Write report to file
-                self.write_failure_report(f"length_{normalized}", length_report)
-                return False, length_report
-
-            # If we get here, the constraints uniquely determine the value
-            print(f"Success: The length {normalized} is uniquely determined to be {expected}.")
-            return True, ""
-        else:
-            error_msg = f"Failed to prove length goal: solver is unsatisfiable."
-            length_report += "Error: Solver constraints unsatisfiable when verifying length goal.\n"
-
-            # Generate a detailed report using the new line-specific function
-            detailed_report = self.generate_length_analysis_report(goal_line, expected, None, "unsatisfiable")
-            length_report += f"\n{detailed_report}\n"
-
-            print("Solver constraints unsatisfiable when verifying length goal.")
-            error = GeometricError(
-                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                message=error_msg,
-                details=f"Goal: LengthOfLine({normalized}) = {expected}"
-            )
-            print(f"\nError in {error.tier.name}: {error.message}")
-
-            # Write report to file
-            self.write_failure_report(f"length_{normalized}", length_report)
-            return False, length_report
 
     def triangle_angles(self, triangle: str) -> List[str]:
         """
@@ -2371,8 +1736,70 @@ class GeometricTheorem:
         # If no pattern matches, raise an error
         raise ValueError(f"Unsupported Sub expression format: {goal_expr}")
 
+    def check_value_constraint(self, goal_var, model_answer, epsilon=1e-8):
+        """
+        Check if a variable matches an expected value with appropriate constraints.
 
+        Returns: (success, value, status)
+        - success: True if variable can only be the expected value
+        - value: Current/alternative value (for reporting)
+        - status: "unique", "incompatible", "multiple_values", or "unsatisfiable"
+        """
+        if self.solver.check() == sat:
+            model = self.solver.model()
 
+            # First check if constraints allow the expected value
+            temp_solver1 = Solver()
+            for c in self.solver.assertions():
+                temp_solver1.add(c)
+
+            # Add constraint that goal_var == expected (within epsilon)
+            temp_solver1.add(And(goal_var >= model_answer - epsilon, goal_var <= model_answer + epsilon))
+
+            if temp_solver1.check() != sat:
+                # Get current value
+                try:
+                    verifier_expected_answer = float(model.eval(goal_var).as_decimal(10).rstrip('?'))
+                    return False, verifier_expected_answer, "incompatible"
+                except Exception as e:
+                    return False, None, f"Error computing value: {str(e)}"
+
+            # Now check if any other value is allowed
+            temp_solver2 = Solver()
+            for c in self.solver.assertions():
+                temp_solver2.add(c)
+
+            # Add constraint: goal_var != expected (outside epsilon range)
+            temp_solver2.add(Or(goal_var < model_answer - epsilon, goal_var > model_answer + epsilon))
+
+            if temp_solver2.check() == sat:
+                try:
+                    alt_model = temp_solver2.model()
+                    verifier_expected_answer = float(alt_model.eval(goal_var).as_decimal(10).rstrip('?'))
+                    return False, verifier_expected_answer, "multiple_values"
+                except Exception as e:
+                    return False, None, f"Error computing alternative value: {str(e)}"
+
+            # If we get here, the constraints uniquely determine the value
+            return True, model_answer, "unique"
+        else:
+            return False, None, "unsatisfiable"
+
+    def evaluate_expression(self, expr, mapping):
+        """Evaluate a general expression using the provided mapping."""
+        # Add math functions and constants
+        import math
+        mapping["pi"] = math.pi
+        mapping["sqrt"] = math.sqrt
+
+        # Add helper functions
+        def Sub(x, y):
+            return x - y
+
+        mapping["Sub"] = Sub
+
+        # Evaluate the expression
+        return eval(expr, mapping)
 
     def validate_theorem_premises(self, theorem_name: str, args: List[str], premise: str) -> Tuple[
         bool, Optional[GeometricError]]:
@@ -2458,6 +1885,324 @@ class GeometricTheorem:
                     ))
             elif version == "2":
                 print("2")
+
+
+        elif theorem_name == "mirror_congruent_triangle_judgment_aas":
+
+            version = args[0]
+
+            if version == "2":  # Handle version 2 as specified
+
+                if len(args) < 3:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Insufficient arguments for mirror_congruent_triangle_judgment_aas",
+
+                        details="Expected: mirror_congruent_triangle_judgment_aas(2, triangle1, triangle2)"
+
+                    ))
+
+                # Basic check for required premise components
+
+                if "Polygon" not in premise or "Equal(MeasureOfAngle" not in premise or "Equal(LengthOfLine" not in premise:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER2_PREMISE,
+
+                        message="Missing required elements in premise",
+
+                        details="mirror_congruent_triangle_judgment_aas requires polygons, angle equalities, and a side equality"
+
+                    ))
+
+                return True, None
+
+
+        elif theorem_name == "mirror_congruent_triangle_judgment_sas":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Insufficient arguments for mirror_congruent_triangle_judgment_sas",
+                        details="Expected: mirror_congruent_triangle_judgment_sas(1, triangle1, triangle2)"
+                    ))
+
+                # Check for polygon definitions and side/angle equalities in premise
+                polygon_count = premise.count("Polygon(")
+                if polygon_count < 2:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing polygon definitions in premise",
+                        details="mirror_congruent_triangle_judgment_sas requires both triangles to be defined"
+                    ))
+
+                # Check for side equalities
+                side_equalities = len(re.findall(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', premise))
+                if side_equalities < 2:  # Need at least 2 side equalities for SAS
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Insufficient side equalities in premise",
+                        details="mirror_congruent_triangle_judgment_sas requires at least 2 equal sides"
+                    ))
+
+                # Check for angle equality
+                angle_equality = len(re.findall(r'Equal\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)', premise))
+                if angle_equality < 1:  # Need at least 1 angle equality for SAS
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing angle equality in premise",
+                        details="mirror_congruent_triangle_judgment_sas requires at least 1 equal angle"
+                    ))
+
+                return True, None
+
+        elif theorem_name == "mirror_congruent_triangle_property_angle_equal":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Insufficient arguments for mirror_congruent_triangle_property_angle_equal",
+                        details="Expected: mirror_congruent_triangle_property_angle_equal(1, triangle1, triangle2)"
+                    ))
+
+                tri1, tri2 = args[1].strip(), args[2].strip()
+
+                # Check for mirror congruence in premise
+                mirror_congruent_match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', premise)
+                if not mirror_congruent_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing MirrorCongruentBetweenTriangle(...) in premise",
+                        details="mirror_congruent_triangle_property_angle_equal requires mirror congruent triangles"
+                    ))
+
+                premise_tri1, premise_tri2 = mirror_congruent_match.groups()
+
+                # Create canonical representations
+                theorem_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
+                premise_pair = self.canonicalize_mirror_congruent_triangle_pair(premise_tri1, premise_tri2)
+
+                # Check triangles match using canonical form
+                if theorem_pair != premise_pair:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message=f"Triangles in premise ({premise_tri1}, {premise_tri2}) don't match those in theorem call ({tri1}, {tri2})",
+                        details="Triangles must match between premise and theorem call"
+                    ))
+
+                canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
+                if canonical_pair not in self.mirror_congruent_triangles:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message=f"Triangles {tri1} and {tri2} not proven mirror congruent",
+                        details="Required for mirror_congruent_triangle_property_angle_equal"
+                    ))
+
+                return True, None
+
+        elif theorem_name == "parallel_judgment_par_par":
+            version = args[0]
+            if version == "1":
+                if len(args) < 4:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Insufficient arguments for parallel_judgment_par_par",
+                        details="Expected: parallel_judgment_par_par(1, line1, middle_line, line2)"
+                    ))
+
+                line1, middle_line, line2 = args[1].strip(), args[2].strip(), args[3].strip()
+
+                # Check that the premise contains both parallel relationships
+                if "ParallelBetweenLine" not in premise:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message="Missing ParallelBetweenLine in premise",
+                        details="parallel_judgment_par_par requires two parallel line relationships"
+                    ))
+
+                # Check for the specific parallel relationships in the premise
+                parallel1_found = False
+                parallel2_found = False
+
+                for pattern in [
+                    f"ParallelBetweenLine({line1},{middle_line})",
+                    f"ParallelBetweenLine({middle_line},{line1})"
+                ]:
+                    if pattern in premise:
+                        parallel1_found = True
+                        break
+
+                for pattern in [
+                    f"ParallelBetweenLine({middle_line},{line2})",
+                    f"ParallelBetweenLine({line2},{middle_line})"
+                ]:
+                    if pattern in premise:
+                        parallel2_found = True
+                        break
+
+                if not parallel1_found:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message=f"Missing parallel relationship between {line1} and {middle_line} in premise",
+                        details="Required for parallel_judgment_par_par"
+                    ))
+
+                if not parallel2_found:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE,
+                        message=f"Missing parallel relationship between {middle_line} and {line2} in premise",
+                        details="Required for parallel_judgment_par_par"
+                    ))
+
+                return True, None
+
+
+
+        elif theorem_name == "mirror_congruent_triangle_property_line_equal":
+
+            version = args[0]
+
+            if version == "1":
+
+                if len(args) < 3:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Insufficient arguments for mirror_congruent_triangle_property_line_equal",
+
+                        details="Expected: mirror_congruent_triangle_property_line_equal(1, triangle1, triangle2)"
+
+                    ))
+
+                tri1, tri2 = args[1].strip(), args[2].strip()
+
+                # Check for mirror congruence in premise
+
+                mirror_congruent_match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', premise)
+
+                if not mirror_congruent_match:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER2_PREMISE,
+
+                        message="Missing MirrorCongruentBetweenTriangle(...) in premise",
+
+                        details="mirror_congruent_triangle_property_line_equal requires mirror congruent triangles"
+
+                    ))
+
+                premise_tri1, premise_tri2 = mirror_congruent_match.groups()
+
+                # Create canonical representations
+
+                theorem_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
+
+                premise_pair = self.canonicalize_mirror_congruent_triangle_pair(premise_tri1, premise_tri2)
+
+                # Check triangles match using canonical form
+
+                if theorem_pair != premise_pair:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER2_PREMISE,
+
+                        message=f"Triangles in premise ({premise_tri1}, {premise_tri2}) don't match those in theorem call ({tri1}, {tri2})",
+
+                        details="Triangles must match between premise and theorem call"
+
+                    ))
+
+                canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
+
+                if canonical_pair not in self.mirror_congruent_triangles:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER2_PREMISE,
+
+                        message=f"Triangles {tri1} and {tri2} not proven mirror congruent",
+
+                        details="Required for mirror_congruent_triangle_property_line_equal"
+
+                    ))
+
+                return True, None
+
+
+        elif theorem_name == "midsegment_of_triangle_judgment_midpoint":
+
+            version = args[0]
+
+            if version == "1":
+
+                if len(args) < 3:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Insufficient arguments for midsegment_of_triangle_judgment_midpoint",
+
+                        details="Expected: midsegment_of_triangle_judgment_midpoint(1, segment, triangle)"
+
+                    ))
+
+                # Simple check for polygon definition and length equalities
+
+                if "Polygon" not in premise or "Equal(LengthOfLine" not in premise:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER2_PREMISE,
+
+                        message="Missing required components in premise",
+
+                        details="midsegment_of_triangle_judgment_midpoint requires a polygon and length equalities"
+
+                    ))
+
+                return True, None
+
+
+        elif theorem_name == "midsegment_of_triangle_property_length":
+
+            version = args[0]
+
+            if version == "1":
+
+                if len(args) < 3:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Insufficient arguments for midsegment_of_triangle_property_length",
+
+                        details="Expected: midsegment_of_triangle_property_length(1, segment, triangle)"
+
+                    ))
+
+                segment, triangle = args[1].strip(), args[2].strip()
+
+                # Look for the midsegment fact in the premise directly - don't rely on self.midsegments
+
+                midsegment_match = re.search(
+                    r'IsMidsegmentOfTriangle\(' + re.escape(segment) + ',' + re.escape(triangle) + r'\)', premise)
+
+                if not midsegment_match:
+                    return return_error(GeometricError(
+
+                        tier=ErrorTier.TIER2_PREMISE,
+
+                        message=f"Missing IsMidsegmentOfTriangle({segment},{triangle}) in premise",
+
+                        details="midsegment_of_triangle_property_length requires the segment to be established as a midsegment"
+
+                    ))
+
+                return True, None
+
         elif theorem_name == "congruent_triangle_property_angle_equal":
             version = args[0]
             if version == "1":
@@ -4474,8 +4219,7 @@ class GeometricTheorem:
             # Check against stored parallel pairs
             possible_pairs = (line1, line2)
 
-
-            if not possible_pairs in self.parallel_pairs :
+            if not possible_pairs in self.parallel_pairs:
                 return return_error(GeometricError(
                     tier=ErrorTier.TIER2_PREMISE,
                     message=f"Lines {line1} and {line2} not proven parallel",
@@ -5456,6 +5200,7 @@ class GeometricTheorem:
                     message=f"Triangles {tri1} and {tri2} are not proven mirror similar",
                     details=f"Known mirror similar triangles: {self.mirror_similar_triangles}"
                 ))
+            return True, None
 
 
 
@@ -5944,21 +5689,19 @@ class GeometricTheorem:
 
             print("\nAvailable sections:", list(sections.keys()))
 
-
-
             # just a scan
             normal_collinear_set = set()
-            if 'CONSTRUCTION_CDL' in sections:
-                for line in sections['CONSTRUCTION_CDL']:
+            if CONSTRUCTION_CDL in sections:
+                for line in sections[CONSTRUCTION_CDL]:
                     if line.startswith('Collinear('):
                         points = line[10:-1]  # Extract points from "Collinear(...)"
                         normalized_points = self.normalize_collinear_points(points)
                         # Here we use ''.join(...) as a simple string representation
                         normal_collinear_set.add(''.join(normalized_points))
             # Process CONSTRUCTION_CDL_EXTENDED first
-            if 'CONSTRUCTION_CDL_EXTENDED' in sections:
+            if CONSTRUCTION_CDL_EXTENDED in sections:
                 print("\nProcessing CONSTRUCTION_CDL_EXTENDED section...")
-                for line in sections['CONSTRUCTION_CDL_EXTENDED']:
+                for line in sections[CONSTRUCTION_CDL_EXTENDED]:
                     print(f"Processing line: {line}")
                     if line.startswith('ParallelBetweenLine('):
                         match = re.search(r'ParallelBetweenLine\((\w+),\s*(\w+)\)', line)
@@ -5976,7 +5719,6 @@ class GeometricTheorem:
                         # Skip SYMBOLS_AND_VALUES, EQUATIONS
                     if line.startswith('SYMBOLS_AND_VALUES:') or line.startswith('EQUATIONS:'):
                         continue
-
 
                     if line.startswith('Parallelogram('):
                         match = re.match(r'Parallelogram\((\w+)\)', line)
@@ -6213,9 +5955,9 @@ class GeometricTheorem:
             # Parse goal and verify
 
             # Process CONSTRUCTION_CDL facts
-            if 'CONSTRUCTION_CDL' in sections:
+            if CONSTRUCTION_CDL in sections:
                 print("\nProcessing CONSTRUCTION_CDL section...")
-                for line in sections['CONSTRUCTION_CDL']:
+                for line in sections[CONSTRUCTION_CDL]:
                     print(f"Processing line: {line}")
                     if line.startswith('Collinear('):
                         points = line[10:-1]  # Extract points
@@ -6230,9 +5972,11 @@ class GeometricTheorem:
             # Inside parse_and_verify_proof method
             # Inside parse_and_verify_proof, when processing TEXT_CDL section:
             # Inside parse_and_verify_proof, modify the TEXT_CDL section:
-            if 'TEXT_CDL' in sections:
+            self.text_cdl_lines = []
+            if TEXT_CDL in sections:
+                self.text_cdl_lines = sections[TEXT_CDL]
                 from fractions import Fraction
-                for line in sections['TEXT_CDL']:
+                for line in sections[TEXT_CDL]:
                     if line.startswith('Equal(MeasureOfAngle('):
                         angle_equality_match = re.match(r'Equal\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)',
                                                         line)
@@ -6299,6 +6043,17 @@ class GeometricTheorem:
                                 self.solver.add(length_var == expr)
                                 print(f"Added algebraic length constraint: {line_name} = {expr}")
 
+                    elif line.startswith('MirrorSimilarBetweenTriangle('):
+                        match = re.match(r'MirrorSimilarBetweenTriangle\((\w+),(\w+)\)', line)
+                        if match:
+                            tri1, tri2 = match.groups()
+                            # You can reuse your existing canonicalization function
+                            canonical_pair = self.canonicalize_mirror_triangle_pair(tri1, tri2)
+
+                            if canonical_pair not in self.mirror_similar_triangles:
+                                self.mirror_similar_triangles.append(canonical_pair)
+                                print(
+                                    f"Added mirror similar triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
 
                     elif line.startswith('CongruentBetweenTriangle('):
 
@@ -6859,13 +6614,62 @@ class GeometricTheorem:
                     # --- New branch for median facts:
                     elif line.startswith("IsMedianOfTriangle("):
                         # Matches a fact like: IsMedianOfTriangle(AD,ABC)
-                        match = re.match(r'IsMedianOfTriangle\((\w+),(\w+)\)', line)
+                        match = re.match(r'IsMedianOfTriangle\((\w+),(\w{3})\)', line)
                         if match:
                             median_line, triangle = match.groups()
+
+                            # Ensure the triangle name is valid
+                            if len(triangle) != 3:
+                                print(f"Error: Invalid triangle format in IsMedianOfTriangle({median_line},{triangle})")
+                                continue
+
+                            # Ensure median storage exists
                             if not hasattr(self, "medians"):
                                 self.medians = []
+
+                            # Store median information
                             self.medians.append((median_line, triangle))
                             print(f"Recorded median: IsMedianOfTriangle({median_line},{triangle})")
+
+                            # Extract vertices
+                            A, B, C = triangle
+
+                            # Identify the midpoint of the opposite side
+                            opposite_side = None
+                            if median_line[0] in triangle:
+                                opposite_side = [v for v in triangle if v != median_line[0]]
+                            else:
+                                print(f"Error: {median_line} does not start from a vertex of {triangle}")
+                                continue
+
+                            if len(opposite_side) != 2:
+                                print(f"Error: Cannot determine opposite side for median {median_line}")
+                                continue
+
+                            M = median_line[1]  # Midpoint
+                            X, Y = opposite_side  # The endpoints of the opposite side
+
+                            # Store the midpoint property
+                            if not hasattr(self, "midpoints"):
+                                self.midpoints = {}
+
+                            self.midpoints[(X, Y)] = M
+                            self.midpoints[(Y, X)] = M
+
+                            # Add equality constraint: XM = MY
+                            len1 = self.add_length(X, M)
+                            len2 = self.add_length(M, Y)
+                            self.solver.add(len1 == len2)
+
+                            # Ensure collinearity
+                            collinear_points = [X, M, Y]
+                            normalized_points = self.normalize_collinear_points(''.join(collinear_points))
+                            if not any(set(collinear_points).issubset(set(''.join(fact))) for fact in
+                                       self.collinear_facts):
+                                self.collinear_facts.append(list(normalized_points))
+                                self.add_collinear_fact(list(normalized_points))
+                                print(f"Added collinearity constraint for median: {X}, {M}, {Y}")
+
                         else:
                             print("Error parsing IsMedianOfTriangle fact in TEXT_CDL.")
                     elif line.startswith('PerpendicularBetweenLine('):
@@ -6927,8 +6731,6 @@ class GeometricTheorem:
                             tri1, tri2 = match.groups()
                             self.add_similar_triangles(tri1, tri2)
 
-
-
             print("\nCollected facts:")
             print("Collinear points:", self.collinear_facts)
             print("Parallel pairs:", self.parallel_pairs)
@@ -6937,8 +6739,8 @@ class GeometricTheorem:
             # Process theorem sequence
             # Inside parse_and_verify_proof method
             # Process theorem sequence before verifying goal
-            if 'THEOREM_SEQUENCE' in sections:
-                sequence_text = '\n'.join(sections['THEOREM_SEQUENCE'])
+            if THEOREM_SEQUENCE in sections:
+                sequence_text = '\n'.join(sections[THEOREM_SEQUENCE])
                 # Split into individual steps
                 steps = [step.strip() for step in sequence_text.split('\n') if step.strip()]
 
@@ -6973,15 +6775,24 @@ class GeometricTheorem:
                             print(f"Conclusions: {conclusions}")
 
                             # Validate premises first
+                            # Validate premises first
+                            # Validate premises first
                             is_valid, error = self.validate_theorem_premises(theorem_name, args, premise)
                             if not is_valid:
                                 print(f"\nError in {error.tier.name}:")
                                 print(f"Message: {error.message}")
                                 if error.details:
                                     print(f"Details: {error.details}")
-                                return False,f"Error in {error.tier.name}: {error.message}"
 
+                                if error.tier == ErrorTier.TIER2_PREMISE:
+                                    # Use the special formatted feedback for premise errors
+                                    return False, self.generate_premise_error_feedback(theorem_name, args, premise,
+                                                                                       conclusions, error)
+                                else:
+                                    return False, f"Error in {error.tier.name}: {error.message}"
 
+                            # Then process theorem step
+                            # Then process theorem step
                             # Then process theorem step
                             error = self.adding_conclution(theorem_name, args, premise, conclusions)
                             if error:
@@ -6989,10 +6800,16 @@ class GeometricTheorem:
                                 print(f"Message: {error.message}")
                                 if error.details:
                                     print(f"Details: {error.details}")
-                                return False, f"Error in {error.tier.name}: {error.message}"
 
-            if 'GOAL_CDL' in sections:
-                goal_line = sections['GOAL_CDL'][0]
+                                if error.tier == ErrorTier.TIER2_PREMISE:
+                                    # Use the special formatted feedback for premise errors
+                                    return False, self.generate_premise_error_feedback(theorem_name, args, premise,
+                                                                                       conclusions, error)
+                                else:
+                                    return False, f"Error in {error.tier.name}: {error.message}"
+
+            if GOAL_CDL in sections:
+                goal_line = sections[GOAL_CDL][0]
 
                 def parse_special_answer(answer_str):
                     """Parse answer strings including those with square root symbol."""
@@ -7031,474 +6848,141 @@ class GeometricTheorem:
                         # Fall back to Fraction
                         from fractions import Fraction
                         return float(Fraction(answer_str))
-                # --- Check for an arc length goal of the form:
-                #     Value(LengthOfArc(X))
-                # --- Check for an arc length goal of the form:
-                #     Value(LengthOfArc(X))
-                # --- Check for an arc measure goal of the form:
-                #     Value(MeasureOfArc(X))
+
+                answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
+                if answer_str is None:
+                    return False, "No answer provided in ANSWER section."
+
+                try:
+                    model_answer = parse_special_answer(answer_str)
+                except Exception as e:
+                    return False, f"Error parsing answer '{answer_str}': {str(e)}"
+                    # Arc measure goal: Value(MeasureOfArc(X))
+                epsilon = 1e-8  # Common epsilon value for all goals
                 arc_measure_match = re.search(r'Value\(MeasureOfArc\((\w+)\)\)', goal_line)
                 if arc_measure_match:
                     arc_token = arc_measure_match.group(1)
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected = parse_special_answer(sections['ANSWER'][0].strip())
+                    print(f"\nGoal arc measure: {arc_token}")
+                    print(f"Expected measure: {model_answer}")
 
-                        print(f"\nGoal arc measure: {arc_token}")
-                        print(f"Expected measure: {expected}")
+                    normalized_arc = self.normalize_arc(arc_token)
+                    arc_var_name = f"arc_{normalized_arc}"
 
-                        # Get the arc variable
-                        normalized_arc = self.normalize_arc(arc_token)
-                        arc_var_name = f"arc_{normalized_arc}"
+                    if arc_var_name not in self.arcs:
+                        error_msg = f"Arc {arc_token} is not defined in the system"
+                        print(f"Error: {error_msg}")
+                        return False, error_msg
 
-                        if arc_var_name in self.arcs:
-                            arc_var = self.arcs[arc_var_name]
+                    arc_var = self.arcs[arc_var_name]
+                    success, value, status = self.check_value_constraint(arc_var, model_answer)
 
-                            if self.solver.check() == sat:
-                                # First check if constraints allow the expected value
-                                temp_solver1 = Solver()
-                                for c in self.solver.assertions():
-                                    temp_solver1.add(c)
+                    if success:
+                        print(f"Success: Arc measure {arc_token} is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="arc_measure",
+                            goal_token=arc_token,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for arc measure goal.")
+                        return False, detailed_feedback
 
-                                # Add constraint that arc_var == expected (within epsilon)
-                                epsilon = 1e-8
-                                temp_solver1.add(And(arc_var >= expected - epsilon, arc_var <= expected + epsilon))
-
-                                if temp_solver1.check() != sat:
-                                    error_msg = f"Failed to prove arc measure goal: constraints don't allow the expected value."
-
-                                    # Generate detailed report for this case
-                                    arc_report = self.generate_arc_length_analysis_report(arc_token, expected, None,
-                                                                                          "incompatible")
-
-                                    print(f"Error: Constraints don't allow the expected arc measure {expected}")
-                                    error = GeometricError(
-                                        tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                        message=error_msg,
-                                        details=f"Goal was: MeasureOfArc({arc_token}) = {expected}"
-                                    )
-                                    print(f"\nError in {error.tier.name}: {error.message}")
-
-                                    # Write report to file
-                                    self.write_failure_report(f"arc_measure_{arc_token}", arc_report)
-                                    return False, arc_report
-
-                                # Now check if any other value is allowed
-                                temp_solver2 = Solver()
-                                for c in self.solver.assertions():
-                                    temp_solver2.add(c)
-
-                                # Add constraint: arc_var != expected (outside epsilon range)
-                                temp_solver2.add(Or(arc_var < expected - epsilon, arc_var > expected + epsilon))
-
-                                if temp_solver2.check() == sat:
-                                    alt_model = temp_solver2.model()
-                                    alt_value = float(alt_model.eval(arc_var).as_decimal(10).rstrip('?'))
-
-                                    error_msg = f"Failed to prove arc measure goal: constraints allow multiple values."
-
-                                    # Generate detailed report for this case
-                                    arc_report = self.generate_arc_length_analysis_report(arc_token, expected,
-                                                                                          alt_value, "multiple_values")
-
-                                    print(f"Error: The proof doesn't uniquely determine arc measure {arc_token}.")
-                                    print(f"It could be {expected} but also {alt_value}")
-
-                                    error = GeometricError(
-                                        tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                        message=error_msg,
-                                        details=f"Goal was: MeasureOfArc({arc_token}) = {expected}, but could also be {alt_value}"
-                                    )
-                                    print(f"\nError in {error.tier.name}: {error.message}")
-
-                                    # Write report to file
-                                    self.write_failure_report(f"arc_measure_{arc_token}", arc_report)
-                                    return False, arc_report
-
-                                # Success case
-                                model = self.solver.model()
-                                calc_expr = model.eval(arc_var)
-                                val_str = calc_expr.as_decimal(10)
-                                if val_str.endswith('?'):
-                                    val_str = val_str[:-1]
-                                calculated_value = float(val_str)
-
-                                print(f"Calculated arc measure for {arc_token} is {calculated_value}")
-                                print(f"Success: The arc measure {arc_token} is uniquely determined to be {expected}.")
-                                return True, ""
-                            else:
-                                error_msg = f"Failed to prove arc measure goal: solver is unsatisfiable."
-
-                                # Generate detailed report for unsatisfiable case
-                                arc_report = self.generate_arc_length_analysis_report(arc_token, expected, None,
-                                                                                      "unsatisfiable")
-
-                                print("Solver constraints unsat when verifying arc measure goal.")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal: MeasureOfArc({arc_token}) = {expected}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-
-                                # Write report to file
-                                self.write_failure_report(f"arc_measure_{arc_token}", arc_report)
-                                return False, arc_report
-                        else:
-                            error_msg = f"Arc {arc_token} is not defined in the system"
-                            print(f"Error: Arc {arc_token} is not defined")
-                            return False, error_msg
-
-                # --- Check for an arc length goal of the form:
-                #     Value(LengthOfArc(X))
+                # 2. Arc length goal: Value(LengthOfArc(X))
                 arc_length_match = re.search(r'Value\(LengthOfArc\((\w+)\)\)', goal_line)
                 if arc_length_match:
                     arc_token = arc_length_match.group(1)
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected = parse_special_answer(sections['ANSWER'][0].strip())
+                    print(f"\nGoal arc length: {arc_token}")
+                    print(f"Expected arc length: {model_answer}")
 
-                        print(f"\nGoal arc length: {arc_token}")
-                        print(f"Expected arc length: {expected}")
+                    normalized_arc = self.normalize_arc(arc_token)
+                    length_var_name = f"lengthArc_{normalized_arc}"
+                    arc_length_var = Real(length_var_name)
 
-                        # Create a detailed error report
-                        normalized_arc = self.normalize_arc(arc_token)
-                        length_var_name = f"lengthArc_{normalized_arc}"
-                        arc_length_var = Real(length_var_name)
+                    success, value, status = self.check_value_constraint(arc_length_var, model_answer)
 
-                        # Check if the constraints are satisfiable
-                        if self.solver.check() == sat:
-                            # First check if constraints allow the expected value
-                            temp_solver1 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver1.add(c)
+                    if success:
+                        print(f"Success: Arc length {arc_token} is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="arc_length",
+                            goal_token=arc_token,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for arc length goal.")
+                        return False, detailed_feedback
 
-                            # Add constraint that arc_length_var == expected (within epsilon)
-                            epsilon = 1e-8
-                            temp_solver1.add(
-                                And(arc_length_var >= expected - epsilon, arc_length_var <= expected + epsilon))
-
-                            if temp_solver1.check() != sat:
-                                error_msg = f"Failed to prove arc length goal: constraints don't allow the expected value."
-
-                                # Generate detailed report for this case
-                                arc_report = self.generate_arc_length_analysis_report(arc_token, expected, None,
-                                                                                      "incompatible")
-
-                                print(f"Error: Constraints don't allow the expected arc length {expected}")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: LengthOfArc({arc_token}) = {expected}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"arc_length_{arc_token}", arc_report)
-                                return False, arc_report
-
-                            # Now check if any other value is allowed
-                            temp_solver2 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver2.add(c)
-
-                            # Add constraint: arc_length_var != expected (outside epsilon range)
-                            temp_solver2.add(
-                                Or(arc_length_var < expected - epsilon, arc_length_var > expected + epsilon))
-
-                            if temp_solver2.check() == sat:
-                                alt_model = temp_solver2.model()
-                                alt_value = float(alt_model.eval(arc_length_var).as_decimal(10).rstrip('?'))
-
-                                error_msg = f"Failed to prove arc length goal: constraints allow multiple values."
-
-                                # Generate detailed report for this case
-                                arc_report = self.generate_arc_length_analysis_report(arc_token, expected, alt_value,
-                                                                                      "multiple_values")
-
-                                print(f"Error: The proof doesn't uniquely determine arc length {arc_token}.")
-                                print(f"It could be {expected} but also {alt_value}")
-
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: LengthOfArc({arc_token}) = {expected}, but could also be {alt_value}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"arc_length_{arc_token}", arc_report)
-                                return False, arc_report
-
-                            # Success case
-                            model = self.solver.model()
-                            calc_expr = model.eval(arc_length_var)
-                            val_str = calc_expr.as_decimal(10)
-                            if val_str.endswith('?'):
-                                val_str = val_str[:-1]
-                            calculated_value = float(val_str)
-
-                            print(f"Calculated arc length for {arc_token} is {calculated_value}")
-                            print(f"Success: The arc length {arc_token} is uniquely determined to be {expected}.")
-                            return True, ""
-                        else:
-                            error_msg = f"Failed to prove arc length goal: solver is unsatisfiable."
-
-                            # Generate detailed report for unsatisfiable case
-                            arc_report = self.generate_arc_length_analysis_report(arc_token, expected, None,
-                                                                                  "unsatisfiable")
-
-                            print("Solver constraints unsat when verifying arc length goal.")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message=error_msg,
-                                details=f"Goal: LengthOfArc({arc_token}) = {expected}"
-                            )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-
-                            # Write report to file
-                            self.write_failure_report(f"arc_length_{arc_token}", arc_report)
-                            return False, arc_report
-
-
-                # --- Check for a sum-of-lengths goal of the form:
-                #     Value(Add(LengthOfLine(XX),LengthOfLine(YY)))
-                # --- Check for a sum-of-lengths goal of the form:
-                #     Value(Add(LengthOfLine(XX),LengthOfLine(YY)))
-                # --- Check for a sum-of-lengths goal of the form:
-                #     Value(Add(LengthOfLine(XX),LengthOfLine(YY)))
                 sum_lengths_match = re.search(r'Value\(Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)', goal_line)
                 if sum_lengths_match:
-                    line1 = sum_lengths_match.group(1)  # e.g., "DN"
-                    line2 = sum_lengths_match.group(2)  # e.g., "DM"
+                    line1 = sum_lengths_match.group(1)
+                    line2 = sum_lengths_match.group(2)
 
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
+                    print(f"\nGoal sum of lengths: LengthOfLine({line1}) + LengthOfLine({line2})")
+                    print(f"Expected answer: {model_answer}")
 
-                        print(f"\nGoal sum of lengths: LengthOfLine({line1}) + LengthOfLine({line2})")
-                        print(f"Expected answer: {expected_answer}")
+                    len1 = self.add_length(line1[0], line1[1])
+                    len2 = self.add_length(line2[0], line2[1])
+                    sum_expr = len1 + len2
 
-                        # Get (or create) the length variables
-                        len1 = self.add_length(line1[0], line1[1])
-                        len2 = self.add_length(line2[0], line2[1])
+                    success, value, status = self.check_value_constraint(sum_expr, model_answer)
 
-                        # Create a sum expression
-                        sum_expr = len1 + len2
+                    if success:
+                        print(
+                            f"Success: The sum of lengths {line1} + {line2} is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        goal_token = f"{line1}+{line2}"  # Create a combined token
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="sum",
+                            goal_token=goal_token,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for sum of lengths goal.")
+                        return False, detailed_feedback
 
-                        if self.solver.check() == sat:
-                            # First check if constraints allow the expected value
-                            temp_solver1 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver1.add(c)
-
-                            # Add constraint that sum_expr == expected (within epsilon)
-                            epsilon = 1e-8
-                            temp_solver1.add(And(sum_expr >= expected_answer - epsilon,
-                                                 sum_expr <= expected_answer + epsilon))
-
-                            if temp_solver1.check() != sat:
-                                error_msg = f"Failed to prove sum of lengths goal: constraints don't allow the expected value."
-
-                                # Generate detailed report for this case
-                                sum_report = self.generate_sum_analysis_report(line1, line2, expected_answer, None,
-                                                                               "incompatible")
-
-                                print(f"Error: Constraints don't allow the expected sum {expected_answer}")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: LengthOfLine({line1}) + LengthOfLine({line2}) = {expected_answer}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"{line1}_{line2}_sum", sum_report)
-                                return False, sum_report
-
-                            # Now check if any other value is allowed
-                            temp_solver2 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver2.add(c)
-
-                            # Add constraint: sum_expr != expected (outside epsilon range)
-                            temp_solver2.add(Or(sum_expr < expected_answer - epsilon,
-                                                sum_expr > expected_answer + epsilon))
-
-                            if temp_solver2.check() == sat:
-                                # Get an alternate model
-                                alt_model = temp_solver2.model()
-
-                                # Evaluate each line length in this alternate model
-                                alt_len1 = float(alt_model.eval(len1).as_decimal(10).rstrip('?'))
-                                alt_len2 = float(alt_model.eval(len2).as_decimal(10).rstrip('?'))
-                                alt_sum = alt_len1 + alt_len2
-
-                                error_msg = f"Failed to prove sum of lengths goal: constraints allow multiple values."
-
-                                # Generate detailed report for this case
-                                sum_report = self.generate_sum_analysis_report(line1, line2, expected_answer, alt_sum,
-                                                                               "multiple_values")
-
-                                print(f"Error: The proof doesn't uniquely determine the sum {line1} + {line2}.")
-                                print(f"It could be {expected_answer} but also {alt_sum}")
-                                print(f"Line {line1} could be {alt_len1}")
-                                print(f"Line {line2} could be {alt_len2}")
-
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: LengthOfLine({line1}) + LengthOfLine({line2}) = {expected_answer}, but could also be {alt_sum}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"{line1}_{line2}_sum", sum_report)
-                                return False, sum_report
-
-                            # Get the computed value from the model - success case
-                            model = self.solver.model()
-
-                            # Calculate the sum from individual length values
-                            try:
-                                val1 = float(model.eval(len1).as_decimal(10).rstrip('?'))
-                                val2 = float(model.eval(len2).as_decimal(10).rstrip('?'))
-                                calculated_value = val1 + val2
-
-                                print(f"Length of {line1}: {val1}")
-                                print(f"Length of {line2}: {val2}")
-                                print(f"Calculated sum: {calculated_value}")
-
-                                # Check if the calculated value matches the expected answer
-                                if abs(calculated_value - expected_answer) >= epsilon:
-                                    error_msg = f"Failed to prove sum of lengths goal: calculated value {calculated_value} doesn't match expected {expected_answer}."
-
-                                    # Generate detailed report for this case
-                                    sum_report = self.generate_sum_analysis_report(line1, line2, expected_answer,
-                                                                                   calculated_value, "incompatible")
-
-                                    print(
-                                        f"Error: Calculated sum {calculated_value} doesn't match expected {expected_answer}")
-                                    error = GeometricError(
-                                        tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                        message=error_msg,
-                                        details=f"Goal was: LengthOfLine({line1}) + LengthOfLine({line2}) = {expected_answer}, calculated: {calculated_value}"
-                                    )
-                                    print(f"\nError in {error.tier.name}: {error.message}")
-                                    if error.details:
-                                        print("Details:", error.details)
-
-                                    # Write report to file
-                                    self.write_failure_report(f"{line1}_{line2}_sum", sum_report)
-                                    return False, sum_report
-
-                                print(
-                                    f"Success: The sum of lengths {line1} + {line2} is uniquely determined to be {expected_answer}.")
-                                return True, ""
-                            except Exception as e:
-                                error_msg = f"Error calculating sum of lengths: {str(e)}"
-
-                                # Generate detailed report for this case
-                                sum_report = self.generate_sum_analysis_report(line1, line2, expected_answer, None,
-                                                                               "incompatible")
-                                sum_report += f"\nERROR: {str(e)}\n"
-
-                                print(f"Error calculating sum of lengths: {e}")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=str(e)
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"{line1}_{line2}_sum", sum_report)
-                                return False, sum_report
-                        else:
-                            error_msg = f"Failed to prove sum of lengths goal: solver is unsatisfiable."
-
-                            # Generate detailed report for unsatisfiable case
-                            sum_report = self.generate_sum_analysis_report(line1, line2, expected_answer, None,
-                                                                           "unsatisfiable")
-
-                            print("Solver constraints unsat when verifying sum of lengths goal.")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message=error_msg,
-                                details=f"Goal: LengthOfLine({line1}) + LengthOfLine({line2}) = {expected_answer}"
-                            )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"{line1}_{line2}_sum", sum_report)
-                                return False, sum_report
-
-
-
-
-                # Add this to the section handling goals in parse_and_verify_proof
-                # --- Check for a cosine goal of the form:
-                #     Value(Cos(MeasureOfAngle(CBA)))
-                # Add this to the section handling goals in parse_and_verify_proof
-                # --- Check for a cosine goal of the form:
-                #     Value(Cos(MeasureOfAngle(CBA)))
-                # --- Check for a cosine goal of the form: Value(Cos(MeasureOfAngle(XXX)))
-                # --- Check for a cosine goal: Value(Cos(MeasureOfAngle(XXX)))
-                # --- Check for a cosine goal of the form: Value(Cos(MeasureOfAngle(XXX)))
-                # --- Check for a cosine goal of the form: Value(Cos(MeasureOfAngle(XXX)))
+                # Cosine goal: Value(Cos(MeasureOfAngle(XXX)))
                 cos_match = re.search(r'Value\(Cos\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
                 if cos_match:
                     angle_token = cos_match.group(1)
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected = parse_special_answer(sections['ANSWER'][0].strip())
+                    print(f"\nGoal cosine: Cos(MeasureOfAngle({angle_token}))")
+                    print(f"Expected value: {model_answer}")
 
-                        print(f"\nGoal cosine: Cos(MeasureOfAngle({angle_token}))")
-                        print(f"Expected value: {expected}")
+                    # Check if a direct cosine variable exists
+                    cos_var_name = f"cos_{angle_token}"
+                    if cos_var_name in self.variables:
+                        cos_var = self.variables[cos_var_name]
+                        success, value, status = self.check_value_constraint(cos_var, model_answer)
 
-                        # Check if solver is satisfiable first
+                        if success:
+                            print(f"Success: cos({angle_token}) is uniquely determined to be {model_answer}.")
+                            return True, ""
+                        else:
+                            # Generate detailed feedback report
+                            detailed_feedback = self.generate_detailed_feedback(
+                                goal_type="cosine",
+                                goal_token=angle_token,
+                                model_answer=model_answer,
+                                verifier_expected_answer=value,
+                                status=status
+                            )
+                            print(f"Detailed feedback generated for cosine goal.")
+                            return False, detailed_feedback
+                    else:
+                        # Try to verify from the angle if no cosine variable exists
+                        angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
+
                         if self.solver.check() == sat:
                             model = self.solver.model()
-
-                            # Get the cosine variable directly if it exists
-                            cos_var_name = f"cos_{angle_token}"
-                            if cos_var_name in self.variables:
-                                cos_var = self.variables[cos_var_name]
-
-                                # JUST CHECK the current value without adding any new constraints
-                                try:
-                                    current_cos = float(model.eval(cos_var).as_decimal(16).rstrip('?'))
-                                    print(f"Current value for cos({angle_token}): {current_cos}")
-
-                                    # Use a generous epsilon for comparison
-                                    epsilon = 1e-5  # Very generous epsilon
-                                    if abs(current_cos - expected) < epsilon:
-                                        print(
-                                            f"Success: cos({angle_token}) = {current_cos} ≈ {expected} (within tolerance)")
-                                        return True, ""
-                                    else:
-                                        # Generate detailed report if values don't match
-                                        error_msg = f"Failed to prove cosine goal: calculated value {current_cos} doesn't match expected {expected}."
-                                        cos_report = self.generate_cosine_analysis_report(angle_token, expected,
-                                                                                          current_cos, "incompatible")
-                                        self.write_failure_report(f"cos_{angle_token}", cos_report)
-                                        return False, error_msg
-                                except Exception as e:
-                                    print(f"Error evaluating cosine: {e}")
-
-                            # Try to verify from the angle if no cosine variable exists
-                            angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-
                             try:
                                 current_angle = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
                                 import math
@@ -7506,1259 +6990,462 @@ class GeometricTheorem:
                                 print(f"Derived cos({angle_token}) = {current_cos} from angle = {current_angle}°")
 
                                 epsilon = 1e-5
-                                if abs(current_cos - expected) < epsilon:
+                                if abs(current_cos - model_answer) < epsilon:
                                     print(
-                                        f"Success: cos({angle_token}) = {current_cos} ≈ {expected} (within tolerance)")
+                                        f"Success: cos({angle_token}) = {current_cos} ≈ {model_answer} (within tolerance)")
                                     return True, ""
                                 else:
-                                    # Generate report for failure
-                                    error_msg = f"Failed to prove cosine goal: derived value {current_cos} doesn't match expected {expected}."
-                                    cos_report = self.generate_cosine_analysis_report(angle_token, expected,
-                                                                                      current_cos, "incompatible")
-                                    self.write_failure_report(f"cos_{angle_token}", cos_report)
-                                    return False, error_msg
+                                    # Generate detailed feedback with additional info about derived values
+                                    additional_info = f"Derived angle value: {current_angle}°\nDerived cosine: {current_cos}"
+                                    detailed_feedback = self.generate_detailed_feedback(
+                                        goal_type="cosine",
+                                        goal_token=angle_token,
+                                        model_answer=model_answer,
+                                        verifier_expected_answer=current_cos,
+                                        status="incompatible",
+                                        additional_info=additional_info
+                                    )
+                                    print(f"Detailed feedback generated for cosine goal.")
+                                    return False, detailed_feedback
                             except Exception as e:
-                                print(f"Error calculating cosine from angle: {e}")
-
-                            # If we reached here, we couldn't verify the cosine value
-                            error_msg = "Failed to prove cosine goal: couldn't extract or verify cosine value."
-                            cos_report = self.generate_cosine_analysis_report(angle_token, expected, None,
-                                                                              "multiple_values")
-                            self.write_failure_report(f"cos_{angle_token}", cos_report)
-                            return False, error_msg
+                                error_msg = f"Error calculating cosine from angle: {str(e)}"
+                                print(f"Error: {error_msg}")
+                                return False, error_msg
                         else:
-                            error_msg = f"Failed to prove cosine goal: solver is unsatisfiable."
-                            cos_report = self.generate_cosine_analysis_report(angle_token, expected, None,
-                                                                              "unsatisfiable")
-                            self.write_failure_report(f"cos_{angle_token}", cos_report)
-                            return False, error_msg
+                            detailed_feedback = self.generate_detailed_feedback(
+                                goal_type="cosine",
+                                goal_token=angle_token,
+                                model_answer=model_answer,
+                                status="unsatisfiable"
+                            )
+                            print(f"Detailed feedback generated for cosine goal.")
+                            return False, detailed_feedback
 
-                # --- Check for a sine goal of the form:
-                #     Value(Sin(MeasureOfAngle(BAC)))
-                # --- Check for a sine goal of the form:
-                #     Value(Sin(MeasureOfAngle(BAC)))
-                # --- Check for a sine goal of the form: Value(Sin(MeasureOfAngle(BAC)))
-                # --- Check for a sine goal of the form: Value(Sin(MeasureOfAngle(BAC)))
-                # --- Check for a sine goal of the form: Value(Sin(MeasureOfAngle(BAC)))
-                # --- Check for a sine goal of the form: Value(Sin(MeasureOfAngle(BAC)))
                 sin_match = re.search(r'Value\(Sin\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
                 if sin_match:
                     angle_token = sin_match.group(1)
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected = parse_special_answer(sections['ANSWER'][0].strip())
-
-                        print(f"\nGoal sine: Sin(MeasureOfAngle({angle_token}))")
-                        print(f"Expected value: {expected}")
-
-                        # Create a clean solver to work with
-                        epsilon = 1e-8
-
-                        if self.solver.check() == sat:
-                            # Get the angle variable
-                            angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-
-                            # Check sine variable if it exists
-                            sin_var_name = f"sin_{angle_token}"
-                            sin_var = None
-                            if sin_var_name in self.variables:
-                                sin_var = self.variables[sin_var_name]
-                                print(f"Found existing sine variable: {sin_var_name}")
-
-                            # First check if the constraints are compatible with expected sine value
-                            temp_solver1 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver1.add(c)
-
-                            # Method 1: If we have a sine variable, check directly
-                            if sin_var is not None:
-                                temp_solver1.add(And(sin_var >= expected - epsilon, sin_var <= expected + epsilon))
-                            else:
-                                # Method 2: Otherwise, use possible angles that give this sine value
-                                import math
-                                # For sine in [-1, 1], we have two possible angles in [0, 360)
-                                angle1 = math.degrees(math.asin(expected))  # First quadrant or fourth quadrant
-                                angle2 = 180 - angle1  # Second quadrant or third quadrant
-
-                                # Add constraint to check if either angle is possible
-                                temp_solver1.add(Or(
-                                    And(angle_var >= angle1 - epsilon, angle_var <= angle1 + epsilon),
-                                    And(angle_var >= angle2 - epsilon, angle_var <= angle2 + epsilon)
-                                ))
-
-                            # Check if the expected sine value is compatible with the constraints
-                            if temp_solver1.check() != sat:
-                                error_msg = f"Failed to prove sine goal: constraints don't allow the expected value."
-
-                                # Generate detailed report
-                                sin_report = self.generate_sine_analysis_report(angle_token, expected, None,
-                                                                                "incompatible")
-
-                                print(f"Error: Constraints don't allow sin({angle_token}) = {expected}")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: Sin(MeasureOfAngle({angle_token})) = {expected}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"sin_{angle_token}", sin_report)
-                                return False, error_msg
-
-                            # Now check if this is uniquely determined
-                            model = self.solver.model()
-
-                            # If we have a sine variable, check its uniqueness
-                            if sin_var is not None:
-                                sin_val = float(model.eval(sin_var).as_decimal(10).rstrip('?'))
-
-                                # Check if sine value is uniquely determined
-                                temp_solver2 = Solver()
-                                for c in self.solver.assertions():
-                                    temp_solver2.add(c)
-
-                                temp_solver2.add(Or(sin_var < expected - epsilon, sin_var > expected + epsilon))
-
-                                if temp_solver2.check() == sat:
-                                    alt_model = temp_solver2.model()
-                                    alt_sin = float(alt_model.eval(sin_var).as_decimal(10).rstrip('?'))
-
-                                    error_msg = f"Failed to prove sine goal: sine value not uniquely determined."
-
-                                    # Generate detailed report
-                                    sin_report = self.generate_sine_analysis_report(angle_token, expected, alt_sin,
-                                                                                    "multiple_values")
-
-                                    print(f"Error: sin({angle_token}) could be {sin_val} or {alt_sin}")
-
-                                    error = GeometricError(
-                                        tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                        message=error_msg,
-                                        details=f"Goal was: Sin(MeasureOfAngle({angle_token})) = {expected}, but could also be {alt_sin}"
-                                    )
-                                    print(f"\nError in {error.tier.name}: {error.message}")
-                                    if error.details:
-                                        print("Details:", error.details)
-
-                                    # Write report to file
-                                    self.write_failure_report(f"sin_{angle_token}", sin_report)
-                                    return False, sin_report
-                            else:
-                                # Check if the angle is uniquely determined
-                                current_angle = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
-
-                                # Import math at the beginning of this block
-                                import math
-
-                                # Check which solution we're close to
-                                angle1 = math.degrees(math.asin(expected))
-                                angle2 = 180 - angle1
-
-                                # Create a solver to check for different angles that would give different sine values
-                                temp_solver2 = Solver()
-                                for c in self.solver.assertions():
-                                    temp_solver2.add(c)
-
-                                # Try to find an angle that's significantly different and gives a different sine
-                                if abs(current_angle - angle1) < 1:
-                                    # Current angle is close to angle1, look for something different
-                                    # but not just the other solution (angle2)
-                                    temp_solver2.add(And(
-                                        Or(angle_var < angle1 - 10, angle_var > angle1 + 10),
-                                        Or(angle_var < angle2 - 10, angle_var > angle2 + 10)
-                                    ))
-                                elif abs(current_angle - angle2) < 1:
-                                    # Current angle is close to angle2, look for something different
-                                    # but not just the other solution (angle1)
-                                    temp_solver2.add(And(
-                                        Or(angle_var < angle1 - 10, angle_var > angle1 + 10),
-                                        Or(angle_var < angle2 - 10, angle_var > angle2 + 10)
-                                    ))
-                                else:
-                                    # Current angle is not close to either solution - try to find
-                                    # a significantly different angle
-                                    temp_solver2.add(Or(
-                                        angle_var < current_angle - 10,
-                                        angle_var > current_angle + 10
-                                    ))
-
-                                if temp_solver2.check() == sat:
-                                    alt_model = temp_solver2.model()
-                                    alt_angle = float(alt_model.eval(angle_var).as_decimal(10).rstrip('?'))
-                                    alt_sin = math.sin(math.radians(alt_angle))
-
-                                    # Only report error if the sine is actually different
-                                    if abs(alt_sin - expected) >= epsilon:
-                                        error_msg = f"Failed to prove sine goal: angle not uniquely determined."
-
-                                        # Generate detailed report
-                                        sin_report = self.generate_sine_analysis_report(angle_token, expected, alt_sin,
-                                                                                        "multiple_values")
-
-                                        print(f"Error: Angle {angle_token} could be {current_angle}° or {alt_angle}°")
-                                        print(
-                                            f"Giving sine values {math.sin(math.radians(current_angle))} and {alt_sin}")
-
-                                        error = GeometricError(
-                                            tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                            message=error_msg,
-                                            details=f"Goal was: Sin(MeasureOfAngle({angle_token})) = {expected}"
-                                        )
-                                        print(f"\nError in {error.tier.name}: {error.message}")
-                                        if error.details:
-                                            print("Details:", error.details)
-
-                                        # Write report to file
-                                        self.write_failure_report(f"sin_{angle_token}", sin_report)
-                                        return False, sin_report
-
-                            # Success! The constraints uniquely determine the sine to be our expected value
-                            print(f"Success: sin({angle_token}) = {expected} is verified.")
-                            return True, ""
-                        else:
-                            error_msg = f"Failed to prove sine goal: solver is unsatisfiable."
-
-                            # Generate detailed report for unsatisfiable case
-                            sin_report = self.generate_sine_analysis_report(angle_token, expected, None,
-                                                                            "unsatisfiable")
-
-                            print("Solver constraints unsatisfiable when verifying sine goal.")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message=error_msg,
-                                details=f"Goal was: Sin(MeasureOfAngle({angle_token})) = {expected}"
-                            )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-
-                            # Write report to file
-                            self.write_failure_report(f"sin_{angle_token}", sin_report)
-                            return False, sin_report
-
-
-                # 2. Quadrilateral area match section
-                # 2. Quadrilateral area match section
-                quad_area_match = re.search(r'Value\(AreaOfQuadrilateral\((\w+)\)\)', goal_line)
-                if quad_area_match:
-                    quad_name = quad_area_match.group(1)
-                    print(f"\nDetected quadrilateral area goal: AreaOfQuadrilateral({quad_name})")  # Debug print
-
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected = parse_special_answer(sections['ANSWER'][0].strip())
-
-                        print(f"\nGoal quadrilateral area: {quad_name}")
-                        print(f"Expected area: {expected}")
-
-                        if quad_name in self.quad_areas:
-                            quad_area_var = self.quad_areas[quad_name]
-                        else:
-                            quad_area_var = Real(f"areaQuadr_{quad_name}")
-                            self.quad_areas[quad_name] = quad_area_var
-
-                        if self.solver.check() == sat:
-                            # First check if constraints allow the expected value
-                            temp_solver1 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver1.add(c)
-
-                            # Add constraint that area = expected (within epsilon)
-                            epsilon = 1e-8
-                            temp_solver1.add(
-                                And(quad_area_var >= expected - epsilon, quad_area_var <= expected + epsilon))
-
-                            if temp_solver1.check() != sat:
-                                error_msg = "Failed to prove quadrilateral area goal: constraints don't allow the expected value."
-
-                                # Generate detailed report for this case
-                                quad_report = self.generate_quadrilateral_area_analysis_report(quad_name, expected,
-                                                                                               None, "incompatible")
-
-                                print(f"Error: Constraints don't allow the expected area {expected}")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: AreaOfQuadrilateral({quad_name}) = {expected}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"area_{quad_name}", quad_report)
-                                return False, quad_report
-
-                            # Now check if any other value is allowed
-                            temp_solver2 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver2.add(c)
-
-                            # Add constraint: area != expected (outside epsilon range)
-                            temp_solver2.add(Or(quad_area_var < expected - epsilon, quad_area_var > expected + epsilon))
-
-                            if temp_solver2.check() == sat:
-                                alt_model = temp_solver2.model()
-                                alt_value = float(alt_model.eval(quad_area_var).as_decimal(10).rstrip('?'))
-
-                                error_msg = "Failed to prove quadrilateral area goal: constraints allow multiple values."
-
-                                # Generate detailed report for this case
-                                quad_report = self.generate_quadrilateral_area_analysis_report(quad_name, expected,
-                                                                                               alt_value,
-                                                                                               "multiple_values")
-
-                                print(f"Error: The proof doesn't uniquely determine area of {quad_name}.")
-                                print(f"It could be {expected} but also {alt_value}")
-
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: AreaOfQuadrilateral({quad_name}) = {expected}, but could also be {alt_value}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"area_{quad_name}", quad_report)
-                                return False, quad_report
-
-                            # Get the computed value from the model
-                            model = self.solver.model()
-                            calc_expr = model.eval(quad_area_var)
-                            val_str = calc_expr.as_decimal(10)
-                            if val_str.endswith('?'):
-                                val_str = val_str[:-1]
-                            calculated_value = float(val_str)
-
-                            print(f"Calculated area for {quad_name} is {calculated_value}")
-                            print(f"Success: The quadrilateral area is uniquely determined to be {expected}.")
-                            return True, ""
-                        else:
-                            error_msg = "Failed to prove quadrilateral area goal: solver is unsatisfiable."
-
-                            # Generate detailed report for unsatisfiable case
-                            quad_report = self.generate_quadrilateral_area_analysis_report(quad_name, expected, None,
-                                                                                           "unsatisfiable")
-
-                            print("Solver constraints unsat when verifying quadrilateral area goal.")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message=error_msg,
-                                details=f"Goal: AreaOfQuadrilateral({quad_name}) = {expected}"
-                            )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-
-                            # Write report to file
-                            self.write_failure_report(f"area_{quad_name}", quad_report)
-                            return False, quad_report
-                # --- Check for a division-of-lengths goal of the form:
-                #     Value(Div(LengthOfLine(AF),LengthOfLine(AC)))
-                # 3. Length division match section
-                # --- Check for a division-of-lengths goal of the form:
-                #     Value(Div(LengthOfLine(AF),LengthOfLine(AC)))
-                length_div_match = re.search(r'Value\(Div\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)', goal_line)
-                if length_div_match:
-                    line1 = length_div_match.group(1)  # Numerator line (e.g., "AF")
-                    line2 = length_div_match.group(2)  # Denominator line (e.g., "AC")
-
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        model_answer = parse_special_answer(sections['ANSWER'][0].strip())
-
-                        print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
-                        print(f"Expected value: {model_answer}")
-
-                        # Get the length variables for both lines
-                        len1 = self.add_length(line1[0], line1[1])
-                        len2 = self.add_length(line2[0], line2[1])
-
-                        if self.solver.check() == sat:
-                            # First check if the solver allows a model that gives our expected ratio
-                            temp_solver1 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver1.add(c)
-
-                            # Add constraint: len1/len2 = model_answer
-                            # This is equivalent to: len1 = model_answer * len2
-                            epsilon = 1e-8
-                            temp_solver1.add(And(
-                                len2 > epsilon,  # Avoid division by zero
-                                And(
-                                    len1 >= (model_answer - epsilon) * len2,
-                                    len1 <= (model_answer + epsilon) * len2
-                                )
-                            ))
-
-                            if temp_solver1.check() != sat:
-                                error_msg = "Failed to prove length division goal: constraints don't allow the expected value."
-
-                                # Generate detailed report for this case
-                                div_report = self.generate_division_analysis_report(line1, line2, model_answer, None,
-                                                                                    "incompatible")
-
-                                print(f"Error: Constraints don't allow {line1}/{line2} = {model_answer}")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"{line1}_{line2}_div", div_report)
-                                return False, div_report
-
-                            # Now check if this ratio is uniquely determined
-                            # Get the current model to see what values we have
-                            model = self.solver.model()
-                            try:
-                                val1 = float(model.eval(len1).as_decimal(10).rstrip('?'))
-                                val2 = float(model.eval(len2).as_decimal(10).rstrip('?'))
-
-                                # Check for division by zero
-                                if abs(val2) < epsilon:
-                                    error_msg = "Division by zero in length ratio"
-
-                                    # Generate detailed report for this case
-                                    div_report = self.generate_division_analysis_report(line1, line2, model_answer,
-                                                                                        None, "incompatible")
-                                    div_report += "\nERROR: Division by zero detected. Line " + line2 + " has length approximately 0.\n"
-
-                                    print("Error: Division by zero in length ratio")
-                                    error = GeometricError(
-                                        tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                        message=error_msg,
-                                        details=f"Line {line2} has length approximately 0"
-                                    )
-                                    print(f"\nError in {error.tier.name}: {error.message}")
-                                    if error.details:
-                                        print("Details:", error.details)
-
-                                    # Write report to file
-                                    self.write_failure_report(f"{line1}_{line2}_div", div_report)
-                                    return False, div_report
-
-                                computed_value = val1 / val2
-                                print(f"Computed division: {computed_value}")
-
-                                # Now check if there's a different valid ratio possible
-                                temp_solver2 = Solver()
-                                for c in self.solver.assertions():
-                                    temp_solver2.add(c)
-
-                                # We want to check if len1/len2 can have a different value
-                                # This is equivalent to len1 != model_answer * len2
-                                temp_solver2.add(
-                                    Or(
-                                        len1 < (model_answer - epsilon) * len2,
-                                        len1 > (model_answer + epsilon) * len2
-                                    )
-                                )
-
-                                if temp_solver2.check() == sat:
-                                    alt_model = temp_solver2.model()
-                                    alt_val1 = float(alt_model.eval(len1).as_decimal(10).rstrip('?'))
-                                    alt_val2 = float(alt_model.eval(len2).as_decimal(10).rstrip('?'))
-
-                                    # Check for division by zero in the alternative solution
-                                    if abs(alt_val2) < epsilon:
-                                        # Skip this alternative since it involves division by zero
-                                        print("Note: Found an alternative solution but it involves division by zero")
-                                    else:
-                                        alt_ratio = alt_val1 / alt_val2
-
-                                        error_msg = "Failed to prove length division goal: constraints allow multiple values."
-
-                                        # Generate detailed report for this case
-                                        div_report = self.generate_division_analysis_report(line1, line2,
-                                                                                            model_answer, alt_ratio,
-                                                                                            "multiple_values")
-
-                                        print(f"Error: The proof doesn't uniquely determine the ratio {line1}/{line2}.")
-                                        print(f"It could be {computed_value} but also {alt_ratio}")
-
-                                        error = GeometricError(
-                                            tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                            message=error_msg,
-                                            details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}, but could also be {alt_ratio}"
-                                        )
-                                        print(f"\nError in {error.tier.name}: {error.message}")
-                                        if error.details:
-                                            print("Details:", error.details)
-
-                                        # Write report to file
-                                        self.write_failure_report(f"{line1}_{line2}_div", div_report)
-                                        return False, div_report
-
-                                # Check if computed value matches expected value
-                                if abs(computed_value - model_answer) >= epsilon:
-                                    error_msg = f"Failed to prove length division goal: computed value {computed_value} doesn't match expected {model_answer}."
-
-                                    # Generate detailed report for this case
-                                    div_report = self.generate_division_analysis_report(line1, line2, model_answer,
-                                                                                        computed_value, "incompatible")
-
-                                    print(f"Error: Computed division {computed_value} != expected {model_answer}")
-                                    error = GeometricError(
-                                        tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                        message=error_msg,
-                                        details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}, computed: {computed_value}"
-                                    )
-                                    print(f"\nError in {error.tier.name}: {error.message}")
-                                    if error.details:
-                                        print("Details:", error.details)
-
-                                    # Write report to file
-                                    self.write_failure_report(f"{line1}_{line2}_div", div_report)
-                                    return False, div_report
-
-                                print(
-                                    f"Success: The length ratio {line1}/{line2} is uniquely determined to be {model_answer}.")
-                                return True, ""
-
-                            except Exception as e:
-                                error_msg = f"Error converting length values: {str(e)}"
-
-                                # Generate detailed report for this case
-                                div_report = self.generate_division_analysis_report(line1, line2, model_answer, None,
-                                                                                    "incompatible")
-                                div_report += f"\nERROR: {str(e)}\n"
-
-                                print("Error converting length values:", e)
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=str(e)
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"{line1}_{line2}_div", div_report)
-                                return False, div_report
-                        else:
-                            error_msg = "Failed to prove length division goal: solver is unsatisfiable."
-
-                            # Generate detailed report for unsatisfiable case
-                            div_report = self.generate_division_analysis_report(line1, line2, model_answer, None,
-                                                                                "unsatisfiable")
-
-                            print("Solver constraints unsat when evaluating division-of-lengths goal.")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message=error_msg,
-                                details=f"Goal was: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {model_answer}"
-                            )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-
-                            # Write report to file
-                            self.write_failure_report(f"{line1}_{line2}_div", div_report)
-                            return False, div_report
-
-                # --- Check for a perimeter goal of the form:
-                #     Value(PerimeterOfTriangle(ABC))
-                # 4. Perimeter match section
-                # --- Check for a perimeter goal of the form:
-                #     Value(PerimeterOfTriangle(ABC))
-                perimeter_match = re.search(r'Value\(PerimeterOfTriangle\((\w+)\)\)', goal_line)
-                if perimeter_match:
-                    triangle = perimeter_match.group(1)
-                    print(f"\nDetected perimeter goal: PerimeterOfTriangle({triangle})")  # Debug print
-
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
-                        print(f"\nGoal triangle perimeter: {triangle}")
-                        print(f"Expected answer: {expected_answer}")
-
-                        # Create detailed report
-                        perimeter_report = self.generate_perimeter_analysis_report(triangle, expected_answer)
-
-                        if triangle in self.triangle_perimeters:
-                            perimeter_var = self.triangle_perimeters[triangle]
-                        else:
-                            perimeter_var = self.calculate_perimeter(triangle)
-                            self.triangle_perimeters[triangle] = perimeter_var
-
-                        if self.solver.check() == sat:
-                            # First check if constraints allow the expected value
-                            temp_solver1 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver1.add(c)
-
-                            # Add constraint that perimeter = expected (within epsilon)
-                            epsilon = 1e-8
-                            temp_solver1.add(And(perimeter_var >= expected_answer - epsilon,
-                                                 perimeter_var <= expected_answer + epsilon))
-
-                            if temp_solver1.check() != sat:
-                                error_msg = "Failed to prove triangle perimeter goal: constraints don't allow the expected value."
-
-                                # Generate detailed report for this case
-                                perimeter_report = self.generate_perimeter_analysis_report(triangle, expected_answer,
-                                                                                           None, "incompatible")
-
-                                print(f"Error: Constraints don't allow the expected perimeter {expected_answer}")
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: PerimeterOfTriangle({triangle}) = {expected_answer}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"perimeter_{triangle}", perimeter_report)
-                                return False, perimeter_report
-
-                            # Now check if any other value is allowed
-                            temp_solver2 = Solver()
-                            for c in self.solver.assertions():
-                                temp_solver2.add(c)
-
-                            # Add constraint: perimeter != expected (outside epsilon range)
-                            temp_solver2.add(Or(perimeter_var < expected_answer - epsilon,
-                                                perimeter_var > expected_answer + epsilon))
-
-                            if temp_solver2.check() == sat:
-                                alt_model = temp_solver2.model()
-                                alt_value = float(alt_model.eval(perimeter_var).as_decimal(10).rstrip('?'))
-
-                                error_msg = "Failed to prove triangle perimeter goal: constraints allow multiple values."
-
-                                # Generate detailed report for this case
-                                perimeter_report = self.generate_perimeter_analysis_report(triangle, expected_answer,
-                                                                                           alt_value, "multiple_values")
-
-                                print(f"Error: The proof doesn't uniquely determine perimeter of {triangle}.")
-                                print(f"It could be {expected_answer} but also {alt_value}")
-
-                                error = GeometricError(
-                                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                    message=error_msg,
-                                    details=f"Goal was: PerimeterOfTriangle({triangle}) = {expected_answer}, but could also be {alt_value}"
-                                )
-                                print(f"\nError in {error.tier.name}: {error.message}")
-                                if error.details:
-                                    print("Details:", error.details)
-
-                                # Write report to file
-                                self.write_failure_report(f"perimeter_{triangle}", perimeter_report)
-                                return False, perimeter_report
-
-                            # Get the computed value from the model
-                            model = self.solver.model()
-                            calculated_value_str = model.eval(perimeter_var).as_decimal(10)
-                            if calculated_value_str.endswith('?'):
-                                calculated_value_str = calculated_value_str[:-1]
-
-                            try:
-                                calculated_float = float(Fraction(calculated_value_str))
-                            except Exception as e:
-                                error_msg = f"Could not convert the calculated perimeter to a float: {str(e)}"
-                                perimeter_report += f"Error: Could not convert the calculated perimeter: {str(e)}\n"
-                                print("Could not convert the calculated perimeter to a float:", e)
-
-                                # Write report to file
-                                self.write_failure_report(f"perimeter_{triangle}", perimeter_report)
-                                return False, perimeter_report
-
-                            print(f"Calculated perimeter for {triangle} is {calculated_float}")
-                            print(f"Success: The triangle perimeter is uniquely determined to be {expected_answer}.")
-                            return True, ""
-                        else:
-                            error_msg = "Failed to prove perimeter goal: solver is unsatisfiable."
-
-                            # Generate detailed report for unsatisfiable case
-                            perimeter_report = self.generate_perimeter_analysis_report(triangle, expected_answer, None,
-                                                                                       "unsatisfiable")
-
-                            print("Error: Constraints are unsat (solver.check() == unsat).")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message=error_msg,
-                                details=f"Goal: PerimeterOfTriangle({triangle}) = {expected_answer}"
-                            )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-
-                            # Write report to file
-                            self.write_failure_report(f"perimeter_{triangle}", perimeter_report)
-                            return False, perimeter_report
-
-                # --- Check for a length goal of the form:
-                #     Value(LengthOfLine(AB))
-                length_match = re.search(r'Value\(LengthOfLine\((\w+)\)\)', goal_line)
-                if length_match:
-                    line_name = length_match.group(1)
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
-                        print(f"\nGoal line: {line_name}")
-                        print(f"Expected answer: {expected_answer}")
-                        success, error_msg = self.verify_goal_length(line_name[0], line_name[1], expected_answer)
-                        if not success:
-                            return False, error_msg
-                        else:
-                            return True, ""
-
-                # --- Check for an angle goal of the form:
-                #     Value(MeasureOfAngle(ABC))
-                angle_match = re.search(r'Value\(MeasureOfAngle\((\w+)\)\)', goal_line)
-                if angle_match:
-                    goal_angle = angle_match.group(1)
-                    if 'ANSWER' in sections and sections['ANSWER']:
-                        expected_answer = parse_special_answer(sections['ANSWER'][0].strip())
-                        print(f"\nGoal angle: {goal_angle}")
-                        print(f"Expected answer: {expected_answer}")
-
-                        # Use the updated verify_algebraic_goal that returns a tuple
-                        success, goal_feedback = self.verify_algebraic_goal(goal_angle, expected_answer)
+                    print(f"\nGoal sine: Sin(MeasureOfAngle({angle_token}))")
+                    print(f"Expected value: {model_answer}")
+
+                    # Check sine variable if it exists
+                    sin_var_name = f"sin_{angle_token}"
+                    sin_var = None
+                    if sin_var_name in self.variables:
+                        sin_var = self.variables[sin_var_name]
+                        success, value, status = self.check_value_constraint(sin_var, model_answer)
 
                         if success:
+                            print(f"Success: sin({angle_token}) = {model_answer} is verified.")
                             return True, ""
                         else:
-                            print(f"Error: Could not prove MeasureOfAngle({goal_angle}) = {expected_answer}")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message="Failed to prove angle goal from the given theorems.",
-                                details=f"Goal was: MeasureOfAngle({goal_angle}) = {expected_answer}"
+                            # Generate detailed feedback report
+                            detailed_feedback = self.generate_detailed_feedback(
+                                goal_type="sine",
+                                goal_token=angle_token,
+                                model_answer=model_answer,
+                                verifier_expected_answer=value,
+                                status=status
                             )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-                            return False, goal_feedback
+                            print(f"Detailed feedback generated for sine goal.")
+                            return False, detailed_feedback
+                    else:
+                        # If no sine variable exists, try to determine it from the angle
+                        angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
 
-                # --- Check for a general goal expression of the form: Value(<expression>)
-                # Complete implementation for the general goal match section
-                # The complete updated general_match handler
-                general_match = re.search(r'Value\((.+)\)', goal_line)
-                if general_match:
-                    goal_expr = general_match.group(1).strip()
+                        if self.solver.check() == sat:
+                            model = self.solver.model()
+                            try:
+                                current_angle = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
+                                import math
+                                current_sin = math.sin(math.radians(current_angle))
 
-                    # Create a report
-                    general_report = f"Analysis for general goal expression: {goal_expr}\n"
+                                epsilon = 1e-5
+                                if abs(current_sin - model_answer) < epsilon:
+                                    print(
+                                        f"Success: sin({angle_token}) = {current_sin} ≈ {model_answer} (within tolerance)")
+                                    return True, ""
+                                else:
+                                    # Generate detailed feedback with additional info about derived values
+                                    additional_info = f"Derived angle value: {current_angle}°\nDerived sine: {current_sin}"
+                                    detailed_feedback = self.generate_detailed_feedback(
+                                        goal_type="sine",
+                                        goal_token=angle_token,
+                                        model_answer=model_answer,
+                                        verifier_expected_answer=current_sin,
+                                        status="incompatible",
+                                        additional_info=additional_info
+                                    )
+                                    print(f"Detailed feedback generated for sine goal.")
+                                    return False, detailed_feedback
+                            except Exception as e:
+                                error_msg = f"Error calculating sine from angle: {str(e)}"
+                                print(f"Error: {error_msg}")
+                                return False, error_msg
+                        else:
+                            detailed_feedback = self.generate_detailed_feedback(
+                                goal_type="sine",
+                                goal_token=angle_token,
+                                model_answer=model_answer,
+                                status="unsatisfiable"
+                            )
+                            print(f"Detailed feedback generated for sine goal.")
+                            return False, detailed_feedback
+
+                # Sine goal and other goal types would follow a similar pattern, using the common
+                # check_value_constraint function where possible and handling special cases as needed
+                # 6. Division of lengths goal: Value(Div(LengthOfLine(AF),LengthOfLine(AC)))
+                length_div_match = re.search(r'Value\(Div\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)', goal_line)
+                if length_div_match:
+                    line1 = length_div_match.group(1)  # Numerator line
+                    line2 = length_div_match.group(2)  # Denominator line
+
+                    print(f"\nGoal division of lengths: Div(LengthOfLine({line1}),LengthOfLine({line2}))")
+                    print(f"Your answer: {model_answer}")
+
+                    len1 = self.add_length(line1[0], line1[1])
+                    len2 = self.add_length(line2[0], line2[1])
 
                     if self.solver.check() == sat:
                         model = self.solver.model()
-                        answer_str = sections['ANSWER'][0].strip() if (
-                                'ANSWER' in sections and sections['ANSWER']) else None
-                        if answer_str is None:
-                            error_msg = "No answer provided in ANSWER section."
-                            general_report += "No answer provided in ANSWER section.\n"
-                            print("No answer provided in ANSWER section.")
-
-                            # Write report to file
-                            self.write_failure_report(f"general_expr", general_report)
-                            return False, general_report
-
-                        # Add expected value to report
                         try:
-                            model_answer = parse_special_answer(answer_str)
-                            general_report += f"Expected value: {model_answer}\n\n"
-                        except Exception as e:
-                            error_msg = f"Error parsing answer '{answer_str}': {str(e)}"
-                            general_report += f"Error parsing answer '{answer_str}': {str(e)}\n"
-                            print(f"Error parsing answer '{answer_str}': {e}")
+                            val1 = float(model.eval(len1).as_decimal(10).rstrip('?'))
+                            val2 = float(model.eval(len2).as_decimal(10).rstrip('?'))
 
-                            # Write report to file
-                            self.write_failure_report(f"general_expr", general_report)
-                            return False, general_report
+                            # Check for division by zero
+                            if abs(val2) < epsilon:
+                                error_msg = "Division by zero in length ratio"
+                                print("Error: Division by zero in length ratio")
+                                return False, error_msg
 
-                        # Special handling if goal_expr is of the form Sub(...)
-                        if goal_expr.startswith("Sub(") and goal_expr.endswith(")"):
-                            inner = goal_expr[4:-1]
-                            parts = inner.split(',')
-                            if len(parts) == 2:
-                                expr1_str = parts[0].strip()
-                                expr2_str = parts[1].strip()
+                            verifier_expected_answer = val1 / val2
 
-                                # Handle angle measure subtraction
-                                angle1_match = re.match(r'MeasureOfAngle\((\w+)\)', expr1_str)
-                                angle2_match = re.match(r'MeasureOfAngle\((\w+)\)', expr2_str)
-                                if angle1_match and angle2_match:
-                                    angle1_name = angle1_match.group(1)
-                                    angle2_name = angle2_match.group(1)
-
-                                    # Get angle variables
-                                    angle1_var = self.add_angle(angle1_name[0], angle1_name[1], angle1_name[2])
-                                    angle2_var = self.add_angle(angle2_name[0], angle2_name[1], angle2_name[2])
-
-                                    # Evaluate each angle
-                                    angle1_val = float(model.eval(angle1_var).as_decimal(10).rstrip('?'))
-                                    angle2_val = float(model.eval(angle2_var).as_decimal(10).rstrip('?'))
-
-                                    # Calculate difference
-                                    computed_value = angle1_val - angle2_val
-                                    general_report += f"First angle {angle1_name}: {angle1_val}\n"
-                                    general_report += f"Second angle {angle2_name}: {angle2_val}\n"
-                                    general_report += f"Computed difference: {computed_value}\n"
-
-                                    epsilon = 1e-8
-                                    if abs(computed_value - model_answer) >= epsilon:
-                                        error_msg = "Failed to prove angle subtraction goal."
-                                        general_report += f"Error: Computed value {computed_value} != expected {model_answer}\n"
-
-                                        print(f"Error: Computed value {computed_value} != expected {model_answer}")
-                                        error = GeometricError(
-                                            tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                            message=error_msg,
-                                            details=f"Computed: {computed_value}, expected: {model_answer}"
-                                        )
-                                        print(f"\nError in {error.tier.name}: {error.message}")
-                                        if error.details:
-                                            print("Details:", error.details)
-
-                                        # Write report to file
-                                        self.write_failure_report(f"sub_angles_{angle1_name}_{angle2_name}",
-                                                                  general_report)
-                                        return False, general_report
-
-                                    # Check uniqueness - can angle difference be something other than model_answer?
-                                    temp_solver = Solver()
-                                    for c in self.solver.assertions():
-                                        temp_solver.add(c)
-
-                                    # Add constraint that difference must be outside epsilon range of expected
-                                    temp_solver.add(
-                                        Or(
-                                            angle1_var - angle2_var < model_answer - epsilon,
-                                            angle1_var - angle2_var > model_answer + epsilon
-                                        )
-                                    )
-
-                                    if temp_solver.check() == sat:
-                                        alt_model = temp_solver.model()
-                                        alt_angle1 = float(alt_model.eval(angle1_var).as_decimal(10).rstrip('?'))
-                                        alt_angle2 = float(alt_model.eval(angle2_var).as_decimal(10).rstrip('?'))
-                                        alt_value = alt_angle1 - alt_angle2
-
-                                        error_msg = "Failed to prove angle subtraction goal: constraints allow multiple values."
-                                        general_report += f"Error: The proof doesn't uniquely determine the angle difference.\n"
-                                        general_report += f"It could be {computed_value} but also {alt_value}\n"
-                                        general_report += f"Alternative values: {angle1_name}={alt_angle1}, {angle2_name}={alt_angle2}\n"
-
-                                        print(f"Error: The proof doesn't uniquely determine the angle difference.")
-                                        print(f"It could be {computed_value} but also {alt_value}")
-
-                                        error = GeometricError(
-                                            tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                            message=error_msg,
-                                            details=f"Goal was: {goal_expr} = {model_answer}, but could also be {alt_value}"
-                                        )
-                                        print(f"\nError in {error.tier.name}: {error.message}")
-                                        if error.details:
-                                            print("Details:", error.details)
-
-                                        # Write report to file
-                                        self.write_failure_report(f"sub_angles_{angle1_name}_{angle2_name}",
-                                                                  general_report)
-                                        return False, general_report
-
-                                    print(
-                                        f"Success: Angle difference {angle1_name} - {angle2_name} = {model_answer} is verified.")
-                                    return True, ""
-
-                                # Handle area subtraction (existing code)
-                                m1 = re.match(r'AreaOfCircle\((\w+)\)', expr1_str)
-                                m2 = re.match(r'AreaOfTriangle\((\w+)\)', expr2_str)
-                                if m1 and m2:
-                                    circle = m1.group(1)
-                                    tri = m2.group(1)
-                                    if circle in self.circle_areas and tri in self.triangle_areas:
-                                        # Get area variables
-                                        circle_area_var = self.circle_areas[circle]
-                                        triangle_area_var = self.triangle_areas[tri]
-
-                                        # Get values from the model
-                                        area_circle = model.eval(circle_area_var)
-                                        area_triangle = model.eval(triangle_area_var)
-
-                                        try:
-                                            area_circle_val = float(Fraction(str(area_circle).replace('?', '')))
-                                            area_triangle_val = float(Fraction(str(area_triangle).replace('?', '')))
-                                        except Exception as e:
-                                            error_msg = f"Error converting area values: {str(e)}"
-                                            general_report += f"Error converting area values: {str(e)}\n"
-                                            print("Error converting area values:", e)
-
-                                            # Write report to file
-                                            self.write_failure_report(f"sub_expr_{circle}_{tri}", general_report)
-                                            return False, general_report
-
-                                        computed_value = area_circle_val - area_triangle_val
-                                        general_report += f"Computed value: {computed_value}\n"
-
-                                        epsilon = 1e-8
-                                        if abs(computed_value - model_answer) >= epsilon:
-                                            error_msg = "Failed to prove goal (Sub form)."
-                                            general_report += f"Error: Computed value {computed_value} != expected {model_answer}\n"
-
-                                            print(
-                                                f"Error: Computed value {computed_value} != expected {model_answer}")
-                                            error = GeometricError(
-                                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                                message=error_msg,
-                                                details=f"Computed: {computed_value}, expected: {model_answer}"
-                                            )
-                                            print(f"\nError in {error.tier.name}: {error.message}")
-                                            if error.details:
-                                                print("Details:", error.details)
-
-                                            # Write report to file
-                                            self.write_failure_report(f"sub_expr_{circle}_{tri}", general_report)
-                                            return False, general_report
-
-                                        # Check uniqueness - can area difference be something other than model_answer?
-                                        temp_solver = Solver()
-                                        for c in self.solver.assertions():
-                                            temp_solver.add(c)
-
-                                        # Add constraint that sub-expression result must be outside epsilon range of expected
-                                        temp_solver.add(
-                                            Or(
-                                                circle_area_var - triangle_area_var < model_answer - epsilon,
-                                                circle_area_var - triangle_area_var > model_answer + epsilon
-                                            )
-                                        )
-
-                                        if temp_solver.check() == sat:
-                                            alt_model = temp_solver.model()
-                                            alt_circle = float(
-                                                alt_model.eval(circle_area_var).as_decimal(10).rstrip('?'))
-                                            alt_triangle = float(
-                                                alt_model.eval(triangle_area_var).as_decimal(10).rstrip('?'))
-                                            alt_value = alt_circle - alt_triangle
-
-                                            error_msg = "Failed to prove goal (Sub form): constraints allow multiple values."
-                                            general_report += f"Error: The proof doesn't uniquely determine the difference between areas.\n"
-                                            general_report += f"It could be {computed_value} but also {alt_value}\n"
-
-                                            print(
-                                                f"Error: The proof doesn't uniquely determine the difference between areas.")
-                                            print(f"It could be {computed_value} but also {alt_value}")
-
-                                            error = GeometricError(
-                                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                                message=error_msg,
-                                                details=f"Goal was: Sub({expr1_str},{expr2_str}) = {model_answer}, but could also be {alt_value}"
-                                            )
-                                            print(f"\nError in {error.tier.name}: {error.message}")
-                                            if error.details:
-                                                print("Details:", error.details)
-
-                                            # Write report to file
-                                            self.write_failure_report(f"sub_expr_{circle}_{tri}", general_report)
-                                            return False, general_report
-
-                                        print(
-                                            "Success: Goal expression (Sub form) matches expected value and is uniquely determined.")
-                                        return True, ""
-
-                        # For general expressions, build a mapping for evaluation
-                        mapping = {}
-                        for var, z3var in self.variables.items():
-                            try:
-                                val = model.eval(z3var, model_completion=True)
-                                val_str = str(val).replace('?', '')
-                                mapping[var] = float(Fraction(val_str))
-                            except Exception as e:
-                                error_msg = f"Error converting free variable {var}: {str(e)}"
-                                general_report += f"Error converting free variable {var}: {str(e)}\n"
-                                print(f"Error converting free variable {var}: {e}")
-
-                                # Write report to file
-                                self.write_failure_report(f"general_expr", general_report)
-                                return False, general_report
-
-                        # Also add circle areas and triangle areas if needed
-                        for circle, var in self.circle_areas.items():
-                            value = model.eval(var)
-                            value_str = str(value).replace('?', '')
-                            try:
-                                mapping[f"ac_{circle.lower()}"] = float(Fraction(value_str))
-                            except Exception as e:
-                                error_msg = f"Error converting circle area for {circle}: {str(e)}"
-                                general_report += f"Error converting circle area for {circle}: {str(e)}\n"
-                                print("Error converting circle area for", circle, ":", e)
-
-                                # Write report to file
-                                self.write_failure_report(f"general_expr", general_report)
-                                return False, general_report
-
-                        for tri, var in self.triangle_areas.items():
-                            value = model.eval(var)
-                            value_str = str(value).replace('?', '')
-                            try:
-                                mapping[f"at_{tri.lower()}"] = float(Fraction(value_str))
-                            except Exception as e:
-                                error_msg = f"Error converting triangle area for {tri}: {str(e)}"
-                                general_report += f"Error converting triangle area for {tri}: {str(e)}\n"
-                                print("Error converting triangle area for", tri, ":", e)
-
-                                # Write report to file
-                                self.write_failure_report(f"general_expr", general_report)
-                                return False, general_report
-
-                        # Add additional symbols needed for evaluation
-                        import math
-                        mapping["pi"] = math.pi
-                        mapping["sqrt"] = math.sqrt
-
-                        # Define helper functions to support evaluation
-                        def Sub(x, y):
-                            return x - y
-
-                        mapping["Sub"] = Sub
-
-                        try:
-                            computed_value = eval(goal_expr, mapping)
-                            general_report += f"Computed value: {computed_value}\n"
-                        except Exception as e:
-                            error_msg = f"Error evaluating general goal expression: {str(e)}"
-                            general_report += f"Error evaluating general goal expression: {str(e)}\n"
-
-                            # Enhanced error reporting
-                            general_report += "\nPossible causes of this error:\n"
-                            general_report += "1. The expression contains functions or operations not defined in the evaluation context\n"
-                            general_report += "2. Variables in the expression may not be properly defined or constrained\n"
-                            general_report += "3. The proof may not have established all necessary relationships\n\n"
-
-                            general_report += "Steps to debug:\n"
-                            general_report += f"1. Check if all variables in '{goal_expr}' have been defined in your proof\n"
-                            general_report += "2. Verify that your theorems correctly establish the necessary relationships\n"
-                            general_report += "3. Review the TEXT_CDL section to ensure all required premises are included\n"
-
-                            print(f"Error evaluating general goal expression: {e}")
-                            # Write report to file
-                            self.write_failure_report(f"general_expr", general_report)
-                            return False, general_report
-
-                        epsilon = 1e-8
-                        if abs(computed_value - model_answer) >= epsilon:
-                            error_msg = "Failed to prove general goal expression."
-                            general_report += f"Error: Computed general goal value {computed_value} != expected {model_answer}\n"
-
-                            print(f"Error: Computed general goal value {computed_value} != expected {model_answer}")
-                            error = GeometricError(
-                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                message=error_msg,
-                                details=f"Computed: {computed_value}, expected: {model_answer}"
-                            )
-                            print(f"\nError in {error.tier.name}: {error.message}")
-                            if error.details:
-                                print("Details:", error.details)
-
-                            # Write report to file
-                            self.write_failure_report(f"general_expr", general_report)
-                            return False, general_report
-
-                        # For general expressions, uniqueness checking is complex
-                        # We need to identify which variables influence the goal expression
-                        # For simplicity, we'll check if any variable in the mapping can change
-                        # while still satisfying all constraints
-
-                        relevant_vars = []
-                        for var_name, z3_var in self.variables.items():
-                            if var_name in goal_expr:
-                                relevant_vars.append((var_name, z3_var))
-
-                        if relevant_vars:
-                            general_report += f"Checking uniqueness for the general expression...\n"
-                            # Check if any of the relevant variables can have different values
+                            # Check if the division is uniquely determined
                             temp_solver = Solver()
                             for c in self.solver.assertions():
                                 temp_solver.add(c)
 
-                            # Add constraint that at least one variable must be different
-                            var_constraints = []
-                            for var_name, z3_var in relevant_vars:
-                                current_val = mapping[var_name]
-                                var_constraints.append(
-                                    Or(z3_var < current_val - epsilon, z3_var > current_val + epsilon)
+                            # We want to check if len1/len2 can have a different value
+                            temp_solver.add(
+                                Or(
+                                    len1 < (model_answer - epsilon) * len2,
+                                    len1 > (model_answer + epsilon) * len2
                                 )
+                            )
 
-                            if var_constraints:
-                                temp_solver.add(Or(*var_constraints))
+                            if temp_solver.check() == sat:
+                                alt_model = temp_solver.model()
+                                alt_val1 = float(alt_model.eval(len1).as_decimal(10).rstrip('?'))
+                                alt_val2 = float(alt_model.eval(len2).as_decimal(10).rstrip('?'))
 
-                                if temp_solver.check() == sat:
-                                    alt_model = temp_solver.model()
+                                if abs(alt_val2) < epsilon:
+                                    # Skip this alternative since it involves division by zero
+                                    print("Note: Found an alternative solution but it involves division by zero")
+                                    alt_ratio = None
+                                    status = "multiple_values"
+                                else:
+                                    alt_ratio = alt_val1 / alt_val2
+                                    status = "multiple_values"
 
-                                    # Build alternative mapping
-                                    alt_mapping = mapping.copy()
-                                    for var_name, z3_var in relevant_vars:
-                                        alt_val = alt_model.eval(z3_var)
-                                        alt_val_str = alt_val.as_decimal(10).rstrip('?')
-                                        alt_mapping[var_name] = float(Fraction(alt_val_str))
+                                # Generate detailed feedback for multiple values
+                                goal_token = f"{line1}/{line2}"
+                                detailed_feedback = self.generate_detailed_feedback(
+                                    goal_type="ratio",
+                                    goal_token=goal_token,
+                                    model_answer=model_answer,
+                                    verifier_expected_answer=alt_ratio,
+                                    status=status,
+                                    additional_info=f"Current computed ratio: {verifier_expected_answer:.6f}\nAlternative ratio: {alt_ratio:.6f if alt_ratio else 'undefined (division by zero)'}"
+                                )
+                                print(f"Detailed feedback generated for division goal.")
+                                return False, detailed_feedback
 
-                                    # Evaluate expression with alternative values
-                                    try:
-                                        alt_value = eval(goal_expr, alt_mapping)
+                            # Check if computed value matches expected value
+                            if abs(verifier_expected_answer - model_answer) >= epsilon:
+                                # Generate detailed feedback for incompatible value
+                                goal_token = f"{line1}/{line2}"
+                                detailed_feedback = self.generate_detailed_feedback(
+                                    goal_type="ratio",
+                                    goal_token=goal_token,
+                                    model_answer=model_answer,
+                                    verifier_expected_answer=verifier_expected_answer,
+                                    status="incompatible",
+                                    additional_info=f"Your proof constrains the ratio to {verifier_expected_answer:.6f}"
+                                )
+                                print(f"Detailed feedback generated for division goal.")
+                                return False, detailed_feedback
 
-                                        # If the alternative evaluation gives a different value
-                                        if abs(alt_value - model_answer) >= epsilon:
-                                            error_msg = "Failed to prove general goal: constraints allow multiple values."
-                                            general_report += f"Error: The proof doesn't uniquely determine the result of {goal_expr}.\n"
-                                            general_report += f"It could be {computed_value} but could also be {alt_value}\n"
+                            print(
+                                f"Success: The length ratio {line1}/{line2} is uniquely determined to be Your answer: {model_answer}.")
+                            return True, ""
+                        except Exception as e:
+                            error_msg = f"Error converting length values: {str(e)}"
+                            print("Error converting length values:", e)
+                            return False, error_msg
+                    else:
+                        # Generate detailed feedback for unsatisfiable
+                        goal_token = f"{line1}/{line2}"
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="ratio",
+                            goal_token=goal_token,
+                            model_answer=model_answer,
+                            status="unsatisfiable"
+                        )
+                        print(f"Detailed feedback generated for division goal.")
+                        return False, detailed_feedback
 
-                                            print(
-                                                f"Error: The proof doesn't uniquely determine the result of {goal_expr}.")
-                                            print(f"It could be {computed_value} but could also be {alt_value}")
+                perimeter_match = re.search(r'Value\(PerimeterOfTriangle\((\w+)\)\)', goal_line)
+                if perimeter_match:
+                    triangle = perimeter_match.group(1)
+                    print(f"\nDetected perimeter goal: PerimeterOfTriangle({triangle})")
+                    print(f"\nGoal triangle perimeter: {triangle}")
+                    print(f"Expected answer: {model_answer}")
 
-                                            error = GeometricError(
-                                                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                                                message=error_msg,
-                                                details=f"Goal was: {goal_expr} = {model_answer}, but could also evaluate to {alt_value}"
-                                            )
-                                            print(f"\nError in {error.tier.name}: {error.message}")
-                                            if error.details:
-                                                print("Details:", error.details)
+                    if triangle in self.triangle_perimeters:
+                        perimeter_var = self.triangle_perimeters[triangle]
+                    else:
+                        perimeter_var = self.calculate_perimeter(triangle)
+                        self.triangle_perimeters[triangle] = perimeter_var
 
-                                            # Write report to file
-                                            self.write_failure_report(f"general_expr", general_report)
-                                            return False, general_report
-                                    except Exception as e:
-                                        print(f"Error evaluating alternative: {e}")
-                                        general_report += f"Warning: Error evaluating alternative: {e}\n"
-                                        # Continue with success if we can't evaluate the alternative
+                    success, value, status = self.check_value_constraint(perimeter_var, model_answer)
 
-                        print(
-                            "Success: General goal expression matches expected value and appears to be uniquely determined.")
+                    if success:
+                        print(f"Success: The triangle perimeter is uniquely determined to be {model_answer}.")
                         return True, ""
                     else:
-                        # Unsatisfiable case - create a detailed report
-                        error_msg = "Failed to prove general goal: solver is unsatisfiable."
-
-                        # Try to parse expected value from ANSWER section for the detailed report
-                        model_answer = None
-                        if 'ANSWER' in sections and sections['ANSWER']:
-                            try:
-                                model_answer = parse_special_answer(sections['ANSWER'][0].strip())
-                            except Exception as e:
-                                print(f"Error parsing answer: {e}")
-
-                        # Special handling for Sub expressions in the unsatisfiable case
-                        if goal_expr.startswith("Sub(") and goal_expr.endswith(")"):
-                            inner = goal_expr[4:-1]
-                            parts = inner.split(',')
-                            if len(parts) == 2:
-                                expr1_str = parts[0].strip()
-                                expr2_str = parts[1].strip()
-                                angle1_match = re.match(r'MeasureOfAngle\((\w+)\)', expr1_str)
-                                angle2_match = re.match(r'MeasureOfAngle\((\w+)\)', expr2_str)
-
-                                if angle1_match and angle2_match:
-                                    # It's an angle subtraction
-                                    angle1_name = angle1_match.group(1)
-                                    angle2_name = angle2_match.group(1)
-
-                                    # Create a more detailed report specifically for angle subtraction
-                                    detailed_report = f"Analysis Report for {self.question_name}\n"
-                                    detailed_report += "=" * 60 + "\n\n"
-                                    detailed_report += f"Goal: {goal_expr}\n"
-                                    detailed_report += f"Expected value: {model_answer}\n\n"
-                                    detailed_report += f"This goal represents the difference between two angles:\n"
-                                    detailed_report += f"- First angle: {expr1_str} ({angle1_name})\n"
-                                    detailed_report += f"- Second angle: {expr2_str} ({angle2_name})\n\n"
-
-                                    # Find theorems that constrain these angles
-                                    angle1_theorems = []
-                                    angle2_theorems = []
-                                    for theorem_info in self.theorem_sequence:
-                                        for conclusion in theorem_info["conclusions"]:
-                                            if angle1_name in conclusion:
-                                                angle1_theorems.append({
-                                                    "step": theorem_info["step_number"],
-                                                    "theorem": theorem_info["theorem_name"],
-                                                    "args": theorem_info["args"],
-                                                    "conclusion": conclusion
-                                                })
-                                            if angle2_name in conclusion:
-                                                angle2_theorems.append({
-                                                    "step": theorem_info["step_number"],
-                                                    "theorem": theorem_info["theorem_name"],
-                                                    "args": theorem_info["args"],
-                                                    "conclusion": conclusion
-                                                })
-
-                                    if angle1_theorems:
-                                        detailed_report += f"Theorems involving {angle1_name}:\n"
-                                        detailed_report += "-" * 60 + "\n"
-                                        for theorem in angle1_theorems:
-                                            detailed_report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])})\n"
-                                            detailed_report += f"  Conclusion: {theorem['conclusion']}\n\n"
-                                    else:
-                                        detailed_report += f"No theorems directly constrain angle {angle1_name}.\n\n"
-
-                                    if angle2_theorems:
-                                        detailed_report += f"Theorems involving {angle2_name}:\n"
-                                        detailed_report += "-" * 60 + "\n"
-                                        for theorem in angle2_theorems:
-                                            detailed_report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])})\n"
-                                            detailed_report += f"  Conclusion: {theorem['conclusion']}\n\n"
-                                    else:
-                                        detailed_report += f"No theorems directly constrain angle {angle2_name}.\n\n"
-
-                                    # Add angle variables to check if they're defined
-                                    try:
-                                        self.add_angle(angle1_name[0], angle1_name[1], angle1_name[2])
-                                        detailed_report += f"Angle {angle1_name} is defined in the system.\n"
-                                    except Exception:
-                                        detailed_report += f"ERROR: Angle {angle1_name} could not be defined in the system!\n"
-
-                                    try:
-                                        self.add_angle(angle2_name[0], angle2_name[1], angle2_name[2])
-                                        detailed_report += f"Angle {angle2_name} is defined in the system.\n\n"
-                                    except Exception:
-                                        detailed_report += f"ERROR: Angle {angle2_name} could not be defined in the system!\n\n"
-
-                                    # Diagnosis section
-                                    detailed_report += "Diagnosis:\n"
-                                    detailed_report += "-" * 60 + "\n"
-                                    detailed_report += "The solver found the constraints to be contradictory. Your proof contains inconsistent\n"
-                                    detailed_report += "constraints that cannot be satisfied simultaneously.\n\n"
-
-                                    detailed_report += "For this angle subtraction goal, consider these possible causes:\n"
-                                    detailed_report += "1. One or both angles may not be sufficiently constrained in your proof\n"
-                                    detailed_report += "2. The theorems you've applied may lead to contradictory angle values\n"
-                                    detailed_report += "3. Your proof may be missing steps that establish necessary angle relationships\n"
-                                    detailed_report += "4. Check if all points in the angles are correctly defined in the construction\n\n"
-
-                                    detailed_report += "Recommended steps:\n"
-                                    detailed_report += f"1. Verify that angles {angle1_name} and {angle2_name} are properly constrained\n"
-                                    detailed_report += "2. Check if you're missing theorems that establish the angle measures\n"
-                                    detailed_report += "3. Review your proof sequence for consistency\n"
-
-                                    # Write report to file and return
-                                    self.write_failure_report(f"sub_angles_{angle1_name}_{angle2_name}",
-                                                              detailed_report)
-                                    return False, detailed_report
-
-                        # Generate the general analysis report for other cases
-                        detailed_report = self.generate_general_goal_analysis_report(goal_expr, model_answer)
-
-                        print("Solver constraints unsat when evaluating general goal.")
-                        error = GeometricError(
-                            tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                            message=error_msg,
-                            details=f"Goal: {goal_expr} = {model_answer if model_answer is not None else '?'}"
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="perimeter",
+                            goal_token=triangle,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status,
+                            additional_info=f"Triangle sides:\n" +
+                                            f"  {triangle[0]}{triangle[1]}: {self.add_length(triangle[0], triangle[1])}\n" +
+                                            f"  {triangle[1]}{triangle[2]}: {self.add_length(triangle[1], triangle[2])}\n" +
+                                            f"  {triangle[2]}{triangle[0]}: {self.add_length(triangle[2], triangle[0])}"
                         )
-                        print(f"\nError in {error.tier.name}: {error.message}")
-                        if error.details:
-                            print("Details:", error.details)
+                        print(f"Detailed feedback generated for perimeter goal.")
+                        return False, detailed_feedback
 
-                        # Write report to file
-                        self.write_failure_report(f"general_expr_{goal_expr}", detailed_report)
-                        return False, detailed_report
+                    # 8. Length goal: Value(LengthOfLine(AB))
+                length_match = re.search(r'Value\(LengthOfLine\((\w+)\)\)', goal_line)
+                if length_match:
+                    line_name = length_match.group(1)
+                    print(f"\nGoal line: {line_name}")
+                    print(f"Expected answer: {model_answer}")
+
+                    # Get the length variable
+                    length_var = self.add_length(line_name[0], line_name[1])
+
+                    success, value, status = self.check_value_constraint(length_var, model_answer)
+
+                    if success:
+                        print(f"Success: The length {line_name} is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="length",
+                            goal_token=line_name,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for length goal.")
+                        return False, detailed_feedback
+
+                angle_match = re.search(r'Value\(MeasureOfAngle\((\w+)\)\)', goal_line)
+                if angle_match:
+                    goal_angle = angle_match.group(1)
+                    print(f"\nGoal angle: {goal_angle}")
+                    print(f"Expected answer: {model_answer}")
+
+                    angle_var = self.add_angle(goal_angle[0], goal_angle[1], goal_angle[2])
+
+                    success, value, status = self.check_value_constraint(angle_var, model_answer)
+
+                    if success:
+                        print(f"Success: Angle {goal_angle} is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="angle",
+                            goal_token=goal_angle,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for angle goal.")
+                        return False, detailed_feedback
+
+                    # 10. Quadrilateral area goal: Value(AreaOfQuadrilateral(ABCD))
+                quad_area_match = re.search(r'Value\(AreaOfQuadrilateral\((\w+)\)\)', goal_line)
+                if quad_area_match:
+                    quad_name = quad_area_match.group(1)
+                    print(f"\nDetected quadrilateral area goal: AreaOfQuadrilateral({quad_name})")
+                    print(f"\nGoal quadrilateral area: {quad_name}")
+                    print(f"Expected area: {model_answer}")
+
+                    if quad_name in self.quad_areas:
+                        quad_area_var = self.quad_areas[quad_name]
+                    else:
+                        quad_area_var = Real(f"areaQuadr_{quad_name}")
+                        self.quad_areas[quad_name] = quad_area_var
+
+                    success, value, status = self.check_value_constraint(quad_area_var, model_answer)
+
+                    if success:
+                        print(f"Success: The quadrilateral area is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="quad_area",
+                            goal_token=quad_name,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for quadrilateral area goal.")
+                        return False, detailed_feedback
+                general_match = re.search(r'Value\((.+)\)', goal_line)
+                if general_match:
+                    goal_expr = general_match.group(1).strip()
+                    print(f"\nGeneral goal expression: {goal_expr}")
+
+                    # Special handling for Sub expressions
+                    if goal_expr.startswith("Sub(") and goal_expr.endswith(")"):
+                        inner = goal_expr[4:-1]
+                        parts = inner.split(',')
+                        if len(parts) == 2:
+                            expr1_str = parts[0].strip()
+                            expr2_str = parts[1].strip()
+
+                            # Handle angle measure subtraction
+                            angle1_match = re.match(r'MeasureOfAngle\((\w+)\)', expr1_str)
+                            angle2_match = re.match(r'MeasureOfAngle\((\w+)\)', expr2_str)
+                            if angle1_match and angle2_match:
+                                angle1_name = angle1_match.group(1)
+                                angle2_name = angle2_match.group(1)
+
+                                # Get angle variables
+                                angle1_var = self.add_angle(angle1_name[0], angle1_name[1], angle1_name[2])
+                                angle2_var = self.add_angle(angle2_name[0], angle2_name[1], angle2_name[2])
+
+                                # Check the value constraint for the difference
+                                diff_expr = angle1_var - angle2_var
+                                success, value, status = self.check_value_constraint(diff_expr, model_answer)
+
+                                if success:
+                                    print(
+                                        f"Success: Angle difference {angle1_name} - {angle2_name} = {model_answer} is verified.")
+                                    return True, ""
+                                else:
+                                    # Generate detailed feedback for angle subtraction
+                                    detailed_feedback = self.generate_detailed_feedback(
+                                        goal_type="general",
+                                        goal_token=f"Sub({expr1_str},{expr2_str})",
+                                        model_answer=model_answer,
+                                        verifier_expected_answer=value,
+                                        status=status,
+                                        additional_info=f"Angle 1: {angle1_name}\nAngle 2: {angle2_name}"
+                                    )
+                                    print(f"Detailed feedback generated for angle subtraction goal.")
+                                    return False, detailed_feedback
+
+                    # Special handling for single variables (most common case)
+                    elif len(goal_expr) == 1 and goal_expr.isalpha() and goal_expr in self.variables:
+                        # Get the Z3 variable directly
+                        var = self.variables[goal_expr]
+
+                        # Use the existing check_value_constraint function that handles multiple solutions
+                        success, value, status = self.check_value_constraint(var, model_answer)
+
+                        if success:
+                            print(f"Success: Variable {goal_expr} is uniquely determined to be {model_answer}.")
+                            return True, ""
+                        else:
+                            # Generate detailed feedback with proper status
+                            detailed_feedback = self.generate_detailed_feedback(
+                                goal_type="general",
+                                goal_token=goal_expr,
+                                model_answer=model_answer,
+                                verifier_expected_answer=value,
+                                status=status,
+                                additional_info=f"Variable {goal_expr} is {'not uniquely determined' if status == 'multiple_values' else 'incompatible with expected value'}"
+                            )
+                            print(f"Detailed feedback generated for variable goal.")
+                            return False, detailed_feedback
+
+                    # For other general expressions, build a mapping for evaluation
+                    if self.solver.check() == sat:
+                        model = self.solver.model()
+
+                        # Build mapping for variables and try to evaluate the expression
+                        try:
+                            # Build mapping for variables
+                            mapping = {}
+                            for var, z3var in self.variables.items():
+                                try:
+                                    val = model.eval(z3var, model_completion=True)
+                                    val_str = str(val).replace('?', '')
+                                    from fractions import Fraction
+                                    mapping[var] = float(Fraction(val_str))
+                                except Exception as e:
+                                    print(f"Error converting free variable {var}: {e}")
+
+                            # Add circle areas and triangle areas if needed
+                            for circle, var in self.circle_areas.items():
+                                value = model.eval(var)
+                                value_str = str(value).replace('?', '')
+                                try:
+                                    from fractions import Fraction
+                                    mapping[f"ac_{circle.lower()}"] = float(Fraction(value_str))
+                                except Exception as e:
+                                    print("Error converting circle area for", circle, ":", e)
+
+                            for tri, var in self.triangle_areas.items():
+                                value = model.eval(var)
+                                value_str = str(value).replace('?', '')
+                                try:
+                                    from fractions import Fraction
+                                    mapping[f"at_{tri.lower()}"] = float(Fraction(value_str))
+                                except Exception as e:
+                                    print("Error converting triangle area for", tri, ":", e)
+
+                            # Evaluate the expression
+                            verifier_expected_answer = self.evaluate_expression(goal_expr, mapping)
+
+                            if abs(verifier_expected_answer - model_answer) < epsilon:
+                                print(f"Success: General goal expression matches expected value {model_answer}.")
+                                return True, ""
+                            else:
+                                # Generate detailed feedback for general expression
+                                detailed_feedback = self.generate_detailed_feedback(
+                                    goal_type="general",
+                                    goal_token=goal_expr,
+                                    model_answer=model_answer,
+                                    verifier_expected_answer=verifier_expected_answer,
+                                    status="incompatible",
+                                    additional_info=f"Evaluated expression: {goal_expr}\nComputed value: {verifier_expected_answer}\nExpected value: {model_answer}"
+                                )
+                                print(f"Detailed feedback generated for general goal expression.")
+                                return False, detailed_feedback
+                        except Exception as e:
+                            error_msg = f"Error evaluating general goal expression: {str(e)}"
+                            print(f"Error evaluating general goal expression: {e}")
+                            return False, error_msg
+                    else:
+                        # Generate detailed feedback for unsatisfiable
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="general",
+                            goal_token=goal_expr,
+                            model_answer=model_answer,
+                            status="unsatisfiable"
+                        )
+                        print(f"Detailed feedback generated for general goal expression.")
+                        return False, detailed_feedback
 
                 feedback = "Error: Could not parse goal (not a recognized goal type)"
                 print(
@@ -8773,112 +7460,213 @@ class GeometricTheorem:
                     print("Details:", error.details)
                 return False, feedback
 
-
             return True, ""
-
         except Exception as e:
-
             print(f"Error during proof verification: {str(e)}")
-
             import traceback
-
             traceback.print_exc()
-
             return False, f"Error during proof verification: {str(e)}"
 
-    def collect_related_facts(self, goal_points):
-        """Collect only facts where ALL points are part of the goal angle"""
+    def collect_related_facts(self, goal_points, goal_type=None):
+        """
+        Collect only facts that directly involve the goal token and are meaningful for debugging
+        Filters out trivial elements like individual points and basic angles
+        """
         related_facts = {}
         goal_points_set = set(goal_points)
+        goal_token = ''.join(goal_points)
 
-        # 1. Points directly in the goal
-        related_facts["Points"] = goal_points
+        # 1. Check for perpendicular lines relevant to the goal
+        perp_facts = []
+        seen_perp_pairs = set()
 
-        # 2. Collect lines where ALL points are in goal
-        related_lines = []
-        for line_name, line_var in self.lengths.items():
-            # Extract points from line name (typically in format "length_AB")
-            line_points = line_name.split('_')[1] if '_' in line_name else line_name
-            line_points_set = set(line_points)
-            if line_points_set.issubset(goal_points_set):
-                related_lines.append(f"Line {line_points}")
-        related_facts["Lines"] = related_lines
+        for pair in self.perpendicular_pairs:
+            line1, line2 = pair
 
-        # 3. Collect angles involving ONLY goal points
-        related_angles = []
-        for angle_name, angle_var in self.angles.items():
-            # Extract points from angle name (typically in format "angle_ABC")
-            angle_points = angle_name.split('_')[1] if '_' in angle_name else angle_name
-            angle_points_set = set(angle_points)
-            if angle_points_set.issubset(goal_points_set):
-                related_angles.append(f"Angle {angle_points}")
-        related_facts["Angles"] = related_angles
+            # Check if at least one point from goal is in these lines
+            if any(p in line1 for p in goal_points) or any(p in line2 for p in goal_points):
+                # Create a normalized key to avoid duplicates
+                key = tuple(sorted([line1, line2]))
+                if key not in seen_perp_pairs:
+                    seen_perp_pairs.add(key)
+                    perp_facts.append(f"{line1} ⊥ {line2}")
 
-        # 4. Collect polygons involving ONLY goal points
-        related_polygons = []
-        for polygon in self.polygons:
-            polygon_set = set(polygon)
-            if polygon_set.issubset(goal_points_set):
-                related_polygons.append(f"Polygon {polygon}")
-        related_facts["Polygons"] = related_polygons
+        if perp_facts:
+            related_facts["Perpendicular Lines"] = perp_facts
 
-        # 5. Collect collinear facts involving ONLY goal points
-        related_collinear = []
+        # 2. Check for specific angle values in TEXT_CDL
+        if goal_type == "angle":
+            angle_values = []
+
+            if hasattr(self, 'text_cdl_lines'):
+                for line in self.text_cdl_lines:
+                    # Look for direct values for this angle
+                    angle_match = re.search(r'Equal\(MeasureOfAngle\(' + re.escape(goal_token) + r'\),(.+?)\)', line)
+                    if angle_match:
+                        value = angle_match.group(1).strip()
+                        angle_values.append(f"∠{goal_token} = {value}")
+
+            if angle_values:
+                related_facts["Angle Values"] = angle_values
+
+        # 3. Check for parallel lines involving goal points
+        parallel_facts = []
+        seen_parallel = set()
+
+        for pair in self.parallel_pairs:
+            line1, line2 = pair
+
+            # Check if at least one point from goal is in these lines
+            if any(p in line1 for p in goal_points) or any(p in line2 for p in goal_points):
+                # Create a normalized key to avoid duplicates
+                key = tuple(sorted([line1, line2]))
+                if key not in seen_parallel:
+                    seen_parallel.add(key)
+                    parallel_facts.append(f"{line1} ∥ {line2}")
+
+        if parallel_facts:
+            related_facts["Parallel Lines"] = parallel_facts
+
+        # 4. Check for special quadrilaterals
+        # First, find relevant quadrilaterals that contain points from our goal
+        special_quads = []
+        seen_quads = set()
+
+        for quad in self.polygons:
+            if len(quad) == 4 and any(p in quad for p in goal_points):
+                # Skip if we've already seen a cyclic variation of this quad
+                normalized = min(quad[i:] + quad[:i] for i in range(len(quad)))
+                if normalized in seen_quads:
+                    continue
+                seen_quads.add(normalized)
+
+                properties = []
+                # Check for various quadrilateral types
+                if quad in self.parallelograms or any(
+                        var in self.parallelograms for var in get_cyclic_variations(quad)):
+                    properties.append("parallelogram")
+
+                if hasattr(self, 'rectangles'):
+                    if quad in self.rectangles or any(
+                            var in self.rectangles for var in get_cyclic_variations_rectangle(quad)):
+                        properties.append("rectangle")
+
+                if hasattr(self, 'squares'):
+                    if quad in self.squares or any(
+                            var in self.squares for var in get_cyclic_variations_rectangle(quad)):
+                        properties.append("square")
+
+                if hasattr(self, 'rhombi'):
+                    if quad in self.rhombi or any(var in self.rhombi for var in get_cyclic_variations_rectangle(quad)):
+                        properties.append("rhombus")
+
+                if properties:
+                    special_quads.append(f"Quadrilateral {quad} ({', '.join(properties)})")
+
+        if special_quads:
+            related_facts["Special Quadrilaterals"] = special_quads
+
+        # 5. Check for collinear facts involving goal points
+        collinear_facts = []
         for collinear in self.collinear_facts:
-            collinear_set = set(collinear)
-            if collinear_set.issubset(goal_points_set):
-                related_collinear.append(f"Collinear {''.join(collinear)}")
-        related_facts["Collinear Points"] = related_collinear
+            if any(p in collinear for p in goal_points) and len(collinear) >= 3:
+                collinear_facts.append(f"Collinear {''.join(collinear)}")
 
-        # 6. Collect parallel line pairs involving ONLY goal points
-        related_parallel = []
-        for line1, line2 in self.parallel_pairs:
-            if set(line1).issubset(goal_points_set) and set(line2).issubset(goal_points_set):
-                related_parallel.append(f"Parallel {line1} and {line2}")
-        related_facts["Parallel Lines"] = related_parallel
+        if collinear_facts:
+            related_facts["Collinear Points"] = collinear_facts
 
-        # 7. Collect perpendicular line pairs involving ONLY goal points
-        related_perp = []
-        for line1, line2 in self.perpendicular_pairs:
-            if set(line1).issubset(goal_points_set) and set(line2).issubset(goal_points_set):
-                related_perp.append(f"Perpendicular {line1} and {line2}")
-        related_facts["Perpendicular Lines"] = related_perp
+        # 6. Check for special triangles
+        special_triangles = []
+        seen_triangles = set()
 
-        # 8. Collect circle facts where ALL points are in goal
-        related_circles = []
-        for circle, center in self.circle_centers.items():
-            if circle in goal_points_set and center in goal_points_set:
-                related_circles.append(f"Circle {circle} with center {center}")
-        related_facts["Circles"] = related_circles
+        for triangle in self.polygons:
+            if len(triangle) == 3 and any(p in triangle for p in goal_points):
+                # Skip if we've already seen a cyclic variation
+                normalized = self.normalize_triangle(triangle)
+                if normalized in seen_triangles:
+                    continue
+                seen_triangles.add(normalized)
 
-        # 9. Collect cocircular facts involving ONLY goal points
-        related_cocircular = []
-        for fact in self.cocircular_facts:
-            fact_set = set(fact)
-            if fact_set.issubset(goal_points_set):
-                related_cocircular.append(f"Cocircular {','.join(fact)}")
-        related_facts["Cocircular Points"] = related_cocircular
+                properties = []
+                # Check for right triangle
+                if triangle in self.right_triangles or normalized in self.right_triangles:
+                    properties.append("right")
 
-        # 10. Collect right triangles involving ONLY goal points
-        related_right_triangles = []
-        for triangle in self.right_triangles:
-            triangle_set = set(triangle)
-            if triangle_set.issubset(goal_points_set):
-                related_right_triangles.append(f"Right Triangle {triangle}")
-        related_facts["Right Triangles"] = related_right_triangles
+                # Check for isosceles
+                if hasattr(self, 'isosceles_triangles'):
+                    if triangle in self.isosceles_triangles or normalized in self.isosceles_triangles:
+                        properties.append("isosceles")
 
-        # 11. Collect arcs involving ONLY goal points
-        related_arcs = []
-        for arc_name in self.arcs:
-            # Extract arc points (typically in format "arc_ABC")
-            arc_points = arc_name.split('_')[1] if '_' in arc_name else arc_name
-            arc_points_set = set(arc_points)
-            if arc_points_set.issubset(goal_points_set):
-                related_arcs.append(f"Arc {arc_points}")
-        related_facts["Arcs"] = related_arcs
+                if properties:
+                    special_triangles.append(f"Triangle {triangle} ({', '.join(properties)})")
+
+        if special_triangles:
+            related_facts["Special Triangles"] = special_triangles
 
         # Remove empty categories
         return {k: v for k, v in related_facts.items() if v}
+
+    def find_related_theorems_for_variable(self, variable_name):
+        """Find theorems that directly or indirectly constrain a variable goal."""
+        related_theorems = []
+
+        # First, identify all angle or length expressions defined in terms of the goal variable
+        related_expressions = []
+        related_angles = []
+        related_lengths = []
+
+        if hasattr(self, 'text_cdl_lines'):
+            for line in self.text_cdl_lines:
+                if variable_name in line:
+                    # Look for angles defined in terms of goal_variable
+                    angle_match = re.search(r'Equal\(MeasureOfAngle\((\w+)\),(.*?)\)', line)
+                    if angle_match and variable_name in angle_match.group(2):
+                        angle_token = angle_match.group(1)
+                        related_expressions.append(f"MeasureOfAngle({angle_token})")
+                        related_angles.append(angle_token)
+
+                    # Look for lengths defined in terms of goal_variable
+                    length_match = re.search(r'Equal\(LengthOfLine\((\w+)\),(.*?)\)', line)
+                    if length_match and variable_name in length_match.group(2):
+                        length_token = length_match.group(1)
+                        related_expressions.append(f"LengthOfLine({length_token})")
+                        related_lengths.append(length_token)
+
+        # Now search for theorems that constrain these expressions
+        for theorem_info in self.theorem_sequence:
+            is_related = False
+
+            # Check if goal variable is directly mentioned
+            if variable_name in theorem_info["premise"] or any(variable_name in arg for arg in theorem_info["args"]):
+                is_related = True
+
+            # Check if any conclusion constrains a related expression
+            if not is_related:
+                for conclusion in theorem_info["conclusions"]:
+                    # Check for direct mentions of related expressions
+                    for expr in related_expressions:
+                        if expr in conclusion:
+                            is_related = True
+                            break
+
+                    # Also check for any angle tokens in the conclusion
+                    for angle in related_angles:
+                        if angle in conclusion:
+                            is_related = True
+                            break
+
+                    if is_related:
+                        break
+
+            if is_related:
+                related_theorems.append({
+                    "step": theorem_info["step_number"],
+                    "theorem": theorem_info["theorem_name"],
+                    "args": theorem_info["args"],
+                    "conclusion": ", ".join(theorem_info["conclusions"])
+                })
+
+        return related_theorems
 
     def find_related_theorems(self, goal_angle, goal_points):
         """Find only theorems that EXACTLY relate to the goal angle, with no false positives"""
@@ -8914,1051 +7702,6 @@ class GeometricTheorem:
                 })
 
         return related_theorems
-
-    def generate_perimeter_analysis_report(self, triangle, model_answer, alt_value=None,
-                                           solver_state="multiple_values"):
-        """Generate a detailed report for triangle perimeter goals that couldn't be verified."""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Perimeter of triangle {triangle}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the triangle
-        tri_points = list(triangle)
-
-        # Check if the triangle exists in our system
-        normalized_triangle = self.normalize_triangle(triangle)
-        if normalized_triangle in self.polygons:
-            report += f"Triangle {triangle} is defined in the system.\n"
-        else:
-            report += f"Triangle {triangle} is not explicitly defined in the system.\n"
-            report += "You need to establish this triangle through theorems.\n\n"
-
-        # Check for triangle properties
-        triangle_properties = []
-        if triangle in self.right_triangles:
-            triangle_properties.append("right triangle")
-        if hasattr(self, 'isosceles_triangles') and triangle in self.isosceles_triangles:
-            triangle_properties.append("isosceles triangle")
-        if hasattr(self, 'equilateral_triangles') and triangle in self.equilateral_triangles:
-            triangle_properties.append("equilateral triangle")
-        if hasattr(self, 'similar_triangles'):
-            similar_to = []
-            for tri_pair in self.similar_triangles:
-                if triangle in tri_pair:
-                    other_tri = tri_pair[0] if tri_pair[1] == triangle else tri_pair[1]
-                    similar_to.append(other_tri)
-            if similar_to:
-                triangle_properties.append(f"similar to triangle(s): {', '.join(similar_to)}")
-
-        if triangle_properties:
-            report += f"Triangle {triangle} is a {', '.join(triangle_properties)}.\n"
-
-        # Get side lengths of the triangle
-        report += "\nSide lengths of triangle:\n"
-        sides_found = 0
-        side_lengths = []
-
-        for i in range(len(triangle)):
-            p1 = triangle[i]
-            p2 = triangle[(i + 1) % len(triangle)]
-            side = p1 + p2
-            normalized_side = self.normalize_line_name(side)
-            length_var_name = f"length_{normalized_side}"
-
-            if length_var_name in self.lengths:
-                sides_found += 1
-                if self.solver.check() == sat:
-                    model = self.solver.model()
-                    try:
-                        length_val = float(model.eval(self.lengths[length_var_name]).as_decimal(10).rstrip('?'))
-                        report += f"  Side {side}: {length_val}\n"
-                        side_lengths.append(length_val)
-                    except Exception as e:
-                        report += f"  Side {side}: Error evaluating length - {str(e)}\n"
-            else:
-                report += f"  Side {side}: Not explicitly defined\n"
-
-        # Calculate perimeter from side lengths if available
-        if len(side_lengths) == 3:
-            calculated_perimeter = sum(side_lengths)
-            report += f"\nCalculated perimeter: {calculated_perimeter}\n"
-            if abs(calculated_perimeter - model_answer) >= 1e-8:
-                report += f"This doesn't match the expected value {model_answer}.\n"
-
-        # Check if perimeter variable exists
-        if triangle in self.triangle_perimeters:
-            report += f"\nPerimeter variable for triangle {triangle} exists in the system.\n"
-
-            if self.solver.check() == sat:
-                model = self.solver.model()
-                try:
-                    perimeter_val = float(model.eval(self.triangle_perimeters[triangle]).as_decimal(10).rstrip('?'))
-                    report += f"Current perimeter value: {perimeter_val}\n"
-
-                    if abs(perimeter_val - model_answer) >= 1e-8:
-                        report += f"This doesn't match the expected value {model_answer}.\n"
-                except Exception as e:
-                    report += f"Error evaluating perimeter: {str(e)}\n"
-        else:
-            report += f"\nNo perimeter variable for triangle {triangle} has been defined.\n"
-            report += "You need to establish this through the triangle_perimeter_formula theorem.\n"
-
-        # Find theorems relevant to this triangle's perimeter
-        report += f"\nTheorems related to triangle {triangle} in your proof:\n"
-        report += "-" * 60 + "\n"
-        related_theorems = []
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the triangle is mentioned in the conclusions
-            for conclusion in theorem_info["conclusions"]:
-                if f"PerimeterOfTriangle({triangle})" in conclusion or triangle in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if triangle in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(triangle in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving triangle {triangle} were found in your proof.\n"
-            report += "You may need to apply the triangle_perimeter_formula theorem to calculate the perimeter.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        perimeter_var_name = f"perimeter_{triangle}" if triangle in self.triangle_perimeters else None
-
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if perimeter_var_name and perimeter_var_name in c_str:
-                relevant_constraints.append(c_str)
-            elif f"PerimeterOfTriangle({triangle})" in c_str or triangle in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this triangle's perimeter.\n\n"
-
-        # Add an explanation based on the solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-            report += "Possible causes:\n"
-            report += "1. Incorrect triangle side lengths in premises\n"
-            report += "2. Improper theorem application\n"
-            report += "3. Conclusions that contradict earlier assertions\n"
-            report += "4. Errors in the perimeter calculation\n\n"
-        elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the perimeter of {triangle} to be {model_answer}.\n"
-            report += "This means your proof implies a different perimeter than expected.\n\n"
-            report += "Check that:\n"
-            report += "1. Your side length values are correctly specified\n"
-            report += "2. You've correctly identified the triangle in question\n"
-            report += "3. All sides are included in the perimeter calculation\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine the perimeter of triangle {triangle}.\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-            report += "Focus on fixing the lengths of each side of the triangle.\n"
-
-        return report
-    def generate_quadrilateral_area_analysis_report(self, quad_name, model_answer, alt_value=None,
-                                                    solver_state="multiple_values"):
-        """Generate a detailed report for quadrilateral area goals that couldn't be verified."""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Area of quadrilateral {quad_name}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the quadrilateral
-        quad_points = list(quad_name)
-
-        # Check if the quadrilateral is defined in our system
-        if quad_name in self.polygons:
-            report += f"Quadrilateral {quad_name} is defined in the system.\n"
-        else:
-            report += f"Quadrilateral {quad_name} is not explicitly defined in the system.\n"
-            report += "You need to establish this quadrilateral through appropriate theorems.\n\n"
-
-        # Check if the quadrilateral has a special type
-        special_types = []
-        if quad_name in self.parallelograms:
-            special_types.append("parallelogram")
-        if hasattr(self, 'rectangles') and quad_name in self.rectangles:
-            special_types.append("rectangle")
-        if hasattr(self, 'squares') and quad_name in self.squares:
-            special_types.append("square")
-        if hasattr(self, 'rhombi') and quad_name in self.rhombi:
-            special_types.append("rhombus")
-        if hasattr(self, 'trapezoids') and quad_name in self.trapezoids:
-            special_types.append("trapezoid")
-
-        if special_types:
-            report += f"Quadrilateral {quad_name} is a {', '.join(special_types)}.\n"
-
-        # Check if area variable exists
-        if quad_name in self.quad_areas:
-            report += f"Area variable for quadrilateral {quad_name} exists in the system.\n"
-
-            # If solver is satisfiable, get current value
-            if self.solver.check() == sat:
-                model = self.solver.model()
-                try:
-                    area_val = float(model.eval(self.quad_areas[quad_name]).as_decimal(10).rstrip('?'))
-                    report += f"Current calculated area: {area_val}\n\n"
-
-                    if abs(area_val - model_answer) >= 1e-8:
-                        report += f"This doesn't match the expected value {model_answer}.\n\n"
-                except Exception as e:
-                    report += f"Error evaluating area: {str(e)}\n\n"
-        else:
-            report += f"No area variable for quadrilateral {quad_name} has been defined.\n"
-            report += "You need to establish this through appropriate theorems (like parallelogram_area_formula_common).\n\n"
-
-        # Check if height data exists
-        if quad_name in self.quad_heights:
-            report += f"Height variable for quadrilateral {quad_name} exists in the system.\n"
-
-            if self.solver.check() == sat:
-                model = self.solver.model()
-                try:
-                    height_val = float(model.eval(self.quad_heights[quad_name]).as_decimal(10).rstrip('?'))
-                    report += f"Height of quadrilateral: {height_val}\n"
-                except Exception as e:
-                    report += f"Error evaluating height: {str(e)}\n"
-        else:
-            report += f"No height variable for quadrilateral {quad_name} has been defined.\n"
-            report += "For area calculation, you typically need to establish a height (using altitude theorems).\n\n"
-
-        # Check for altitude/base data
-        if hasattr(self, 'altitudes') and quad_name in self.altitudes:
-            report += f"Altitude(s) for quadrilateral {quad_name}: {self.altitudes[quad_name]}\n"
-        else:
-            report += f"No altitude has been established for quadrilateral {quad_name}.\n"
-            report += "For area calculation, you typically need to establish an altitude.\n\n"
-
-        # Report on side lengths if available
-        report += "Side lengths of quadrilateral:\n"
-        sides_found = 0
-        for i in range(len(quad_name)):
-            side = quad_name[i] + quad_name[(i + 1) % len(quad_name)]
-            normalized_side = self.normalize_line_name(side)
-            length_var_name = f"length_{normalized_side}"
-
-            if length_var_name in self.lengths:
-                sides_found += 1
-                if self.solver.check() == sat:
-                    model = self.solver.model()
-                    try:
-                        length_val = float(model.eval(self.lengths[length_var_name]).as_decimal(10).rstrip('?'))
-                        report += f"  Side {side}: {length_val}\n"
-                    except Exception as e:
-                        report += f"  Side {side}: Error evaluating length - {str(e)}\n"
-            else:
-                report += f"  Side {side}: Not explicitly defined\n"
-
-        if sides_found == 0:
-            report += "  No side lengths explicitly defined for this quadrilateral.\n"
-        report += "\n"
-
-        # Find theorems relevant to this quadrilateral
-        report += f"\nTheorems related to quadrilateral {quad_name} in your proof:\n"
-        report += "-" * 60 + "\n"
-        related_theorems = []
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the quadrilateral is mentioned in the conclusions
-            for conclusion in theorem_info["conclusions"]:
-                if f"AreaOfQuadrilateral({quad_name})" in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if quad_name in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(quad_name in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving quadrilateral {quad_name} were found in your proof.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        area_var_name = f"areaQuadr_{quad_name}" if quad_name in self.quad_areas else None
-
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if area_var_name and area_var_name in c_str:
-                relevant_constraints.append(c_str)
-            elif f"quad_{quad_name}" in c_str or quad_name in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this quadrilateral's area.\n\n"
-
-        # Add an explanation based on the solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-            report += "Possible causes:\n"
-            report += "1. Incorrect quadrilateral properties or measurements in premises\n"
-            report += "2. Improper theorem application\n"
-            report += "3. Conclusions that contradict earlier assertions\n"
-            report += "4. Errors in the area formula application\n\n"
-        elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the area of {quad_name} to be {model_answer}.\n"
-            report += "This means your proof implies a different area than expected.\n\n"
-            report += "Check that:\n"
-            report += "1. Your altitude and base values are correctly specified\n"
-            report += "2. You've correctly identified the quadrilateral in question\n"
-            report += "3. The correct area formula is being applied\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine the area of quadrilateral {quad_name}.\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-            report += "Focus on fixing the dimensions of the quadrilateral or establishing specific relationships.\n"
-
-        return report
-    def generate_arc_length_analysis_report(self, arc_token, model_answer, alt_value=None,
-                                            solver_state="multiple_values"):
-        """Generate a detailed report for arc length goals that couldn't be verified."""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Length of arc {arc_token}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the arc
-        goal_points = list(arc_token)
-
-        # Check if the arc exists in our geometry
-        normalized_arc = self.normalize_arc(arc_token)
-        arc_var_name = f"arc_{normalized_arc}"
-
-        if arc_var_name in self.arcs:
-            report += f"Arc {arc_token} is defined in the system.\n"
-            arc_var = self.arcs[arc_var_name]
-
-            # If solver is satisfiable, get current value
-            if self.solver.check() == sat:
-                model = self.solver.model()
-                try:
-                    arc_val = float(model.eval(arc_var).as_decimal(10).rstrip('?'))
-                    report += f"Current measure of arc {arc_token}: {arc_val}°\n\n"
-                except Exception as e:
-                    report += f"Error evaluating arc measure: {str(e)}\n\n"
-        else:
-            report += f"Arc {arc_token} is not defined in the system.\n"
-            report += "You need to establish this arc through theorems before calculating its length.\n\n"
-
-        # Check for radius information
-        circle_center = arc_token[0]  # Usually the first letter of the arc is the circle center
-        if circle_center in self.circle_radii:
-            report += f"Circle {circle_center} has a defined radius.\n"
-            radius_var = self.circle_radii[circle_center]
-
-            if self.solver.check() == sat:
-                model = self.solver.model()
-                try:
-                    radius_val = float(model.eval(radius_var).as_decimal(10).rstrip('?'))
-                    report += f"Radius of circle {circle_center}: {radius_val}\n"
-
-                    # If we have both arc measure and radius, compute expected arc length
-                    if arc_var_name in self.arcs:
-                        arc_val = float(model.eval(self.arcs[arc_var_name]).as_decimal(10).rstrip('?'))
-                        import math
-                        computed_length = (arc_val / 180) * math.pi * radius_val
-                        report += f"Computed arc length: {computed_length}\n"
-                        if abs(computed_length - model_answer) >= 1e-8:
-                            report += f"This doesn't match expected value {model_answer}.\n"
-                except Exception as e:
-                    report += f"Error evaluating radius: {str(e)}\n"
-        else:
-            report += f"Circle {circle_center} does not have a defined radius.\n"
-            report += "Arc length calculation requires both arc measure and circle radius.\n\n"
-
-        # Find theorems relevant to this arc
-        report += f"\nTheorems related to arc {arc_token} in your proof:\n"
-        report += "-" * 60 + "\n"
-        related_theorems = []
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the arc is mentioned in the conclusions
-            for conclusion in theorem_info["conclusions"]:
-                if f"MeasureOfArc({arc_token})" in conclusion or f"LengthOfArc({arc_token})" in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if arc_token in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(arc_token in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving arc {arc_token} were found in your proof.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        length_var_name = f"lengthArc_{normalized_arc}"
-
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if arc_var_name in c_str or length_var_name in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this arc's measure or length.\n\n"
-
-        # Add an explanation based on the solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-            report += "Possible causes:\n"
-            report += "1. Incorrect arc or radius values in premises\n"
-            report += "2. Improper theorem application\n"
-            report += "3. Conclusions that contradict earlier assertions\n"
-            report += "4. Errors in the arc length formula application\n\n"
-        elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the arc length of {arc_token} to be {model_answer}.\n"
-            report += "This means your proof implies a different arc length than expected.\n\n"
-            report += "Check that:\n"
-            report += "1. Your arc measure and radius values are correctly specified\n"
-            report += "2. You've correctly identified the arc in question\n"
-            report += "3. There are no errors in your arc length calculations\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine the length of arc {arc_token}.\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-            report += "Focus on fixing the measure of the arc and/or the radius of the circle.\n"
-
-        return report
-    def generate_sum_analysis_report(self, line1, line2, model_answer, alt_value=None,
-                                     solver_state="multiple_values"):
-        """Generate a detailed report for sum goals that couldn't be verified."""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"Goal: Sum of lines {line1} + {line2}\n"
-        report += f"Expected value: {model_answer}\n\n"
-
-        # Extract points involved in the goal lines
-        goal_points = list(set(line1 + line2))
-
-        # Check if the lines exist in our geometry
-        report += "Analysis of line segments:\n"
-        report += "-" * 60 + "\n"
-
-        # Get or create length variables
-        len1_var = self.add_length(line1[0], line1[1])
-        len2_var = self.add_length(line2[0], line2[1])
-
-        # Check if the solver is satisfiable
-        if self.solver.check() == sat:
-            model = self.solver.model()
-
-            try:
-                # Get current values from the model
-                len1_val = float(model.eval(len1_var).as_decimal(10).rstrip('?'))
-                len2_val = float(model.eval(len2_var).as_decimal(10).rstrip('?'))
-
-                report += f"Length of {line1}: {len1_val}\n"
-                report += f"Length of {line2}: {len2_val}\n"
-
-                computed_value = len1_val + len2_val
-                report += f"Computed sum: {line1} + {line2} = {computed_value}\n\n"
-
-                epsilon = 1e-8
-                if abs(computed_value - model_answer) >= epsilon:
-                    report += f"Error: Computed sum {computed_value} doesn't match expected {model_answer}\n"
-                    report += "This suggests an inconsistency between your proof and the expected answer.\n\n"
-
-                # Check if these lengths are uniquely determined
-                report += "Checking uniqueness of line lengths:\n"
-
-                # Check if line1 can have different values
-                temp_solver1 = Solver()
-                for c in self.solver.assertions():
-                    temp_solver1.add(c)
-
-                epsilon = 1e-8
-                temp_solver1.add(Or(len1_var < len1_val - epsilon, len1_var > len1_val + epsilon))
-
-                if temp_solver1.check() == sat:
-                    alt_model = temp_solver1.model()
-                    alt_len1 = float(alt_model.eval(len1_var).as_decimal(10).rstrip('?'))
-                    report += f"- Line {line1} is not uniquely determined (could also be {alt_len1})\n"
-                else:
-                    report += f"- Line {line1} is uniquely determined to be {len1_val}\n"
-
-                # Check if line2 can have different values
-                temp_solver2 = Solver()
-                for c in self.solver.assertions():
-                    temp_solver2.add(c)
-
-                temp_solver2.add(Or(len2_var < len2_val - epsilon, len2_var > len2_val + epsilon))
-
-                if temp_solver2.check() == sat:
-                    alt_model = temp_solver2.model()
-                    alt_len2 = float(alt_model.eval(len2_var).as_decimal(10).rstrip('?'))
-                    report += f"- Line {line2} is not uniquely determined (could also be {alt_len2})\n"
-                else:
-                    report += f"- Line {line2} is uniquely determined to be {len2_val}\n"
-
-                # Check if the sum itself can be different while satisfying all constraints
-                temp_solver3 = Solver()
-                for c in self.solver.assertions():
-                    temp_solver3.add(c)
-
-                # We want to check if len1 + len2 can have a different value
-                temp_solver3.add(Or(
-                    len1_var + len2_var < model_answer - epsilon,
-                    len1_var + len2_var > model_answer + epsilon
-                ))
-
-                if temp_solver3.check() == sat:
-                    alt_model = temp_solver3.model()
-                    alt_len1 = float(alt_model.eval(len1_var).as_decimal(10).rstrip('?'))
-                    alt_len2 = float(alt_model.eval(len2_var).as_decimal(10).rstrip('?'))
-                    alt_sum = alt_len1 + alt_len2
-
-                    report += f"\nThe sum {line1} + {line2} is not uniquely determined.\n"
-                    report += f"It could be {computed_value} but also {alt_sum}.\n"
-                    report += f"Alternative values: {line1} = {alt_len1}, {line2} = {alt_len2}\n\n"
-                else:
-                    report += f"\nThe sum {line1} + {line2} is uniquely determined to be {computed_value}.\n\n"
-
-            except Exception as e:
-                report += f"Error evaluating line lengths: {str(e)}\n\n"
-
-        # Try to find triangles or other shapes that might explain the sum
-        report += "Geometric relationships that might explain this sum:\n"
-        report += "-" * 60 + "\n"
-
-        # Check if the lines are sides of a triangle
-        triangles_containing_both_lines = []
-        triangles_containing_either_line = []
-
-        for tri in self.polygons:
-            if len(tri) == 3:  # It's a triangle
-                if (line1[0] in tri and line1[1] in tri) and (line2[0] in tri and line2[1] in tri):
-                    triangles_containing_both_lines.append(tri)
-                elif (line1[0] in tri and line1[1] in tri) or (line2[0] in tri and line2[1] in tri):
-                    triangles_containing_either_line.append(tri)
-
-        if triangles_containing_both_lines:
-            report += "Triangles containing both lines:\n"
-            for tri in triangles_containing_both_lines:
-                report += f"- Triangle {tri}"
-                if tri in self.right_triangles:
-                    report += " (right triangle)"
-                if hasattr(self, "isosceles_triangles") and tri in self.isosceles_triangles:
-                    report += " (isosceles triangle)"
-                report += "\n"
-        else:
-            report += "No triangles found containing both lines.\n"
-
-        if triangles_containing_either_line:
-            report += "\nTriangles containing either line:\n"
-            for tri in triangles_containing_either_line:
-                report += f"- Triangle {tri} contains "
-                if line1[0] in tri and line1[1] in tri:
-                    report += f"line {line1}"
-                elif line2[0] in tri and line2[1] in tri:
-                    report += f"line {line2}"
-                if tri in self.right_triangles:
-                    report += " (right triangle)"
-                if hasattr(self, "isosceles_triangles") and tri in self.isosceles_triangles:
-                    report += " (isosceles triangle)"
-                report += "\n"
-
-        # Check if the points are collinear, suggesting the sum is part of a longer line
-        might_be_collinear = False
-        collinear_explanation = ""
-
-        common_point = None
-        for p in line1:
-            if p in line2:
-                common_point = p
-                break
-
-        if common_point is not None:
-            # Lines share a point, check if all points are collinear
-            p1 = line1[0] if line1[1] == common_point else line1[1]
-            p2 = line2[0] if line2[1] == common_point else line2[1]
-
-            # Check if p1-common_point-p2 are collinear
-            all_points = p1 + common_point + p2
-            for fact in self.collinear_facts:
-                fact_str = ''.join(fact)
-                if all(p in fact_str for p in all_points):
-                    might_be_collinear = True
-                    collinear_explanation = f"Points {p1}, {common_point}, and {p2} are collinear."
-                    break
-
-            if might_be_collinear:
-                report += f"\nThese segments appear to form a single line through {collinear_explanation}\n"
-                report += f"This suggests the sum {line1} + {line2} might represent the length of line {p1}{p2}.\n"
-
-                # Check if we have a length for the combined line
-                full_line = self.add_length(p1, p2)
-                if self.solver.check() == sat:
-                    model = self.solver.model()
-                    full_line_val = float(model.eval(full_line).as_decimal(10).rstrip('?'))
-                    report += f"Length of full line {p1}{p2}: {full_line_val}\n"
-
-                    # Check if this matches our sum
-                    sum_val = len1_val + len2_val if 'len1_val' in locals() and 'len2_val' in locals() else None
-                    if sum_val is not None:
-                        report += f"Computed sum {line1} + {line2} = {sum_val}\n"
-
-                        if abs(full_line_val - sum_val) < epsilon:
-                            report += f"The full line length matches the sum, confirming {line1} + {line2} = {p1}{p2}\n"
-                        else:
-                            report += f"The full line length {full_line_val} does not match the sum {sum_val}, suggesting additional constraints are needed.\n"
-
-        # Check if the lines might be related through a perimeter calculation
-        # First look for a polygon that might contain these lines as sides
-        polygons_with_lines = []
-        for poly in self.polygons:
-            sides_found = 0
-            # Check if line1 is a side
-            if (line1[0] in poly and line1[1] in poly and
-                    any(line1[0] == poly[i] and line1[1] == poly[(i + 1) % len(poly)] or
-                        line1[1] == poly[i] and line1[0] == poly[(i + 1) % len(poly)]
-                        for i in range(len(poly)))):
-                sides_found += 1
-
-            # Check if line2 is a side
-            if (line2[0] in poly and line2[1] in poly and
-                    any(line2[0] == poly[i] and line2[1] == poly[(i + 1) % len(poly)] or
-                        line2[1] == poly[i] and line2[0] == poly[(i + 1) % len(poly)]
-                        for i in range(len(poly)))):
-                sides_found += 1
-
-            if sides_found > 0:
-                polygons_with_lines.append((poly, sides_found))
-
-        if polygons_with_lines:
-            report += "\nPolygons containing these lines as sides:\n"
-            for poly, sides_count in polygons_with_lines:
-                report += f"- Polygon {poly} contains {sides_count} of the lines in the sum\n"
-
-            perimeter_sum_candidates = [poly for poly, sides in polygons_with_lines if sides == 2]
-            if perimeter_sum_candidates:
-                report += "\nThese lines might be part of the perimeter calculation for:\n"
-                for poly in perimeter_sum_candidates:
-                    report += f"- Polygon {poly}\n"
-
-        # Find theorems relevant to these lines
-        report += f"\nTheorems related to lines {line1} and {line2} in your proof:\n"
-        report += "-" * 60 + "\n"
-        related_theorems = []
-
-        for theorem_info in self.theorem_sequence:
-            is_related = False
-
-            # Check if the lines are mentioned in the conclusions
-            for conclusion in theorem_info["conclusions"]:
-                if f"LengthOfLine({line1})" in conclusion or f"LengthOfLine({line2})" in conclusion:
-                    is_related = True
-                    break
-
-                # Check for sum expressions
-                if f"Add(LengthOfLine({line1}),LengthOfLine({line2}))" in conclusion or \
-                        f"Add(LengthOfLine({line2}),LengthOfLine({line1}))" in conclusion:
-                    is_related = True
-                    break
-
-            # Check if mentioned in the premise
-            if line1 in theorem_info["premise"] or line2 in theorem_info["premise"]:
-                is_related = True
-
-            # Check if mentioned in args
-            if any(line1 in arg or line2 in arg for arg in theorem_info["args"]):
-                is_related = True
-
-            if is_related:
-                related_theorems.append({
-                    "step": theorem_info["step_number"],
-                    "theorem": theorem_info["theorem_name"],
-                    "args": theorem_info["args"],
-                    "conclusion": ", ".join(theorem_info["conclusions"])
-                })
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"No theorems directly involving lines {line1} or {line2} were found in your proof.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        len1_var_name = f"length_{self.normalize_line_name(line1)}"
-        len2_var_name = f"length_{self.normalize_line_name(line2)}"
-
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            if len1_var_name in c_str or len2_var_name in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving these lines' lengths.\n\n"
-
-        # Add an explanation based on the solver state
-        report += "Diagnosis:\n"
-        report += "-" * 60 + "\n"
-
-        if solver_state == "unsatisfiable":
-            report += "The solver found the constraints to be contradictory. This means your proof contains\n"
-            report += "inconsistent constraints that cannot be satisfied simultaneously.\n\n"
-            report += "Possible causes:\n"
-            report += "1. Incorrect length values in premises\n"
-            report += "2. Improper theorem application\n"
-            report += "3. Conclusions that contradict earlier assertions\n"
-            report += "4. Errors in the sum or perimeter calculations\n\n"
-        elif solver_state == "incompatible":
-            report += f"The geometric constraints in your proof don't allow the sum {line1} + {line2} to be {model_answer}.\n"
-            report += "This means your proof implies a different sum than expected.\n\n"
-            report += "Check that:\n"
-            report += "1. Your line length values are correctly specified\n"
-            report += "2. You've correctly identified the lines in question\n"
-            report += "3. Your theorems about lengths or sums are correctly applied\n"
-        else:  # multiple_values
-            report += f"Your proof doesn't uniquely determine the sum {line1} + {line2}.\n"
-            report += "Multiple solutions are possible with the current constraints.\n"
-            if alt_value is not None:
-                report += f"It could be {model_answer} but also {alt_value}\n\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-            report += "Consider using theorems that fix the individual lengths of these lines,\n"
-            report += "such as the Pythagorean theorem, similar triangles, or other geometric relationships.\n"
-
-        return report
-
-
-
-    def generate_goal_analysis_report(self, goal_angle, expected, alt_value, solver_state="multiple_values"):
-        """Generate a focused report about why the goal couldn't be uniquely determined"""
-
-        # Create the report content as a string
-        report = f"Analysis Report for {self.question_name}\n"
-        report += "=" * 60 + "\n\n"
-        report += f"You tried to find the goal angle {goal_angle}\n\n"
-
-        report += "In the premises you've had:\n"
-        report += "-" * 60 + "\n"
-
-        # Extract points involved in the goal angle
-        goal_points = list(goal_angle)
-
-        # Get all related facts from our knowledge base
-        related_facts = self.collect_related_facts(goal_points)
-
-        if related_facts:
-            for category, facts in related_facts.items():
-                if facts:  # Only show categories with facts
-                    report += f"{category}:\n"
-                    for fact in facts:
-                        report += f"  - {fact}\n"
-                    report += "\n"
-        else:
-            report += "No facts involving exactly these points " + ", ".join(
-                goal_points) + " were found in the premises.\n\n"
-
-        report += f"These are the theorems that have to do with goal {goal_angle} in your proof:\n"
-        report += "-" * 60 + "\n"
-
-        # Find theorems that mention the goal or its components
-        related_theorems = self.find_related_theorems(goal_angle, goal_points)
-
-        if related_theorems:
-            for theorem in related_theorems:
-                report += f"Step {theorem['step']} - {theorem['theorem']}({', '.join(theorem['args'])}):\n"
-                report += f"  Conclusion: {theorem['conclusion']}\n\n"
-        else:
-            report += f"None. Your proof doesn't include any theorems that constrain angle {goal_angle}.\n\n"
-
-        # Add solver constraints related to this goal
-        report += "Solver constraints directly related to this goal:\n"
-        report += "-" * 60 + "\n"
-
-        # Normalize the angle name for looking up in solver
-        normalized_angle = self.normalize_angle_name(goal_angle)
-        angle_var = self.add_angle(goal_angle[0], goal_angle[1], goal_angle[2])
-        angle_var_name = f"angle_{normalized_angle}"
-
-        # More precise constraint filtering - focus only on those directly affecting the angle
-        relevant_constraints = []
-        for c in self.solver.assertions():
-            c_str = str(c)
-            # Only include constraints that directly mention the exact angle variable name
-            if angle_var_name in c_str:
-                # Check for direct relationships with this angle using list of conditions
-                patterns = [
-                    f"{angle_var_name} " in c_str,
-                    f"{angle_var_name}=" in c_str,
-                    f"{angle_var_name}+" in c_str,
-                    f"{angle_var_name}-" in c_str,
-                    f"{angle_var_name}*" in c_str,
-                    f"{angle_var_name}/" in c_str
-                ]
-                if any(patterns):
-                    relevant_constraints.append(c_str)
-
-            # Also include constraints that set the angle value
-            elif f" == {angle_var_name}" in c_str:
-                relevant_constraints.append(c_str)
-
-        if relevant_constraints:
-            for i, constraint in enumerate(relevant_constraints):
-                report += f"{i + 1}. {constraint}\n"
-            report += "\n"
-        else:
-            report += "No direct constraints found involving this angle.\n\n"
-
-        # Add different explanations based on solver state
-        if solver_state == "unsatisfiable":
-            report += f"The solver found the constraints to be contradictory when trying to evaluate angle {goal_angle}.\n"
-            report += "This means there's an inconsistency in your geometric setup or theorem applications.\n"
-            report += "Check for contradictory premises or incorrectly applied theorems.\n"
-        elif solver_state == "incompatible":
-            report += f"The constraints in your proof are consistent, but don't allow angle {goal_angle} to be {expected}°.\n"
-            report += "This means your proof implies a different value for this angle than expected.\n"
-        else:  # multiple_values
-            report += f"This wasn't enough information to get a unique value for the goal angle {goal_angle}.\n"
-            report += "Your proof allows multiple solutions for this angle.\n"
-            if alt_value is not None:
-                report += f"It could be {expected}° but also {alt_value}°\n"
-            report += "You need to add more constraints by applying additional theorems.\n"
-
-        # Write the report to a file (still using the original file writing code)
-        import os
-        import datetime
-        output_dir = "info"
-        os.makedirs(output_dir, exist_ok=True)
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{output_dir}/{self.question_name}_{timestamp}.txt"
-        with open(filename, 'w') as f:
-            f.write(report)
-        print(f"\nDetailed analysis written to: {filename}")
-
-        # Return the report content as a string
-        return report
-
-    def verify_algebraic_goal(self, goal_angle: str, expected: float, epsilon: float = 1e-8) -> tuple:
-        """Verify if the angle measure goal is satisfied by the constraints."""
-        print(f"\nVerifying goal angle: {goal_angle}")
-
-        # Create a detailed report string
-        angle_report = f"Analysis Report for {self.question_name}\n"
-        angle_report += "=" * 60 + "\n\n"
-        angle_report += f"Goal: Measure of angle {goal_angle}\n"
-        angle_report += f"Expected value: {expected}°\n\n"
-
-        goal_var = self.add_angle(goal_angle[0], goal_angle[1], goal_angle[2])
-
-        if self.solver.check() == sat:
-            # First check if constraints allow the expected value
-            temp_solver1 = Solver()
-            for c in self.solver.assertions():
-                temp_solver1.add(c)
-
-            # Add constraint that goal_var == expected (within epsilon)
-            temp_solver1.add(And(goal_var >= expected - epsilon, goal_var <= expected + epsilon))
-
-            if temp_solver1.check() != sat:
-                error_msg = "Failed to prove angle goal: constraints don't allow the expected value."
-                angle_report += f"Error: Constraints don't allow the expected angle {expected}°\n"
-                angle_report += "The geometric constraints are incompatible with the expected answer.\n"
-
-                # Generate a detailed report for this case
-                detailed_report = self.generate_goal_analysis_report(goal_angle, expected, None, "incompatible")
-                angle_report += f"\n{detailed_report}\n"
-
-                print(f"Error: Constraints don't allow the expected angle {expected}")
-                error = GeometricError(
-                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                    message=error_msg,
-                    details=f"Goal was: MeasureOfAngle({goal_angle}) = {expected}"
-                )
-                print(f"\nError in {error.tier.name}: {error.message}")
-                if error.details:
-                    print("Details:", error.details)
-
-                # Write report to file
-                self.write_failure_report(f"angle_{goal_angle}", angle_report)
-                return False, angle_report  # Return just the error message, not the full report
-
-            # Now check if any other value is allowed
-            temp_solver2 = Solver()
-            for c in self.solver.assertions():
-                temp_solver2.add(c)
-
-            # Add constraint: goal_var != expected (outside epsilon range)
-            temp_solver2.add(Or(goal_var < expected - epsilon, goal_var > expected + epsilon))
-
-            if temp_solver2.check() == sat:
-                alt_model = temp_solver2.model()
-                alt_value = float(alt_model.eval(goal_var).as_decimal(10).rstrip('?'))
-
-                error_msg = "Failed to prove angle goal: constraints allow multiple values."
-                angle_report += f"Error: The proof doesn't uniquely determine angle {goal_angle}.\n"
-                angle_report += f"It could be {expected}° but also {alt_value}°\n\n"
-                angle_report += "The proof needs additional constraints to uniquely determine this angle.\n"
-
-                # Collect more detailed information about why the goal couldn't be uniquely determined
-                detailed_report = self.generate_goal_analysis_report(goal_angle, expected, alt_value, "multiple_values")
-                angle_report += f"\n{detailed_report}\n"
-
-                print(f"Error: The proof doesn't uniquely determine angle {goal_angle}.")
-                print(f"Multiple solutions exist for this angle.")
-
-                error = GeometricError(
-                    tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                    message=error_msg,
-                    details=f"Goal was: MeasureOfAngle({goal_angle}) = {expected}, but could also be {alt_value}"
-                )
-                print(f"\nError in {error.tier.name}: {error.message}")
-                if error.details:
-                    print("Details:", error.details)
-
-                # Write report to file
-                self.write_failure_report(f"angle_{goal_angle}", angle_report)
-                return False, angle_report  # Return just the error message, not the full report
-
-            # If we get here, the constraints uniquely determine the value
-            model = self.solver.model()
-            val = model.eval(goal_var)
-            val_str = val.as_decimal(10)
-            if val_str.endswith('?'):
-                val_str = val_str[:-1]
-            computed = float(val_str)
-
-            print(f"Solver gives {goal_angle} = {computed}°")
-            print(f"Success: Angle {goal_angle} is uniquely determined to be {expected}.")
-            return True, ""
-        else:
-            error_msg = "Failed to prove angle goal: solver is unsatisfiable."
-            angle_report += "Error: Solver constraints unsatisfiable. The geometric constraints are inconsistent.\n"
-
-            # Generate a detailed report for unsatisfiable case
-            detailed_report = self.generate_goal_analysis_report(goal_angle, expected, None, "unsatisfiable")
-            angle_report += f"\n{detailed_report}\n"
-
-            print("Solver is unsat when evaluating goal angle.")
-            error = GeometricError(
-                tier=ErrorTier.TIER3_GOAL_NOT_REACHED,
-                message=error_msg,
-                details=f"Goal was: MeasureOfAngle({goal_angle}) = {expected}"
-            )
-            print(f"\nError in {error.tier.name}: {error.message}")
-            if error.details:
-                print("Details:", error.details)
-
-            # Write report to file
-            self.write_failure_report(f"angle_{goal_angle}", angle_report)
-            return False, error_msg  # Return just the error message, not the full report
-
-
 
     def add_all_side_ratios_for_similar_triangles(self, tri1: str, tri2: str):
         # 1) Get the 3 vertices in order, e.g. tri1='BAE', tri2='CAD'
@@ -10111,7 +7854,14 @@ class GeometricTheorem:
             "median_of_triangle_judgment",
             "right_triangle_property_length_of_median",
             "congruent_triangle_property_line_equal",
-            "congruent_triangle_property_angle_equal"
+            "congruent_triangle_property_angle_equal",
+            "mirror_congruent_triangle_judgment_aas",
+            "mirror_congruent_triangle_property_line_equal",
+            "midsegment_of_triangle_judgment_midpoint",
+            "midsegment_of_triangle_property_length",
+            "parallel_judgment_par_par",
+            "mirror_congruent_triangle_judgment_sas",
+            "mirror_congruent_triangle_property_angle_equal"
         ]
 
         if theorem_name not in valid_theorems:
@@ -10120,13 +7870,6 @@ class GeometricTheorem:
                 message=f"Unknown theorem: {theorem_name}",
                 details=f"Valid theorems are: {valid_theorems}"
             )
-
-
-
-
-
-
-
 
         if theorem_name == "parallelogram_property_opposite_angle_equal":
             version = args[0]
@@ -10144,6 +7887,45 @@ class GeometricTheorem:
 
             elif version == "2":
                 print("2")
+
+
+        elif theorem_name == "mirror_congruent_triangle_judgment_sas":
+            version = args[0]
+            if version == "1":
+                match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', conclusions[0])
+                if match:
+                    tri1, tri2 = match.groups()
+                    canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
+
+                    if canonical_pair not in self.mirror_congruent_triangles:
+                        self.mirror_congruent_triangles.append(canonical_pair)
+
+                    print(f"Added mirror congruent triangles via SAS: {tri1} and {tri2} (canonical: {canonical_pair})")
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Conclusion format error for mirror_congruent_triangle_judgment_sas",
+                        details=f"Expected MirrorCongruentBetweenTriangle(...) but got {conclusions[0]}"
+                    )
+
+        elif theorem_name == "mirror_congruent_triangle_property_angle_equal":
+            version = args[0]
+            if version == "1":
+                match = re.search(r'Equal\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)', conclusions[0])
+                if match:
+                    angle1, angle2 = match.groups()
+                    angle1_var = self.add_angle(angle1[0], angle1[1], angle1[2])
+                    angle2_var = self.add_angle(angle2[0], angle2[1], angle2[2])
+                    self.solver.add(angle1_var == angle2_var)
+                    print(
+                        f"Added mirror congruent triangle property: MeasureOfAngle({angle1}) = MeasureOfAngle({angle2})")
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Conclusion format error for mirror_congruent_triangle_property_angle_equal",
+                        details=f"Expected format: Equal(MeasureOfAngle(XXX),MeasureOfAngle(YYY)) but got {conclusions[0]}"
+                    )
+
 
 
         # In the adding_conclution method
@@ -10173,6 +7955,172 @@ class GeometricTheorem:
                     f"Added right triangle median property: 2 * LengthOfLine({median_line}) = LengthOfLine({hypotenuse})")
 
                 return None
+
+
+        elif theorem_name == "mirror_congruent_triangle_judgment_aas":
+
+            version = args[0]
+
+            if version == "2":
+
+                match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', conclusions[0])
+
+                if match:
+
+                    tri1, tri2 = match.groups()
+
+                    canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
+
+                    if canonical_pair not in self.mirror_congruent_triangles:
+                        self.mirror_congruent_triangles.append(canonical_pair)
+
+                    print(f"Added mirror congruent triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
+
+                else:
+
+                    return GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Conclusion format error for mirror_congruent_triangle_judgment_aas",
+
+                        details=f"Expected MirrorCongruentBetweenTriangle(...) but got {conclusions[0]}"
+
+                    )
+
+
+        elif theorem_name == "parallel_judgment_par_par":
+            version = args[0]
+            if version == "1":
+                match = re.search(r'ParallelBetweenLine\((\w+),(\w+)\)', conclusions[0])
+                if match:
+                    line1, line2 = match.groups()
+
+                    # Add the new parallel relationship
+                    self.parallel_pairs.add((line1, line2))
+                    self.parallel_pairs.add((line2, line1))
+
+                    print(f"Added transitive parallel relationship: {line1} || {line2} (by transitivity)")
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Conclusion format error for parallel_judgment_par_par",
+                        details=f"Expected ParallelBetweenLine(...) but got {conclusions[0]}"
+                    )
+
+        elif theorem_name == "mirror_congruent_triangle_property_line_equal":
+
+            version = args[0]
+
+            if version == "1":
+
+                match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', conclusions[0])
+
+                if match:
+
+                    line1, line2 = match.groups()
+
+                    line1_var = self.add_length(line1[0], line1[1])
+
+                    line2_var = self.add_length(line2[0], line2[1])
+
+                    self.solver.add(line1_var == line2_var)
+
+                    print(f"Added mirror congruent triangle property: LengthOfLine({line1}) = LengthOfLine({line2})")
+
+                else:
+
+                    return GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Conclusion format error for mirror_congruent_triangle_property_line_equal",
+
+                        details=f"Expected format: Equal(LengthOfLine(XX),LengthOfLine(YY)) but got {conclusions[0]}"
+
+                    )
+
+
+        elif theorem_name == "midsegment_of_triangle_judgment_midpoint":
+
+            version = args[0]
+
+            if version == "1":
+
+                match = re.search(r'IsMidsegmentOfTriangle\((\w+),(\w+)\)', conclusions[0])
+
+                if match:
+
+                    segment, triangle = match.groups()
+
+                    print(f"Added midsegment fact: {segment} is a midsegment of triangle {triangle}")
+
+                else:
+
+                    return GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Conclusion format error for midsegment_of_triangle_judgment_midpoint",
+
+                        details=f"Expected IsMidsegmentOfTriangle(...) but got {conclusions[0]}"
+
+                    )
+
+
+        elif theorem_name == "midsegment_of_triangle_property_length":
+
+            version = args[0]
+
+            if version == "1":
+
+                match = re.search(r'Equal\(LengthOfLine\((\w+)\),Mul\(LengthOfLine\((\w+)\),(\d+/\d+)\)\)',
+                                  conclusions[0])
+
+                if match:
+
+                    segment, parallel_side, factor_str = match.groups()
+
+                    # Get length variables
+
+                    segment_var = self.add_length(segment[0], segment[1])
+
+                    parallel_side_var = self.add_length(parallel_side[0], parallel_side[1])
+
+                    # Parse the factor (typically 1/2)
+
+                    try:
+
+                        from fractions import Fraction
+
+                        factor_val = float(Fraction(factor_str))
+
+                    except Exception as e:
+
+                        print(f"Error parsing factor {factor_str}: {e}, defaulting to 0.5")
+
+                        factor_val = 0.5
+
+                    # Add constraint: midsegment length = factor * parallel side length
+
+                    self.solver.add(segment_var == factor_val * parallel_side_var)
+
+                    print(
+                        f"Added midsegment length constraint: LengthOfLine({segment}) = {factor_val} * LengthOfLine({parallel_side})")
+
+                else:
+
+                    return GeometricError(
+
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+
+                        message="Conclusion format error for midsegment_of_triangle_property_length",
+
+                        details=f"Expected format: Equal(LengthOfLine(XX),Mul(LengthOfLine(YY),factor)) but got {conclusions[0]}"
+
+                    )
+
+
 
         # Then add these handlers in the if-elif chain:
         elif theorem_name == "congruent_triangle_property_line_equal":
@@ -10872,7 +8820,7 @@ class GeometricTheorem:
                             if side2_val > 0 and side3_val > 0:  # Avoid division by zero
 
                                 expected_cos = (side2_val ** 2 + side3_val ** 2 - side1_val ** 2) / (
-                                            2 * side2_val * side3_val)
+                                        2 * side2_val * side3_val)
 
                                 if -1 <= expected_cos <= 1:
 
@@ -11138,13 +9086,51 @@ class GeometricTheorem:
 
 
 
-        elif theorem_name == "altitude_of_quadrilateral_judgment_left_vertex":
-            # Expected conclusion: "IsAltitudeOfQuadrilateral(AE,ACDB)"
-            altitude_fact = f"IsAltitudeOfQuadrilateral({args[1].strip()},{args[2].strip()})"
-            self.altitudes.add(altitude_fact)
-            print(f"Recorded altitude fact: {altitude_fact}")
-            return None
 
+        # This code should replace the altitude handling in your adding_conclution method
+
+        # for the altitude_of_quadrilateral_judgment_left_vertex theorem:
+
+        elif theorem_name == "altitude_of_quadrilateral_judgment_left_vertex":
+
+            # Expected conclusion: "IsAltitudeOfQuadrilateral(AE,ACDB)"
+
+            altitude_line = args[1].strip()
+
+            quad_name = args[2].strip()
+
+            altitude_fact = f"IsAltitudeOfQuadrilateral({altitude_line},{quad_name})"
+
+            # Initialize altitudes as a set if it doesn't exist
+
+            if not hasattr(self, 'altitudes'):
+
+                self.altitudes = set()
+
+            # Convert from dict to set if it's currently a dict
+
+            elif isinstance(self.altitudes, dict):
+
+                self.altitudes = set(self.altitudes.keys())
+
+            # Now we can safely add to it as a set
+
+            self.altitudes.add(altitude_fact)
+
+            # Also, if you have a quad_heights dictionary, set the height
+
+            if hasattr(self, 'quad_heights'):
+                # Get the length of the altitude line
+
+                height_var = self.add_length(altitude_line[0], altitude_line[1])
+
+                self.quad_heights[quad_name] = height_var
+
+                print(f"Set quadrilateral height: {quad_name} height = {altitude_line}")
+
+            print(f"Recorded altitude fact: {altitude_fact}")
+
+            return None
         elif theorem_name == "parallelogram_property_opposite_line_equal":
             # Expected conclusion: "Equal(LengthOfLine(DC),LengthOfLine(BA))"
             match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', conclusions[0])
@@ -13215,6 +11201,7 @@ class GeometricTheorem:
             elif version == "2":
                 print("2")
 
+
 def get_cyclic_variations_rectangle(para_name: str) -> Set[str]:
     """Return all cyclic variations of a polygon name.
     For instance, "PNML" returns {"PNML", "NMLP", "MLPN", "LPNM"}.
@@ -13239,7 +11226,7 @@ def get_cyclic_variations(para_name: str) -> Set[str]:
     return variations
 
 
-def verify_geometric_proof(filename: str, print_output = True) -> tuple:
+def verify_geometric_proof(filename: str, print_output=True) -> tuple:
     """Main function to verify a geometric proof"""
     import contextlib
     import sys
@@ -13262,13 +11249,13 @@ def verify_geometric_proof(filename: str, print_output = True) -> tuple:
             return False, f"Error: {str(e)}"
 
 
-
-#/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
+# /Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_3434/question3434_gt",print_output=True)
-    print(f"Verification {'succeeded' if result else 'failed'}")
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_437/question437_gt",
+        print_output=False)
 
-    if not result:
-        print("Feedback:", feedback)
-##
+    if feedback:
+        print(feedback)
+    else:
+        print("Verification succeeded")
