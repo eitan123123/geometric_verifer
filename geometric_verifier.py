@@ -382,7 +382,7 @@ class GeometricTheorem:
             goal_variable: If specified, filter facts to only show those relevant to this variable
         """
         if excluded_categories is None:
-            excluded_categories = ["Polygons"]  # Exclude Polygons by default
+            excluded_categories = []  # Don't exclude any categories by default
 
         geometric_data = {}
 
@@ -470,13 +470,78 @@ class GeometricTheorem:
             if formatted_pairs:
                 geometric_data["Congruent Triangles"] = sorted(set(formatted_pairs))
 
-        # Circle facts
-        if self.circle_centers and "Circles" not in excluded_categories:
-            formatted_centers = [f"{circle} with center {center}" for circle, center in self.circle_centers.items()]
+        # Mirror Congruent triangles
+        if hasattr(self,
+                   'mirror_congruent_triangles') and self.mirror_congruent_triangles and "Mirror Congruent Triangles" not in excluded_categories:
+            formatted_pairs = [f"{tri1} mirror congruent to {tri2}" for tri1, tri2 in self.mirror_congruent_triangles]
+            if formatted_pairs:
+                geometric_data["Mirror Congruent Triangles"] = sorted(set(formatted_pairs))
+
+        # Mirror Similar triangles
+        if hasattr(self,
+                   'mirror_similar_triangles') and self.mirror_similar_triangles and "Mirror Similar Triangles" not in excluded_categories:
+            formatted_pairs = [f"{tri1} mirror similar to {tri2}" for tri1, tri2 in self.mirror_similar_triangles]
+            if formatted_pairs:
+                geometric_data["Mirror Similar Triangles"] = sorted(set(formatted_pairs))
+
+        # Cocircular facts
+        if hasattr(self,
+                   'cocircular_facts') and self.cocircular_facts and "Cocircular Points" not in excluded_categories:
+            formatted_cocircular = []
+            for fact in self.cocircular_facts:
+                if fact and len(fact) > 1:
+                    circle = fact[0]
+                    points = ''.join(fact[1:])
+                    formatted_cocircular.append(f"Points {points} on circle {circle}")
+            if formatted_cocircular:
+                geometric_data["Cocircular Points"] = sorted(set(formatted_cocircular))
+
+        # Circles
+        if hasattr(self, 'circle_centers') and self.circle_centers and "Circles" not in excluded_categories:
+            formatted_centers = [f"Circle {circle} with center {center}" for circle, center in
+                                 self.circle_centers.items()]
             if formatted_centers:
                 geometric_data["Circles"] = sorted(set(formatted_centers))
 
-        # Only include Polygons if explicitly requested (not excluded)
+        # Circle diameters
+        if hasattr(self,
+                   'is_diameter_of_circle') and self.is_diameter_of_circle and "Circle Diameters" not in excluded_categories:
+            formatted_diameters = [f"Line {line} is diameter of circle {circle}" for line, circle in
+                                   self.is_diameter_of_circle]
+            if formatted_diameters:
+                geometric_data["Circle Diameters"] = sorted(set(formatted_diameters))
+
+        # Tangent facts
+        if hasattr(self, 'tangent_facts') and self.tangent_facts and "Tangent Lines" not in excluded_categories:
+            formatted_tangents = [f"Line {line} is tangent to circle {circle}" for line, circle in self.tangent_facts]
+            if formatted_tangents:
+                geometric_data["Tangent Lines"] = sorted(set(formatted_tangents))
+
+        # Squares
+        if hasattr(self, 'squares') and self.squares and "Squares" not in excluded_categories:
+            formatted_squares = [f"Square {square}" for square in self.squares]
+            if formatted_squares:
+                geometric_data["Squares"] = sorted(set(formatted_squares))
+
+        # Rectangles
+        if hasattr(self, 'rectangles') and self.rectangles and "Rectangles" not in excluded_categories:
+            formatted_rectangles = [f"Rectangle {rect}" for rect in self.rectangles]
+            if formatted_rectangles:
+                geometric_data["Rectangles"] = sorted(set(formatted_rectangles))
+
+        # Rhombi
+        if hasattr(self, 'rhombi') and self.rhombi and "Rhombi" not in excluded_categories:
+            formatted_rhombi = [f"Rhombus {rhom}" for rhom in self.rhombi]
+            if formatted_rhombi:
+                geometric_data["Rhombi"] = sorted(set(formatted_rhombi))
+
+        # Kites
+        if hasattr(self, 'kites') and self.kites and "Kites" not in excluded_categories:
+            formatted_kites = [f"Kite {kite}" for kite in self.kites]
+            if formatted_kites:
+                geometric_data["Kites"] = sorted(set(formatted_kites))
+
+        # Polygons
         if self.polygons and "Polygons" not in excluded_categories:
             formatted_polygons = [f"Polygon {poly}" for poly in self.polygons]
             if formatted_polygons:
@@ -553,7 +618,7 @@ class GeometricTheorem:
         elif status == "incompatible":
             report += f"From your proof, the verifier determines the {goal_type} of {goal_token} to be {verifier_expected_answer}, not {model_answer} as you stated in your solution. Check your theorem applications and your answer.\n"
         elif status == "multiple_values":
-            report += f"Your proof doesn't uniquely determine the value. You need additional constraints.\n"
+            report += f"Your proof doesn't uniquely determine the value. You need to use additional theorems\n"
 
         # Add all geometric facts for context - MODIFIED TO USE "Related premises" INSTEAD
         report += "- Available premises:\n"
@@ -699,7 +764,7 @@ class GeometricTheorem:
         elif status == "incompatible":
             report += f"From your proof, the verifier determines the value of {variable_name} to be {verifier_expected_answer}, not {model_answer} as you stated in your solution. Check your theorem applications and your answer.\n"
         elif status == "multiple_values":
-            report += f"Your proof doesn't uniquely determine the value. You need additional constraints.\n"
+            report += f"Your proof doesn't uniquely determine the value. You need  to use additional theorems.\n"
 
         # Add direct constraints from premises and relevant geometric facts - KEEP SAME TITLE
         report += "- Available premises:\n"
@@ -11747,7 +11812,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # /Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_3_questions/question1/question1_correct
 if __name__ == "__main__":
     result, feedback = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_5522/question5522_gt",
+        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_192/question192_orens_to_fix",
         print_output=False)
 
     if feedback:
