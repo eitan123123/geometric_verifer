@@ -189,6 +189,9 @@ MeasureOfAngle(DBO);ma_dba;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_acb=120
 GOAL_SYMBOL:
@@ -197,8 +200,10 @@ ANSWER:
 30
 THEOREM_SEQUENCE:
 1;tangent_of_circle_property_perpendicular(1,BC,O,O);IsTangentOfCircle(BC,O)&Angle(OCB)&IsCentreOfCircle(O,O);["PerpendicularBetweenLine(OC,BC)"]
+
 2;angle_addition(1,ACO,OCB);Angle(ACO)&Angle(OCB)&Angle(ACB);["Equal(MeasureOfAngle(ACB),Add(MeasureOfAngle(ACO),MeasureOfAngle(OCB)))"]
 3;radius_of_circle_property_length_equal(1,OA,O);Cocircular(O,A)&Line(OA)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OA),RadiusOfCircle(O))"]
 4;radius_of_circle_property_length_equal(1,OC,O);Cocircular(O,C)&Line(OC)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OC),RadiusOfCircle(O))"]
 5;isosceles_triangle_judgment_line_equal(1,OAC);Polygon(OAC)&Equal(LengthOfLine(OA),LengthOfLine(OC));["IsoscelesTriangle(OAC)"]
 6;isosceles_triangle_property_angle_equal(1,OAC);IsoscelesTriangle(OAC);["Equal(MeasureOfAngle(OAC),MeasureOfAngle(ACO))"]
+***MODEL_RESPONSE_END***

@@ -62,6 +62,9 @@ MeasureOfAngle(DCE);ma_dce;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_dce=70
 GOAL_SYMBOL:
@@ -70,4 +73,6 @@ ANSWER:
 110
 THEOREM_SEQUENCE:
 1; parallelogram_property_opposite_angle_equal(1,ABCD); Parallelogram(ABCD); ["Equal(MeasureOfAngle(DAB),MeasureOfAngle(BCD))"]
+
 2; adjacent_complementary_angle(1,BCD,DCE); Collinear(BCE)&Angle(BCD)&Angle(DCE); ["Equal(Add(MeasureOfAngle(BCD),MeasureOfAngle(DCE)),180)"]
+***MODEL_RESPONSE_END***

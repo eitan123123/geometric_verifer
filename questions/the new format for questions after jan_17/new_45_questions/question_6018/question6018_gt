@@ -212,6 +212,9 @@ MeasureOfAngle(OCA);ma_ocd;None
 MeasureOfAngle(OCD);ma_ocd;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_cao-40
 ma_obc-15
@@ -221,6 +224,7 @@ ANSWER:
 110
 THEOREM_SEQUENCE:
 1;radius_of_circle_property_length_equal(1,OA,O);Cocircular(O,A)&Line(OA)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OA),RadiusOfCircle(O))"]
+
 2;radius_of_circle_property_length_equal(1,OB,O);Cocircular(O,B)&Line(OB)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OB),RadiusOfCircle(O))"]
 3;radius_of_circle_property_length_equal(1,OC,O);Cocircular(O,C)&Line(OC)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OC),RadiusOfCircle(O))"]
 4;isosceles_triangle_judgment_line_equal(1,OCA);Polygon(OCA)&Equal(LengthOfLine(OC),LengthOfLine(OA));["IsoscelesTriangle(OCA)"]
@@ -230,3 +234,4 @@ THEOREM_SEQUENCE:
 8;angle_addition(1,BCO,OCA);Angle(BCO)&Angle(OCA)&Angle(BCA);["Equal(MeasureOfAngle(BCA),Add(MeasureOfAngle(BCO),MeasureOfAngle(OCA)))"]
 9;arc_property_circumference_angle_external(1,OAB,C);Cocircular(O,ABC)&Angle(BCA);["Equal(MeasureOfAngle(BCA),Mul(MeasureOfArc(OAB),1/2))"]
 10;arc_property_center_angle(1,OAB,O);Arc(OAB)&Angle(BOA)&IsCentreOfCircle(O,O);["Equal(MeasureOfArc(OAB),MeasureOfAngle(BOA))"]
+***MODEL_RESPONSE_END***

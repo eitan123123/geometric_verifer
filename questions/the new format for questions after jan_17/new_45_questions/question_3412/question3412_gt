@@ -733,6 +733,9 @@ PerimeterOfTriangle(NBD);pt_dnb;None
 PerimeterOfTriangle(BDN);pt_dnb;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_bc-8
 ll_ef-5
@@ -749,9 +752,11 @@ ANSWER:
 13
 THEOREM_SEQUENCE:
 1;right_triangle_judgment_angle(1,CFB);Polygon(CFB)&Equal(MeasureOfAngle(CFB),90);["RightTriangle(CFB)"]
+
 2;right_triangle_judgment_angle(1,CEB);Polygon(CEB)&Equal(MeasureOfAngle(CEB),90);["RightTriangle(CEB)"]
 3;median_of_triangle_judgment(1,EM,EBC);Polygon(EBC)&Line(EM)&Collinear(BMC)&Equal(LengthOfLine(BM),LengthOfLine(CM));["IsMedianOfTriangle(EM,EBC)"]
 4;median_of_triangle_judgment(1,FM,FBC);Polygon(FBC)&Line(FM)&Collinear(BMC)&Equal(LengthOfLine(BM),LengthOfLine(CM));["IsMedianOfTriangle(FM,FBC)"]
 5;right_triangle_property_length_of_median(1,CEB,M);RightTriangle(CEB)&IsMedianOfTriangle(EM,EBC);["Equal(Mul(LengthOfLine(EM),2),LengthOfLine(BC))"]
 6;right_triangle_property_length_of_median(1,CFB,M);RightTriangle(CFB)&IsMedianOfTriangle(FM,FBC);["Equal(Mul(LengthOfLine(FM),2),LengthOfLine(BC))"]
 7;triangle_perimeter_formula(1,EFM);Polygon(EFM);["Equal(PerimeterOfTriangle(EFM),Add(LengthOfLine(EF),LengthOfLine(FM),LengthOfLine(ME)))"]
+***MODEL_RESPONSE_END***

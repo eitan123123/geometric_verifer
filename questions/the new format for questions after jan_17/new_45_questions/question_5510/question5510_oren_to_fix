@@ -219,6 +219,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 AreaOfTriangle(ABC)-65
 AreaOfTriangle(ABC)-Add(AreaOfTriangle(DCA),AreaOfTriangle(DAB))
@@ -235,6 +238,8 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; isosceles_triangle_judgment_line_equal(1,ABC); Polygon(ABC)&Equal(LengthOfLine(AB),LengthOfLine(AC)); ["IsoscelesTriangle(ABC)"]
+
 2; triangle_area_formula_common(1,ABC); Polygon(ABC); ["Equal(AreaOfTriangle(ABC),Mul(HeightOfTriangle(ABC),LengthOfLine(BC),1/2))"]
 3; right_triangle_judgment_angle(1,CMD); Polygon(CMD)&Equal(MeasureOfAngle(CMD),90); ["RightTriangle(CMD)"]
 4; right_triangle_judgment_angle(1,AND); Polygon(AND)&PerpendicularBetweenLine(AN,DN); ["RightTriangle(AND)"]
+***MODEL_RESPONSE_END***

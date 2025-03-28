@@ -342,6 +342,9 @@ LengthOfLine(AN);ll_na;None
 MeasureOfAngle(QAP);ma_qap;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_fad=115
 ma_ade=90
@@ -356,6 +359,7 @@ ANSWER:
 50
 THEOREM_SEQUENCE:
 1;perpendicular_bisector_property_distance_equal(1,ED,AB);IsPerpendicularBisectorOfLine(ED,AB);["Equal(LengthOfLine(EA),LengthOfLine(EB))"]
+
 2;perpendicular_bisector_property_distance_equal(1,GF,AC);IsPerpendicularBisectorOfLine(GF,AC);["Equal(LengthOfLine(GA),LengthOfLine(GC))"]
 3;isosceles_triangle_judgment_line_equal(1,EAB);Polygon(EAB)&Equal(LengthOfLine(EA),LengthOfLine(EB));["IsoscelesTriangle(EAB)"]
 4;isosceles_triangle_judgment_line_equal(1,GCA);Polygon(GCA)&Equal(LengthOfLine(GC),LengthOfLine(GA));["IsoscelesTriangle(GCA)"]
@@ -364,3 +368,4 @@ THEOREM_SEQUENCE:
 7;triangle_property_angle_sum(1,ABC);Polygon(ABC);["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCA),MeasureOfAngle(CAB)),180)"]
 8;angle_addition(1,GAE,EAD);Angle(GAE)&Angle(EAD)&Angle(GAD);["Equal(MeasureOfAngle(GAD),Add(MeasureOfAngle(GAE),MeasureOfAngle(EAD)))"]
 9;angle_addition(1,FAG,GAD);Angle(FAG)&Angle(GAD)&Angle(FAD);["Equal(MeasureOfAngle(FAD),Add(MeasureOfAngle(FAG),MeasureOfAngle(GAD)))"]
+***MODEL_RESPONSE_END***

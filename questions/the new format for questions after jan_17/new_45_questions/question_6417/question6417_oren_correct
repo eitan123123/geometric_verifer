@@ -236,6 +236,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-5
 pt_ocd-23
@@ -245,8 +248,10 @@ ANSWER:
 36
 THEOREM_SEQUENCE:
 1; parallelogram_property_opposite_line_equal(1,ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(BA),LengthOfLine(CD))"]
+
 2; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
 3; parallelogram_property_diagonal_bisection(1,BCDA,O); Parallelogram(BCDA)&Collinear(BOD)&Collinear(COA); ["IsMidpointOfLine(O,BD)"]
 4; line_addition(1,AO,OC); Collinear(AOC); ["Equal(LengthOfLine(AC),Add(LengthOfLine(AO),LengthOfLine(OC)))"]
 5; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
 6; triangle_perimeter_formula(1,DOC); Polygon(DOC); ["Equal(PerimeterOfTriangle(DOC),Add(LengthOfLine(DO),LengthOfLine(OC),LengthOfLine(CD)))"]
+***MODEL_RESPONSE_END***

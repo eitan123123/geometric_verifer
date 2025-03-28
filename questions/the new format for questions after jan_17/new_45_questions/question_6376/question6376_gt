@@ -306,6 +306,9 @@ AreaOfQuadrilateral(IACD);aq_acdi;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-6
 ll_ef-2
@@ -317,6 +320,7 @@ ANSWER:
 10
 THEOREM_SEQUENCE:
 1;parallel_property_collinear_extend(3,AD,BC,E);ParallelBetweenLine(AD,BC)&Collinear(AED);["ParallelBetweenLine(AE,BC)", "ParallelBetweenLine(ED,BC)"]
+
 2;parallel_property_collinear_extend(3,AD,BC,F);ParallelBetweenLine(AD,BC)&Collinear(AFD);["ParallelBetweenLine(AF,BC)", "ParallelBetweenLine(FD,BC)"]
 3;parallel_property_alternate_interior_angle(2,AF,BC);ParallelBetweenLine(AF,BC)&Line(FB);["Equal(MeasureOfAngle(BFA),MeasureOfAngle(FBC))"]
 4;isosceles_triangle_judgment_angle_equal(1,ABF);Polygon(ABF)&Equal(MeasureOfAngle(ABF),MeasureOfAngle(BFA));["IsoscelesTriangle(ABF)"]
@@ -326,3 +330,4 @@ THEOREM_SEQUENCE:
 8;parallelogram_property_opposite_line_equal(1,BCDA);Parallelogram(BCDA);["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
 9;line_addition(1,EF,FD);Collinear(EFD);["Equal(LengthOfLine(ED),Add(LengthOfLine(EF),LengthOfLine(FD)))"]
 10;line_addition(1,AF,FD);Collinear(AFD);["Equal(LengthOfLine(AD),Add(LengthOfLine(AF),LengthOfLine(FD)))"]
+***MODEL_RESPONSE_END***

@@ -87,6 +87,9 @@ MeasureOfAngle(BCA);ma_dca;None
 MeasureOfAngle(DCA);ma_dca;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 -ll_gh+ll_gk
 ll_hk-ll_kj
@@ -97,9 +100,11 @@ ANSWER:
 69/2
 THEOREM_SEQUENCE:
 1;isosceles_triangle_judgment_line_equal(1,GKH);Polygon(GKH)&Equal(LengthOfLine(GK),LengthOfLine(GH));["IsoscelesTriangle(GKH)"]
+
 2;isosceles_triangle_property_angle_equal(1,GKH);IsoscelesTriangle(GKH);["Equal(MeasureOfAngle(GKH),MeasureOfAngle(KHG))"]
 3;triangle_property_angle_sum(1,GKH);Polygon(GKH);["Equal(Add(MeasureOfAngle(GKH),MeasureOfAngle(KHG),MeasureOfAngle(HGK)),180)"]
 4;adjacent_complementary_angle(1,GKH,HKJ);Collinear(GKJ)&Angle(GKH)&Angle(HKJ);["Equal(Add(MeasureOfAngle(GKH),MeasureOfAngle(HKJ)),180)"]
 5;isosceles_triangle_judgment_line_equal(1,KJH);Polygon(KJH)&Equal(LengthOfLine(KJ),LengthOfLine(KH));["IsoscelesTriangle(KJH)"]
 6;isosceles_triangle_property_angle_equal(1,KJH);IsoscelesTriangle(KJH);["Equal(MeasureOfAngle(KJH),MeasureOfAngle(JHK))"]
 7;triangle_property_angle_sum(1,KJH);Polygon(KJH);["Equal(Add(MeasureOfAngle(KJH),MeasureOfAngle(JHK),MeasureOfAngle(HKJ)),180)"]
+***MODEL_RESPONSE_END***

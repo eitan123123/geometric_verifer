@@ -152,6 +152,9 @@ MeasureOfAngle(EAD);ma_gaf;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_cba=36
 ma_cde=57
@@ -163,3 +166,4 @@ ANSWER:
 95
 THEOREM_SEQUENCE:
 1;triangle_property_angle_sum(1,CDE);Polygon(CDE);["Equal(Add(MeasureOfAngle(CDE),MeasureOfAngle(DEC),MeasureOfAngle(ECD)),180)"]
+***MODEL_RESPONSE_END***

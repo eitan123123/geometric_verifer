@@ -256,6 +256,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_af-2*x
 ll_ag-y
@@ -272,7 +275,9 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; line_addition(1,DB,BF); Collinear(DBF); ["Equal(LengthOfLine(DF),Add(LengthOfLine(DB),LengthOfLine(BF)))"]
+
 2; circle_property_circular_power_tangent_and_segment_line(1,DC,DBF,E); IsTangentOfCircle(DC,E)&Cocircular(E,BF)&Collinear(DBF); ["Equal(Mul(LengthOfLine(DC),LengthOfLine(DC)),Mul(LengthOfLine(DB),LengthOfLine(DF)))"]
 3; line_addition(1,BF,FA); Collinear(BFA); ["Equal(LengthOfLine(BA),Add(LengthOfLine(BF),LengthOfLine(FA)))"]
 4; line_addition(1,AG,GC); Collinear(AGC); ["Equal(LengthOfLine(AC),Add(LengthOfLine(AG),LengthOfLine(GC)))"]
 5; circle_property_circular_power_chord_and_chord(1,AFB,ACG,E); Cocircular(E,BF)&Cocircular(E,CG)&Collinear(AFB)&Collinear(ACG); ["Equal(Mul(LengthOfLine(AF),LengthOfLine(AB)),Mul(LengthOfLine(AC),LengthOfLine(AG)))"]
+***MODEL_RESPONSE_END***

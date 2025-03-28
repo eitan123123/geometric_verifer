@@ -304,6 +304,9 @@ MeasureOfAngle(SRT);ma_srt;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=4
 ll_bf=1
@@ -316,3 +319,5 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; line_addition(BF,FC); Collinear(BFC); ["Equal(LengthOfLine(BC),Add(LengthOfLine(BF),LengthOfLine(FC)))"]
+***MODEL_RESPONSE_END***
+

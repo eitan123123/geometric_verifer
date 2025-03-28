@@ -63,6 +63,9 @@ MeasureOfAngle(CAB);ma_cab;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abc=40
 ma_bca=90
@@ -75,6 +78,8 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1;parallel_property_alternate_interior_angle(1,CD,AB);ParallelBetweenLine(CD,AB)&Line(CB);["Equal(MeasureOfAngle(DCB),MeasureOfAngle(ABC))"]
+
 2;angle_addition(1,ECD,DCB);Angle(ECD)&Angle(DCB)&Angle(ECB);["Equal(MeasureOfAngle(ECB),Add(MeasureOfAngle(ECD),MeasureOfAngle(DCB)))"]
 3;adjacent_complementary_angle(1,ECB,BCA);Collinear(ECA)&Angle(ECB)&Angle(BCA);["Equal(Add(MeasureOfAngle(ECB),MeasureOfAngle(BCA)),180)"]
+***MODEL_RESPONSE_END***
 

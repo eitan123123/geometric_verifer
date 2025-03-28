@@ -175,6 +175,9 @@ MeasureOfAngle(BDE);ma_bde;82
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-ll_ac
 -ll_cd+ll_ce
@@ -186,6 +189,7 @@ ANSWER:
 28
 THEOREM_SEQUENCE:
 1;isosceles_triangle_judgment_line_equal(1,ACB);Polygon(ACB)&Equal(LengthOfLine(AC),LengthOfLine(AB));["IsoscelesTriangle(ACB)"]
+
 2;isosceles_triangle_judgment_line_equal(1,CDE);Polygon(CDE)&Equal(LengthOfLine(CD),LengthOfLine(CE));["IsoscelesTriangle(CDE)"]
 3;isosceles_triangle_property_line_coincidence(2,CDE,F);IsoscelesTriangle(CDE)&IsMedianOfTriangle(CF,CDE);["IsAltitudeOfTriangle(CF,CDE)", "IsBisectorOfAngle(CF,ECD)"]
 4;adjacent_complementary_angle(1,ACE,ECD);Collinear(ACD)&Angle(ACE)&Angle(ECD);["Equal(Add(MeasureOfAngle(ACE),MeasureOfAngle(ECD)),180)"]
@@ -194,3 +198,4 @@ THEOREM_SEQUENCE:
 7;triangle_property_angle_sum(1,FEC);Polygon(FEC);["Equal(Add(MeasureOfAngle(FEC),MeasureOfAngle(ECF),MeasureOfAngle(CFE)),180)"]
 8;triangle_property_angle_sum(1,FCD);Polygon(FCD);["Equal(Add(MeasureOfAngle(FCD),MeasureOfAngle(CDF),MeasureOfAngle(DFC)),180)"]
 9;triangle_property_angle_sum(1,ECD);Polygon(ECD);["Equal(Add(MeasureOfAngle(ECD),MeasureOfAngle(CDE),MeasureOfAngle(DEC)),180)"]
+***MODEL_RESPONSE_END***

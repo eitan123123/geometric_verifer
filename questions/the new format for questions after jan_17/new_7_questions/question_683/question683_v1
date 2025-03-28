@@ -104,6 +104,9 @@ LengthOfLine(CE);ll_ec;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=6
 ll_ae=9
@@ -117,8 +120,10 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; line_addition(1,AB,BC); Collinear(ABC); ["Equal(LengthOfLine(AC),Add(LengthOfLine(AB),LengthOfLine(BC)))"]
+
 2; line_addition(1,AE,ED); Collinear(AED); ["Equal(LengthOfLine(AD),Add(LengthOfLine(AE),LengthOfLine(ED)))"]
 3; parallel_property_corresponding_angle(1,EB,DC,A); ParallelBetweenLine(EB,DC)&Collinear(AED); ["Equal(MeasureOfAngle(AEB),MeasureOfAngle(EDC))"]
 4; similar_triangle_judgment_aa(1,BAE,CAD); Polygon(BAE)&Polygon(CAD)&Equal(MeasureOfAngle(BAE),MeasureOfAngle(CAD))&Equal(MeasureOfAngle(AEB),MeasureOfAngle(ADC)); ["SimilarBetweenTriangle(BAE,CAD)"]
 5; similar_triangle_property_line_ratio(1,BAE,CAD); SimilarBetweenTriangle(BAE,CAD); ["Equal(LengthOfLine(AE),Mul(LengthOfLine(AD),RatioOfSimilarTriangle(BAE,CAD)))"]
+***MODEL_RESPONSE_END***
 

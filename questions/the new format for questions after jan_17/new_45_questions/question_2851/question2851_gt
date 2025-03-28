@@ -238,6 +238,9 @@ AreaOfQuadrilateral(CBDA);aq_bdac;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_oa-ll_ob
 ll_ob-ll_oc
@@ -248,6 +251,7 @@ ANSWER:
 60
 THEOREM_SEQUENCE:
 1;angle_addition(1,BCD,DCO);Angle(BCD)&Angle(DCO)&Angle(BCO);["Equal(MeasureOfAngle(BCO),Add(MeasureOfAngle(BCD),MeasureOfAngle(DCO)))"]
+
 2;angle_addition(1,OAD,DAB);Angle(OAD)&Angle(DAB)&Angle(OAB);["Equal(MeasureOfAngle(OAB),Add(MeasureOfAngle(OAD),MeasureOfAngle(DAB)))"]
 3;angle_addition(1,ABD,DBC);Angle(ABD)&Angle(DBC)&Angle(ABC);["Equal(MeasureOfAngle(ABC),Add(MeasureOfAngle(ABD),MeasureOfAngle(DBC)))"]
 4;isosceles_triangle_judgment_line_equal(1,OAC);Polygon(OAC)&Equal(LengthOfLine(OA),LengthOfLine(OC));["IsoscelesTriangle(OAC)"]
@@ -256,3 +260,4 @@ THEOREM_SEQUENCE:
 7;isosceles_triangle_property_angle_equal(1,OBC);IsoscelesTriangle(OBC);["Equal(MeasureOfAngle(OBC),MeasureOfAngle(BCO))"]
 8;triangle_property_angle_sum(1,OAB);Polygon(OAB);["Equal(Add(MeasureOfAngle(OAB),MeasureOfAngle(ABO),MeasureOfAngle(BOA)),180)"]
 9;triangle_property_angle_sum(1,ABC);Polygon(ABC);["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCA),MeasureOfAngle(CAB)),180)"]
+***MODEL_RESPONSE_END***

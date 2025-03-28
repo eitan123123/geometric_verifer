@@ -661,6 +661,9 @@ LengthOfLine(FD);ll_df;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=4
 ll_ac=3
@@ -672,7 +675,9 @@ ANSWER:
 7
 THEOREM_SEQUENCE:
 1;parallel_property_alternate_interior_angle(1,DE,BC);ParallelBetweenLine(DE,BC)&Line(DC);["Equal(MeasureOfAngle(EDC),MeasureOfAngle(BCD))"]
+
 2;parallel_property_alternate_interior_angle(2,DE,BC);ParallelBetweenLine(DE,BC)&Line(EB);["Equal(MeasureOfAngle(BED),MeasureOfAngle(EBC))"]
 3;isosceles_triangle_judgment_angle_equal(1,ADC);Polygon(ADC)&Equal(MeasureOfAngle(ADC),MeasureOfAngle(DCA));["IsoscelesTriangle(ADC)"]
 4;isosceles_triangle_judgment_angle_equal(1,ABE);Polygon(ABE)&Equal(MeasureOfAngle(ABE),MeasureOfAngle(BEA));["IsoscelesTriangle(ABE)"]
 5;line_addition(1,DA,AE);Collinear(DAE);["Equal(LengthOfLine(DE),Add(LengthOfLine(DA),LengthOfLine(AE)))"]
+***MODEL_RESPONSE_END***

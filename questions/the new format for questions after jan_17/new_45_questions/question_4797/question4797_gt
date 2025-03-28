@@ -180,6 +180,9 @@ MeasureOfAngle(OBC);ma_abc;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_coa-70
 GOAL_SYMBOL:
@@ -188,6 +191,8 @@ ANSWER:
 55
 THEOREM_SEQUENCE:
 1;tangent_of_circle_property_perpendicular(1,DA,O,O);IsTangentOfCircle(DA,O)&Angle(OAD)&IsCentreOfCircle(O,O);["PerpendicularBetweenLine(OA,DA)"]
+
 2;arc_property_circumference_angle_external(1,OAC,B);Cocircular(O,ACB)&Angle(CBA);["Equal(MeasureOfAngle(CBA),Mul(MeasureOfArc(OAC),1/2))"]
 3;arc_property_center_angle(1,OAC,O);Arc(OAC)&Angle(COA)&IsCentreOfCircle(O,O);["Equal(MeasureOfArc(OAC),MeasureOfAngle(COA))"]
 4;triangle_property_angle_sum(1,BAD);Polygon(BAD);["Equal(Add(MeasureOfAngle(BAD),MeasureOfAngle(ADB),MeasureOfAngle(DBA)),180)"]
+***MODEL_RESPONSE_END***

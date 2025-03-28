@@ -165,6 +165,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_rt-15
 ma_rps-130
@@ -178,6 +181,8 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; arc_property_center_angle(1,PSR,P); Arc(PSR)&Angle(RPS)&IsCentreOfCircle(P,P); ["Equal(MeasureOfArc(PSR),MeasureOfAngle(RPS))"]
+
 2; diameter_of_circle_property_length_equal(1,TR,P); IsDiameterOfCircle(TR,P); ["Equal(LengthOfLine(TR),DiameterOfCircle(P))"]
 3; circle_property_length_of_radius_and_diameter(1,P); Circle(P); ["Equal(DiameterOfCircle(P),Mul(RadiusOfCircle(P),2))"]
 4; arc_length_formula(1,PSR); Arc(PSR); ["Equal(LengthOfArc(PSR),Mul(MeasureOfArc(PSR),1/180*pi,RadiusOfCircle(P)))"]
+***MODEL_RESPONSE_END***

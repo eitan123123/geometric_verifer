@@ -90,6 +90,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_gk-ll_gh
 ll_hk-ll_kj
@@ -103,9 +106,11 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; isosceles_triangle_judgment_line_equal(1,GHK); Polygon(GHK)&Equal(LengthOfLine(GH),LengthOfLine(GK)); ["IsoscelesTriangle(GHK)"]
+
 2; isosceles_triangle_property_angle_equal(1,GHK); IsoscelesTriangle(GHK); ["Equal(MeasureOfAngle(GHK),MeasureOfAngle(HKG))"]
 3; triangle_property_angle_sum(1,GHK); Polygon(GHK); ["Equal(Add(MeasureOfAngle(GHK),MeasureOfAngle(HKG),MeasureOfAngle(KGH)),180)"]
 4; adjacent_complementary_angle(1,GKH,HKJ); Collinear(GKJ)&Angle(GKH)&Angle(HKJ); ["Equal(Add(MeasureOfAngle(GKH),MeasureOfAngle(HKJ)),180)"]
 5; isosceles_triangle_judgment_line_equal(1,KJH); Polygon(KJH)&Equal(LengthOfLine(KH),LengthOfLine(KJ)); ["IsoscelesTriangle(KJH)"]
 6; isosceles_triangle_property_angle_equal(1,KJH); IsoscelesTriangle(KJH); ["Equal(MeasureOfAngle(KJH),MeasureOfAngle(JHK))"]
 7; triangle_property_angle_sum(1,KJH); Polygon(KJH); ["Equal(Add(MeasureOfAngle(KJH),MeasureOfAngle(JHK),MeasureOfAngle(HKJ)),180)"]
+***MODEL_RESPONSE_END***

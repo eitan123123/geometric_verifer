@@ -93,6 +93,9 @@ LengthOfLine(NM);ll_mn;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-10
 ll_ac-ll_co
@@ -103,6 +106,8 @@ ANSWER:
 5
 THEOREM_SEQUENCE:
 1; line_addition(1,AC,CO); Collinear(ACO); ["Equal(LengthOfLine(AO),Add(LengthOfLine(AC),LengthOfLine(CO)))"]
+
 2; line_addition(1,OD,DB); Collinear(ODB); ["Equal(LengthOfLine(OB),Add(LengthOfLine(OD),LengthOfLine(DB)))"]
 3; line_addition(1,AO,OB); Collinear(AOB); ["Equal(LengthOfLine(AB),Add(LengthOfLine(AO),LengthOfLine(OB)))"]
 4; line_addition(1,CO,OD); Collinear(COD); ["Equal(LengthOfLine(CD),Add(LengthOfLine(CO),LengthOfLine(OD)))"]
+***MODEL_RESPONSE_END***

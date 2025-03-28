@@ -142,6 +142,9 @@ LengthOfLine(VX);ll_xv;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=8
 ll_op=2
@@ -152,9 +155,11 @@ ANSWER:
 4*sqrt(3)
 THEOREM_SEQUENCE:
 1;line_addition(1,AO,OB);Collinear(AOB);["Equal(LengthOfLine(AB),Add(LengthOfLine(AO),LengthOfLine(OB)))"]
+
 2;line_addition(1,CP,PB);Collinear(CPB);["Equal(LengthOfLine(CB),Add(LengthOfLine(CP),LengthOfLine(PB)))"]
 3;radius_of_circle_property_length_equal(1,OA,O);Cocircular(O,A)&Line(OA)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OA),RadiusOfCircle(O))"]
 4;radius_of_circle_property_length_equal(1,OB,O);Cocircular(O,B)&Line(OB)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OB),RadiusOfCircle(O))"]
 5;circle_property_chord_perpendicular_bisect_chord(1,O,OP,BC);Cocircular(O,BC)&Collinear(BPC)&IsCentreOfCircle(O,O)&Equal(MeasureOfAngle(BPO),90);["IsPerpendicularBisectorOfLine(OP,BC)"]
 6;right_triangle_judgment_angle(1,BPO);Polygon(BPO)&Equal(MeasureOfAngle(BPO),90);["RightTriangle(BPO)"]
 7;right_triangle_property_pythagorean(1,BPO);RightTriangle(BPO);["Equal(Add(Pow(LengthOfLine(BP),2),Pow(LengthOfLine(PO),2)),Pow(LengthOfLine(BO),2))"]
+***MODEL_RESPONSE_END***

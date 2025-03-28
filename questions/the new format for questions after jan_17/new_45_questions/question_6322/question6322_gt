@@ -94,6 +94,9 @@ MeasureOfAngle(BCD);ma_bcd;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ac-3
 ma_dab-120
@@ -107,9 +110,11 @@ ANSWER:
 12
 THEOREM_SEQUENCE:
 1;parallel_property_alternate_interior_angle(1,AD,BC);ParallelBetweenLine(AD,BC)&Line(AC);["Equal(MeasureOfAngle(DAC),MeasureOfAngle(BCA))"]
+
 2;isosceles_triangle_judgment_line_equal(1,BCA);Polygon(BCA)&Equal(LengthOfLine(BC),LengthOfLine(BA));["IsoscelesTriangle(BCA)"]
 3;isosceles_triangle_property_angle_equal(1,BCA);IsoscelesTriangle(BCA);["Equal(MeasureOfAngle(BCA),MeasureOfAngle(CAB))"]
 4;angle_addition(1,DAC,CAB);Angle(DAC)&Angle(CAB)&Angle(DAB);["Equal(MeasureOfAngle(DAB),Add(MeasureOfAngle(DAC),MeasureOfAngle(CAB)))"]
 5;triangle_property_angle_sum(1,ABC);Polygon(ABC);["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCA),MeasureOfAngle(CAB)),180)"]
 6;isosceles_triangle_judgment_angle_equal(1,CAB);Polygon(CAB)&Equal(MeasureOfAngle(CAB),MeasureOfAngle(ABC));["IsoscelesTriangle(CAB)"]
 7;quadrilateral_perimeter_formula(1,ABCD);Polygon(ABCD);["Equal(Add(LengthOfLine(AB),LengthOfLine(BC),LengthOfLine(CD),LengthOfLine(DA)),PerimeterOfQuadrilateral(ABCD))"]
+***MODEL_RESPONSE_END***

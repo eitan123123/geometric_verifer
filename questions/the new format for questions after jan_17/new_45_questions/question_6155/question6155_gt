@@ -396,6 +396,9 @@ MeasureOfAngle(DCB);ma_dcb;None
 MeasureOfAngle(ECB);ma_dcb;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_cab-35
 GOAL_SYMBOL:
@@ -404,6 +407,8 @@ ANSWER:
 55
 THEOREM_SEQUENCE:
 1;diameter_of_circle_property_right_angle(1,BCA,O);IsDiameterOfCircle(AB,O)&Cocircular(O,BCA)&Angle(BCA);["PerpendicularBetweenLine(BC,AC)"]
+
 2;triangle_property_angle_sum(1,CAB);Polygon(CAB);["Equal(Add(MeasureOfAngle(CAB),MeasureOfAngle(ABC),MeasureOfAngle(BCA)),180)"]
 3;arc_property_circumference_angle_external(1,OCA,D);Cocircular(O,CAD)&Angle(ADC);["Equal(MeasureOfAngle(ADC),Mul(MeasureOfArc(OCA),1/2))"]
 4;arc_property_circumference_angle_external(1,OCA,B);Cocircular(O,CAB)&Angle(ABC);["Equal(MeasureOfAngle(ABC),Mul(MeasureOfArc(OCA),1/2))"]
+***MODEL_RESPONSE_END***

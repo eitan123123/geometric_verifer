@@ -136,6 +136,9 @@ LengthOfLine(OD);ll_od;None
 LengthOfLine(DO);ll_od;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-8
 ll_oa-5
@@ -146,6 +149,7 @@ ANSWER:
 2
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,ACO,OCB);Collinear(ACB)&Angle(ACO)&Angle(OCB);["Equal(Add(MeasureOfAngle(ACO),MeasureOfAngle(OCB)),180)"]
+
 2;circle_property_chord_perpendicular_bisect_chord(1,O,OC,AB);Cocircular(O,AB)&Collinear(ACB)&IsCentreOfCircle(O,O)&Equal(MeasureOfAngle(ACO),90);["IsPerpendicularBisectorOfLine(OC,AB)"]
 3;radius_of_circle_property_length_equal(1,OA,O);Cocircular(O,A)&Line(OA)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OA),RadiusOfCircle(O))"]
 4;radius_of_circle_property_length_equal(1,OD,O);Cocircular(O,D)&Line(OD)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OD),RadiusOfCircle(O))"]
@@ -153,3 +157,4 @@ THEOREM_SEQUENCE:
 6;line_addition(1,OC,CD);Collinear(OCD);["Equal(LengthOfLine(OD),Add(LengthOfLine(OC),LengthOfLine(CD)))"]
 7;right_triangle_judgment_angle(1,ACO);Polygon(ACO)&Equal(MeasureOfAngle(ACO),90);["RightTriangle(ACO)"]
 8;right_triangle_property_pythagorean(1,ACO);RightTriangle(ACO);["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CO),2)),Pow(LengthOfLine(AO),2))"]
+***MODEL_RESPONSE_END***

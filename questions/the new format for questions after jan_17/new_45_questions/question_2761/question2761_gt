@@ -97,6 +97,9 @@ MeasureOfAngle(CAD);ma_cad;90
 MeasureOfAngle(DCB);ma_dcb;90
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_jm-5
 ll_km-20
@@ -111,6 +114,7 @@ ANSWER:
 5*sqrt(5)
 THEOREM_SEQUENCE:
 1;line_addition(1,KM,MJ);Collinear(KMJ);["Equal(LengthOfLine(KJ),Add(LengthOfLine(KM),LengthOfLine(MJ)))"]
+
 2;adjacent_complementary_angle(1,KML,LMJ);Collinear(KMJ)&Angle(KML)&Angle(LMJ);["Equal(Add(MeasureOfAngle(KML),MeasureOfAngle(LMJ)),180)"]
 3;right_triangle_judgment_angle(1,KML);Polygon(KML)&Equal(MeasureOfAngle(KML),90);["RightTriangle(KML)"]
 4;right_triangle_judgment_angle(1,LMJ);Polygon(LMJ)&Equal(MeasureOfAngle(LMJ),90);["RightTriangle(LMJ)"]
@@ -118,3 +122,4 @@ THEOREM_SEQUENCE:
 6;right_triangle_property_pythagorean(1,KML);RightTriangle(KML);["Equal(Add(Pow(LengthOfLine(KM),2),Pow(LengthOfLine(ML),2)),Pow(LengthOfLine(KL),2))"]
 7;right_triangle_property_pythagorean(1,LMJ);RightTriangle(LMJ);["Equal(Add(Pow(LengthOfLine(LM),2),Pow(LengthOfLine(MJ),2)),Pow(LengthOfLine(LJ),2))"]
 8;right_triangle_property_pythagorean(1,JLK);RightTriangle(JLK);["Equal(Add(Pow(LengthOfLine(JL),2),Pow(LengthOfLine(LK),2)),Pow(LengthOfLine(JK),2))"]
+***MODEL_RESPONSE_END***

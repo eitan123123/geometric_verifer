@@ -46,6 +46,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-21
 ll_ac-16
@@ -59,3 +62,5 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; cosine_theorem(1,BAC); Polygon(BAC); ["Equal(Add(Pow(LengthOfLine(AC),2),Mul(2,LengthOfLine(BA),LengthOfLine(BC),Cos(MeasureOfAngle(CBA)))),Add(Pow(LengthOfLine(BA),2),Pow(LengthOfLine(BC),2)))"]
+***MODEL_RESPONSE_END***
+

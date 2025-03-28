@@ -78,6 +78,9 @@ MeasureOfAngle(JFG);ma_jfg;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_ybx=106
 GOAL_SYMBOL:
@@ -86,5 +89,7 @@ ANSWER:
 74
 THEOREM_SEQUENCE:
 1;tangent_of_circle_property_perpendicular(1,WX,B,B);IsTangentOfCircle(WX,B)&Angle(BXW)&IsCentreOfCircle(B,B);["PerpendicularBetweenLine(BX,WX)"]
+
 2;tangent_of_circle_property_perpendicular(2,WY,B,B);IsTangentOfCircle(WY,B)&Angle(WYB)&IsCentreOfCircle(B,B);["PerpendicularBetweenLine(WY,BY)"]
 3;quadrilateral_property_angle_sum(1,WYBX);Polygon(WYBX);["Equal(Add(MeasureOfAngle(WYB),MeasureOfAngle(YBX),MeasureOfAngle(BXW),MeasureOfAngle(XWY)),360)"]
+***MODEL_RESPONSE_END***

@@ -403,6 +403,9 @@ LengthOfLine(DE);ll_de;None
 LengthOfLine(ED);ll_de;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ad/ll_ae=4
 ll_bd-ll_dc
@@ -412,6 +415,7 @@ ANSWER:
 1/7
 THEOREM_SEQUENCE:
 1;midsegment_of_triangle_judgment_parallel(2,HD,CFB);Polygon(CFB)&Collinear(CHF)&Collinear(CDB)&Line(HD)&ParallelBetweenLine(HD,FB)&Equal(LengthOfLine(CD),LengthOfLine(BD));["IsMidsegmentOfTriangle(HD,CFB)"]
+
 2;parallel_property_collinear_extend(3,BF,DH,E);ParallelBetweenLine(BF,DH)&Collinear(BEF);["ParallelBetweenLine(BE,DH)", "ParallelBetweenLine(EF,DH)"]
 3;parallel_property_corresponding_angle(1,EF,DH,A);ParallelBetweenLine(EF,DH)&Collinear(AED);["Equal(MeasureOfAngle(AEF),MeasureOfAngle(EDH))"]
 4;parallel_property_corresponding_angle(2,HD,FB,A);ParallelBetweenLine(HD,FB)&Collinear(HFA);["Equal(MeasureOfAngle(DHF),MeasureOfAngle(BFA))"]
@@ -420,3 +424,4 @@ THEOREM_SEQUENCE:
 7;similar_triangle_property_line_ratio(1,HAD,FAE);SimilarBetweenTriangle(HAD,FAE);["Equal(LengthOfLine(AD),Mul(LengthOfLine(AE),RatioOfSimilarTriangle(HAD,FAE)))"]
 8;line_addition(1,AF,FH);Collinear(AFH);["Equal(LengthOfLine(AH),Add(LengthOfLine(AF),LengthOfLine(FH)))"]
 9;line_addition(1,AH,HC);Collinear(AHC);["Equal(LengthOfLine(AC),Add(LengthOfLine(AH),LengthOfLine(HC)))"]
+***MODEL_RESPONSE_END***

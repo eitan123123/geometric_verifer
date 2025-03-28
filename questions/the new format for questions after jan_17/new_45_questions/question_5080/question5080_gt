@@ -103,6 +103,9 @@ LengthOfLine(BC);ll_bc;None
 LengthOfLine(CB);ll_bc;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 -4/9+ll_oe/ll_eg
 ll_of-12
@@ -112,7 +115,9 @@ ANSWER:
 39
 THEOREM_SEQUENCE:
 1;parallel_property_corresponding_angle(1,EF,GH,O);ParallelBetweenLine(EF,GH)&Collinear(OEG);["Equal(MeasureOfAngle(OEF),MeasureOfAngle(EGH))"]
+
 2;similar_triangle_judgment_aa(1,FOE,HOG);Polygon(FOE)&Polygon(HOG)&Equal(MeasureOfAngle(FOE),MeasureOfAngle(HOG))&Equal(MeasureOfAngle(OEF),MeasureOfAngle(OGH));["SimilarBetweenTriangle(FOE,HOG)"]
 3;line_addition(1,OE,EG);Collinear(OEG);["Equal(LengthOfLine(OG),Add(LengthOfLine(OE),LengthOfLine(EG)))"]
 4;similar_triangle_property_line_ratio(1,FOE,HOG);SimilarBetweenTriangle(FOE,HOG);["Equal(LengthOfLine(OE),Mul(LengthOfLine(OG),RatioOfSimilarTriangle(FOE,HOG)))"]
 5;similar_triangle_property_line_ratio(1,EFO,GHO);SimilarBetweenTriangle(EFO,GHO);["Equal(LengthOfLine(FO),Mul(LengthOfLine(HO),RatioOfSimilarTriangle(EFO,GHO)))"]
+***MODEL_RESPONSE_END***

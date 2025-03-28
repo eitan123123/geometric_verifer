@@ -254,6 +254,9 @@ AreaOfTriangle(BEA);at_abe;None
 AreaOfTriangle(EAB);at_abe;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=8
 ll_mn=3
@@ -266,9 +269,11 @@ ANSWER:
 14
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,BNA,AND);Collinear(BND)&Angle(BNA)&Angle(AND);["Equal(Add(MeasureOfAngle(BNA),MeasureOfAngle(AND)),180)"]
+
 2;mirror_congruent_triangle_judgment_aas(2,BNA,DAN);Polygon(BNA)&Polygon(DAN)&Equal(MeasureOfAngle(BNA),MeasureOfAngle(AND))&Equal(MeasureOfAngle(NAB),MeasureOfAngle(DAN))&Equal(LengthOfLine(NA),LengthOfLine(AN));["MirrorCongruentBetweenTriangle(BNA,DAN)"]
 3;mirror_congruent_triangle_property_line_equal(1,NAB,NDA);MirrorCongruentBetweenTriangle(NAB,NDA);["Equal(LengthOfLine(AB),LengthOfLine(DA))"]
 4;mirror_congruent_triangle_property_line_equal(1,ABN,AND);MirrorCongruentBetweenTriangle(ABN,AND);["Equal(LengthOfLine(BN),LengthOfLine(ND))"]
 5;midsegment_of_triangle_judgment_midpoint(1,MN,BCD);Polygon(BCD)&Collinear(BMC)&Collinear(BND)&Line(MN)&Equal(LengthOfLine(BM),LengthOfLine(CM))&Equal(LengthOfLine(BN),LengthOfLine(DN));["IsMidsegmentOfTriangle(MN,BCD)"]
 6;midsegment_of_triangle_property_length(1,MN,BCD);IsMidsegmentOfTriangle(MN,BCD);["Equal(LengthOfLine(MN),Mul(LengthOfLine(CD),1/2))"]
 7;line_addition(1,AD,DC);Collinear(ADC);["Equal(LengthOfLine(AC),Add(LengthOfLine(AD),LengthOfLine(DC)))"]
+***MODEL_RESPONSE_END***

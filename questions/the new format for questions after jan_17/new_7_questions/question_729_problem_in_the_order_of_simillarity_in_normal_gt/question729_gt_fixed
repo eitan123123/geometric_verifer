@@ -88,6 +88,9 @@ LengthOfLine(DA);ll_ad;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_fh=12
 ll_gh=12
@@ -102,9 +105,11 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1;mirror_similar_triangle_judgment_aa(1,EGH,FEG);Polygon(EGH)&Polygon(FEG)&Equal(MeasureOfAngle(EGH),MeasureOfAngle(EGF))&Equal(MeasureOfAngle(GHE),MeasureOfAngle(FEG));["MirrorSimilarBetweenTriangle(EGH,FEG)"]
+
 2;line_addition(1,FH,HG);Collinear(FHG);["Equal(LengthOfLine(FG),Add(LengthOfLine(FH),LengthOfLine(HG)))"]
 3;right_triangle_judgment_angle(1,GHE);Polygon(GHE)&Equal(MeasureOfAngle(GHE),90);["RightTriangle(GHE)"]
 4;right_triangle_property_pythagorean(1,GHE);RightTriangle(GHE);["Equal(Add(Pow(LengthOfLine(GH),2),Pow(LengthOfLine(HE),2)),Pow(LengthOfLine(GE),2))"]
 5;mirror_similar_triangle_property_line_ratio(1,EGH,FEG);MirrorSimilarBetweenTriangle(EGH,FEG);["Equal(LengthOfLine(GH),Mul(LengthOfLine(EG),RatioOfMirrorSimilarTriangle(EGH,FEG)))"]
 6;mirror_similar_triangle_property_line_ratio(1,HEG,EGF);MirrorSimilarBetweenTriangle(HEG,GFE);["Equal(LengthOfLine(EG),Mul(LengthOfLine(GF),RatioOfMirrorSimilarTriangle(HEG,GFE)))"]
+***MODEL_RESPONSE_END***
 

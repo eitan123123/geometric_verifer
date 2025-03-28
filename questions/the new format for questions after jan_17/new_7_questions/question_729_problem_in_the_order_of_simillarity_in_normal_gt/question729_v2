@@ -88,6 +88,9 @@ LengthOfLine(DA);ll_ad;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_fh=12
 ll_gh=12
@@ -102,7 +105,9 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; line_addition(FH,HG); Collinear(FHG); ["Equal(LengthOfLine(FG),Add(LengthOfLine(FH),LengthOfLine(HG)))"]
+
 2; right_triangle_judgment_angle(FEG); Polygon(FEG)&Equal(MeasureOfAngle(FEG),90); ["RightTriangle(FEG)"]
 3; right_triangle_property_pythagorean(FEG); RightTriangle(FEG); ["Equal(Add(Pow(LengthOfLine(FE),2),Pow(LengthOfLine(EG),2)),Pow(LengthOfLine(FG),2))"]
 4; right_triangle_judgment_angle(GHE); Polygon(GHE)&Equal(MeasureOfAngle(GHE),90); ["RightTriangle(GHE)"]
 5; right_triangle_property_pythagorean(GHE); RightTriangle(GHE); ["Equal(Add(Pow(LengthOfLine(GH),2),Pow(LengthOfLine(EH),2)),Pow(LengthOfLine(GE),2))"]
+***MODEL_RESPONSE_END***

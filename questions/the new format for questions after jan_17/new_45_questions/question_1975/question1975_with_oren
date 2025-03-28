@@ -154,6 +154,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_cba-36
 ma_cde-57
@@ -165,3 +168,5 @@ ANSWER:
 95
 THEOREM_SEQUENCE:
 1; triangle_property_angle_sum(1,ECD); Polygon(ECD); ["Equal(Add(MeasureOfAngle(ECD),MeasureOfAngle(CDE),MeasureOfAngle(DEC)),180)"]
+***MODEL_RESPONSE_END***
+

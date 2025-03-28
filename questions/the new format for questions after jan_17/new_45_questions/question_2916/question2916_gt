@@ -64,6 +64,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abe=70
 GOAL_SYMBOL:
@@ -72,4 +75,6 @@ ANSWER:
 110
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,CBA,ABE);Collinear(CBE)&Angle(CBA)&Angle(ABE);["Equal(Add(MeasureOfAngle(CBA),MeasureOfAngle(ABE)),180)"]
+
 2;parallel_property_alternate_interior_angle(2,AB,CD);ParallelBetweenLine(AB,CD)&Line(BC);["Equal(MeasureOfAngle(CBA),MeasureOfAngle(BCD))"]
+***MODEL_RESPONSE_END***

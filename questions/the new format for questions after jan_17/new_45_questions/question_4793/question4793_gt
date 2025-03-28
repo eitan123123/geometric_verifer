@@ -196,6 +196,9 @@ LengthOfLine(DA);ll_ad;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abo-20
 GOAL_SYMBOL:
@@ -204,6 +207,7 @@ ANSWER:
 50
 THEOREM_SEQUENCE:
 1;radius_of_circle_property_length_equal(1,OA,O);Cocircular(O,A)&Line(OA)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OA),RadiusOfCircle(O))"]
+
 2;radius_of_circle_property_length_equal(1,OB,O);Cocircular(O,B)&Line(OB)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OB),RadiusOfCircle(O))"]
 3;isosceles_triangle_judgment_line_equal(1,OAB);Polygon(OAB)&Equal(LengthOfLine(OA),LengthOfLine(OB));["IsoscelesTriangle(OAB)"]
 4;isosceles_triangle_property_angle_equal(1,OAB);IsoscelesTriangle(OAB);["Equal(MeasureOfAngle(OAB),MeasureOfAngle(ABO))"]
@@ -211,3 +215,4 @@ THEOREM_SEQUENCE:
 6;triangle_property_angle_sum(1,CAO);Polygon(CAO);["Equal(Add(MeasureOfAngle(CAO),MeasureOfAngle(AOC),MeasureOfAngle(OCA)),180)"]
 7;tangent_of_circle_property_perpendicular(2,CA,O,O);IsTangentOfCircle(CA,O)&Angle(CAO)&IsCentreOfCircle(O,O);["PerpendicularBetweenLine(CA,OA)"]
 8;adjacent_complementary_angle(1,BOA,AOD);Collinear(BOD)&Angle(BOA)&Angle(AOD);["Equal(Add(MeasureOfAngle(BOA),MeasureOfAngle(AOD)),180)"]
+***MODEL_RESPONSE_END***

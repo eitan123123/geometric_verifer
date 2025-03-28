@@ -234,6 +234,9 @@ PerimeterOfTriangle(BOA);pt_oab;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-5
 pt_ocd-23
@@ -243,8 +246,10 @@ ANSWER:
 36
 THEOREM_SEQUENCE:
 1;line_addition(1,AO,OC);Collinear(AOC);["Equal(LengthOfLine(AC),Add(LengthOfLine(AO),LengthOfLine(OC)))"]
+
 2;line_addition(1,BO,OD);Collinear(BOD);["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
 3;parallelogram_property_opposite_line_equal(1,ABCD);Parallelogram(ABCD);["Equal(LengthOfLine(BA),LengthOfLine(CD))"]
 4;triangle_perimeter_formula(1,DOC);Polygon(DOC);["Equal(PerimeterOfTriangle(DOC),Add(LengthOfLine(DO),LengthOfLine(OC),LengthOfLine(CD)))"]
 5;parallelogram_property_diagonal_bisection(1,ABCD,O);Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD);["IsMidpointOfLine(O,AC)"]
 6;parallelogram_property_diagonal_bisection(1,BCDA,O);Parallelogram(BCDA)&Collinear(BOD)&Collinear(COA);["IsMidpointOfLine(O,BD)"]
+***MODEL_RESPONSE_END***

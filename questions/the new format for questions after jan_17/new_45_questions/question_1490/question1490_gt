@@ -245,6 +245,9 @@ MeasureOfAngle(FAD);ma_fad;49
 MeasureOfAngle(CAD);ma_fad;49
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=3*y+8
 ll_ad=13
@@ -259,3 +262,4 @@ ANSWER:
 131
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,AFB,BFC);Collinear(AFC)&Angle(AFB)&Angle(BFC);["Equal(Add(MeasureOfAngle(AFB),MeasureOfAngle(BFC)),180)"]
+***MODEL_RESPONSE_END***

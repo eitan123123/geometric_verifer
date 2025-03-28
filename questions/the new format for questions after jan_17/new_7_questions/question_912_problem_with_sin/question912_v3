@@ -118,6 +118,9 @@ MeasureOfAngle(OMA);ma_bma;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ac=12
 ma_dbc=45
@@ -130,4 +133,6 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; triangle_area_formula_common(CAB); Polygon(CAB); ["Equal(AreaOfTriangle(CAB),Mul(HeightOfTriangle(CAB),LengthOfLine(BC),1/2))"]
+
 2; circle_area_formula(D); Circle(D); ["Equal(AreaOfCircle(D),Mul(pi,RadiusOfCircle(D),RadiusOfCircle(D)))"]
+***MODEL_RESPONSE_END***

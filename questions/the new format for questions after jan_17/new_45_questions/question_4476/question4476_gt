@@ -168,6 +168,9 @@ MeasureOfAngle(CBA);ma_cba;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_dab-100
 GOAL_SYMBOL:
@@ -176,5 +179,7 @@ ANSWER:
 100
 THEOREM_SEQUENCE:
 1;arc_property_circumference_angle_external(1,OBD,A);Cocircular(O,BDA)&Angle(DAB);["Equal(MeasureOfAngle(DAB),Mul(MeasureOfArc(OBD),1/2))"]
+
 2;arc_property_circumference_angle_internal(1,OBD,C);Cocircular(O,BCD)&Angle(BCD);["Equal(MeasureOfAngle(BCD),Sub(180,Mul(MeasureOfArc(OBD),1/2)))"]
 3;adjacent_complementary_angle(1,BCD,DCE);Collinear(BCE)&Angle(BCD)&Angle(DCE);["Equal(Add(MeasureOfAngle(BCD),MeasureOfAngle(DCE)),180)"]
+***MODEL_RESPONSE_END***

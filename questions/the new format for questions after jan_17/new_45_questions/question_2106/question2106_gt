@@ -98,6 +98,9 @@ MeasureOfAngle(CAB);ma_cab;90
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-25
 ll_ac-z
@@ -112,6 +115,7 @@ ANSWER:
 10*sqrt(2)
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,BAC,CAD);Collinear(BAD)&Angle(BAC)&Angle(CAD);["Equal(Add(MeasureOfAngle(BAC),MeasureOfAngle(CAD)),180)"]
+
 2;right_triangle_judgment_angle(1,BAC);Polygon(BAC)&Equal(MeasureOfAngle(BAC),90);["RightTriangle(BAC)"]
 3;right_triangle_judgment_angle(1,CAD);Polygon(CAD)&Equal(MeasureOfAngle(CAD),90);["RightTriangle(CAD)"]
 4;right_triangle_judgment_angle(1,DCB);Polygon(DCB)&Equal(MeasureOfAngle(DCB),90);["RightTriangle(DCB)"]
@@ -119,3 +123,4 @@ THEOREM_SEQUENCE:
 6;right_triangle_property_pythagorean(1,CAD);RightTriangle(CAD);["Equal(Add(Pow(LengthOfLine(CA),2),Pow(LengthOfLine(AD),2)),Pow(LengthOfLine(CD),2))"]
 7;right_triangle_property_pythagorean(1,DCB);RightTriangle(DCB);["Equal(Add(Pow(LengthOfLine(DC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(DB),2))"]
 8;line_addition(1,DA,AB);Collinear(DAB);["Equal(LengthOfLine(DB),Add(LengthOfLine(DA),LengthOfLine(AB)))"]
+***MODEL_RESPONSE_END***

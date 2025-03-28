@@ -101,6 +101,9 @@ AreaOfQuadrilateral(CIBA);aq_ibac;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=17
 ll_ce=9
@@ -112,8 +115,10 @@ ANSWER:
 153
 THEOREM_SEQUENCE:
 1;triangle_property_angle_sum(1,ACE);Polygon(ACE);["Equal(Add(MeasureOfAngle(ACE),MeasureOfAngle(CEA),MeasureOfAngle(EAC)),180)"]
+
 2;sine_theorem(1,EAC);Polygon(EAC);["Equal(Mul(LengthOfLine(EA),Sin(MeasureOfAngle(EAC))),Mul(LengthOfLine(EC),Sin(MeasureOfAngle(ACE))))"]
 3;adjacent_complementary_angle(1,CEA,AED);Collinear(CED)&Angle(CEA)&Angle(AED);["Equal(Add(MeasureOfAngle(CEA),MeasureOfAngle(AED)),180)"]
 4;altitude_of_quadrilateral_judgment_left_vertex(1,AE,ACDB);(Parallelogram(ACDB)|Trapezoid(ACDB))&Line(AE)&Collinear(CED)&Equal(MeasureOfAngle(CEA),90);["IsAltitudeOfQuadrilateral(AE,ACDB)"]
 5;parallelogram_property_opposite_line_equal(1,CDBA);Parallelogram(CDBA);["Equal(LengthOfLine(DC),LengthOfLine(BA))"]
 6;parallelogram_area_formula_common(1,ACDB);Parallelogram(ACDB);["Equal(AreaOfQuadrilateral(ACDB),Mul(HeightOfQuadrilateral(ACDB),LengthOfLine(CD)))"]
+***MODEL_RESPONSE_END***

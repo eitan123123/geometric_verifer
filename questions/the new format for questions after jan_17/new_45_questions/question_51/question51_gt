@@ -234,6 +234,9 @@ MeasureOfAngle(EZK);ma_xzk;None
 MeasureOfAngle(XZK);ma_xzk;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 -3*a+ma_lwx-40
 -2*a+ma_wxe-25
@@ -244,3 +247,4 @@ ANSWER:
 23
 THEOREM_SEQUENCE:
 1;parallel_property_ipsilateral_internal_angle(1,WL,XE);ParallelBetweenLine(WL,XE)&Line(WX);["Equal(Add(MeasureOfAngle(LWX),MeasureOfAngle(WXE)),180)"]
+***MODEL_RESPONSE_END***

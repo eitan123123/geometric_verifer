@@ -105,6 +105,9 @@ PerimeterOfTriangle(COB);pt_obc;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=6
 ll_ae=9
@@ -119,5 +122,7 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; line_addition(AB,BC); Collinear(ABC); ["Equal(LengthOfLine(AC),Add(LengthOfLine(AB),LengthOfLine(BC)))"]
+
 2; line_addition(AE,ED); Collinear(AED); ["Equal(LengthOfLine(AD),Add(LengthOfLine(AE),LengthOfLine(ED)))"]
+***MODEL_RESPONSE_END***
 

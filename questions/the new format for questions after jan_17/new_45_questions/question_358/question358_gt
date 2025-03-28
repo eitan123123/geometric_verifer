@@ -44,6 +44,9 @@ MeasureOfAngle(ACB);ma_acb;60
 MeasureOfAngle(BAC);ma_bac;90
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 -h+ll_ba
 ll_ca=3
@@ -55,4 +58,6 @@ ANSWER:
 3*sqrt(2)
 THEOREM_SEQUENCE:
 1;triangle_property_angle_sum(1,ACB);Polygon(ACB);["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+
 2;sine_theorem(1,ACB);Polygon(ACB);["Equal(Mul(LengthOfLine(AC),Sin(MeasureOfAngle(ACB))),Mul(LengthOfLine(AB),Sin(MeasureOfAngle(CBA))))"]
+***MODEL_RESPONSE_END***

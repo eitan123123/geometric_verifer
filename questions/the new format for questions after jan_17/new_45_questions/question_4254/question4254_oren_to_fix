@@ -276,6 +276,9 @@ MeasureOfAngle(JHG);ma_jhg;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_apd-80
 ma_dap-55
@@ -288,3 +291,4 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; triangle_property_angle_sum(1,APD); Polygon(APD); ["Equal(Add(MeasureOfAngle(APD),MeasureOfAngle(PDA),MeasureOfAngle(DAP)),180)"]
+***MODEL_RESPONSE_END***

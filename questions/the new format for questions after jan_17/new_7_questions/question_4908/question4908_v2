@@ -140,6 +140,9 @@ MeasureOfAngle(ACB);ma_acb;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_nbm=60
 
@@ -151,7 +154,9 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; tangent_of_circle_property_perpendicular(2,AM,O,O); IsTangentOfCircle(AM,O)&Angle(AMO)&IsCentreOfCircle(O,O); ["PerpendicularBetweenLine(AM,OM)"]
+
 2; tangent_of_circle_property_perpendicular(2,AN,O,O); IsTangentOfCircle(AN,O)&Angle(ANO)&IsCentreOfCircle(O,O); ["PerpendicularBetweenLine(AN,ON)"]
 3; arc_property_circumference_angle_external(1,OMN,B); Cocircular(O,BMN)&Angle(NBM); ["Equal(MeasureOfAngle(NBM),Mul(MeasureOfArc(OMN),1/2))"]
 4; arc_property_center_angle(1,OMN,O); Arc(OMN)&Angle(MON)&IsCentreOfCircle(O,O); ["Equal(MeasureOfArc(OMN),MeasureOfAngle(MON))"]
 5; quadrilateral_property_angle_sum(1,OMAN); Polygon(OMAN); ["Equal(Add(MeasureOfAngle(OMA),MeasureOfAngle(MAN),MeasureOfAngle(ANO),MeasureOfAngle(NOM)),360)"]
+***MODEL_RESPONSE_END***

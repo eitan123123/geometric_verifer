@@ -134,6 +134,9 @@ MeasureOfAngle(BCA);ma_bca;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_cab-72
 GOAL_SYMBOL:
@@ -142,9 +145,11 @@ ANSWER:
 18
 THEOREM_SEQUENCE:
 1;arc_property_circumference_angle_external(1,OBC,A);Cocircular(O,BCA)&Angle(CAB);["Equal(MeasureOfAngle(CAB),Mul(MeasureOfArc(OBC),1/2))"]
+
 2;arc_property_center_angle(1,OBC,O);Arc(OBC)&Angle(COB)&IsCentreOfCircle(O,O);["Equal(MeasureOfArc(OBC),MeasureOfAngle(COB))"]
 3;radius_of_circle_property_length_equal(1,OB,O);Cocircular(O,B)&Line(OB)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OB),RadiusOfCircle(O))"]
 4;radius_of_circle_property_length_equal(1,OC,O);Cocircular(O,C)&Line(OC)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OC),RadiusOfCircle(O))"]
 5;isosceles_triangle_judgment_line_equal(1,OBC);Polygon(OBC)&Equal(LengthOfLine(OB),LengthOfLine(OC));["IsoscelesTriangle(OBC)"]
 6;isosceles_triangle_property_angle_equal(1,OBC);IsoscelesTriangle(OBC);["Equal(MeasureOfAngle(OBC),MeasureOfAngle(BCO))"]
 7;triangle_property_angle_sum(1,OBC);Polygon(OBC);["Equal(Add(MeasureOfAngle(OBC),MeasureOfAngle(BCO),MeasureOfAngle(COB)),180)"]
+***MODEL_RESPONSE_END***

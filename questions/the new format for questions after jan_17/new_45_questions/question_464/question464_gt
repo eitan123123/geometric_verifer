@@ -255,6 +255,9 @@ MeasureOfAngle(YZX);ma_yzx;None
 MeasureOfArc(ZYW);mar_zyw;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_bpy=3*x
 mar_pac=2*x=15
@@ -265,6 +268,8 @@ ANSWER:
 60
 THEOREM_SEQUENCE:
 1;arc_property_center_angle(1,PCY,P);Arc(PCY)&Angle(YPC)&IsCentreOfCircle(P,P);["Equal(MeasureOfArc(PCY),MeasureOfAngle(YPC))"]
+
 2;arc_property_center_angle(1,PAC,P);Arc(PAC)&Angle(CPA)&IsCentreOfCircle(P,P);["Equal(MeasureOfArc(PAC),MeasureOfAngle(CPA))"]
 3;angle_addition(1,BPY,YPC);Angle(BPY)&Angle(YPC)&Angle(BPC);["Equal(MeasureOfAngle(BPC),Add(MeasureOfAngle(BPY),MeasureOfAngle(YPC)))"]
 4;adjacent_complementary_angle(1,BPC,CPA);Collinear(BPA)&Angle(BPC)&Angle(CPA);["Equal(Add(MeasureOfAngle(BPC),MeasureOfAngle(CPA)),180)"]
+***MODEL_RESPONSE_END***

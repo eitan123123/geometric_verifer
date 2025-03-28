@@ -87,6 +87,9 @@ AreaOfQuadrilateral(CDAB);aq_abcd;None
 AreaOfQuadrilateral(DABC);aq_abcd;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ac=5
 ll_ad=9
@@ -98,5 +101,7 @@ ANSWER:
 45*sqrt(3)/2
 THEOREM_SEQUENCE:
 1;sine_theorem(1,DAC);Polygon(DAC);["Equal(Mul(LengthOfLine(DA),Sin(MeasureOfAngle(DAC))),Mul(LengthOfLine(DC),Sin(MeasureOfAngle(ACD))))"]
+
 2;altitude_of_quadrilateral_judgment_diagonal(1,DACB);(Parallelogram(DACB)|Trapezoid(DACB))&Line(DC)&Equal(MeasureOfAngle(ACD),90);["IsAltitudeOfQuadrilateral(DC,DACB)"]
 3;parallelogram_area_formula_common(1,DACB);Parallelogram(DACB);["Equal(AreaOfQuadrilateral(DACB),Mul(HeightOfQuadrilateral(DACB),LengthOfLine(AC)))"]
+***MODEL_RESPONSE_END***

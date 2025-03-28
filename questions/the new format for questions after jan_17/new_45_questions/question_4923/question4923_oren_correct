@@ -107,6 +107,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ba-9 ll_bd-6 ll_be-4
 
@@ -117,9 +120,11 @@ ANSWER:
 2
 
 THEOREM_SEQUENCE:
-1; line_addition(1,BD,DA); Collinear(BDA); ["Equal(LengthOfLine(BA),Add(LengthOfLine(BD),LengthOfLine(DA)))"]  
+1; line_addition(1,BD,DA); Collinear(BDA); ["Equal(LengthOfLine(BA),Add(LengthOfLine(BD),LengthOfLine(DA)))"]
+  
 2; line_addition(1,BE,EC); Collinear(BEC); ["Equal(LengthOfLine(BC),Add(LengthOfLine(BE),LengthOfLine(EC)))"]  
 3; parallel_property_corresponding_angle(1,ED,CA,B); ParallelBetweenLine(ED,CA)&Collinear(BDA); ["Equal(MeasureOfAngle(BED),MeasureOfAngle(BAC))"]  
 4; parallel_property_corresponding_angle(2,CA,ED,B); ParallelBetweenLine(CA,ED)&Collinear(BEC); ["Equal(MeasureOfAngle(BDE),MeasureOfAngle(BCA))"]  
 5; similar_triangle_judgment_aa(1,BED,BAC); Polygon(BED)&Polygon(BAC)&Equal(MeasureOfAngle(BED),MeasureOfAngle(BAC))&Equal(MeasureOfAngle(BDE),MeasureOfAngle(BCA)); ["SimilarBetweenTriangle(BED,BAC)"]  
-6; similar_triangle_property_line_ratio(1,BED,BAC); SimilarBetweenTriangle(BED,BAC); ["Equal(LengthOfLine(BD),Mul(LengthOfLine(BA),RatioOfSimilarTriangle(BED,BAC)))"]  
+6; similar_triangle_property_line_ratio(1,BED,BAC); SimilarBetweenTriangle(BED,BAC); ["Equal(LengthOfLine(BD),Mul(LengthOfLine(BA),RatioOfSimilarTriangle(BED,BAC)))"]
+***MODEL_RESPONSE_END***  

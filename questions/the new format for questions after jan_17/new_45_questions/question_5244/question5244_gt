@@ -199,6 +199,9 @@ MeasureOfAngle(QDB);ma_qdb;None
 MeasureOfAngle(PDB);ma_qdb;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_efb=122
 GOAL_SYMBOL:
@@ -207,5 +210,7 @@ ANSWER:
 58
 THEOREM_SEQUENCE:
 1;mirror_congruent_triangle_property_angle_equal(1,FBE,AEB);MirrorCongruentBetweenTriangle(FBE,AEB);["Equal(MeasureOfAngle(EFB),MeasureOfAngle(BAE))"]
+
 2;angle_addition(1,CAB,BAE);Angle(CAB)&Angle(BAE)&Angle(CAE);["Equal(MeasureOfAngle(CAE),Add(MeasureOfAngle(CAB),MeasureOfAngle(BAE)))"]
 3;adjacent_complementary_angle(1,CAE,EAD);Collinear(CAD)&Angle(CAE)&Angle(EAD);["Equal(Add(MeasureOfAngle(CAE),MeasureOfAngle(EAD)),180)"]
+***MODEL_RESPONSE_END***

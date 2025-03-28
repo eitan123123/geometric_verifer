@@ -81,6 +81,9 @@ MeasureOfAngle(CXB);ma_cxb;135
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_cbd-70 ma_dbf-x ma_fbc-65
 GOAL_SYMBOL:
@@ -89,4 +92,6 @@ ANSWER:
 225
 THEOREM_SEQUENCE:
 1; angle_addition(1,FBC,CBD); Angle(FBC)&Angle(CBD)&Angle(FBD); ["Equal(MeasureOfAngle(FBD),Add(MeasureOfAngle(FBC),MeasureOfAngle(CBD)))"]
+
 2; round_angle(1,DBF,FBD); Angle(DBF)&Angle(FBD); ["Equal(Add(MeasureOfAngle(DBF),MeasureOfAngle(FBD)),360)"]
+***MODEL_RESPONSE_END***

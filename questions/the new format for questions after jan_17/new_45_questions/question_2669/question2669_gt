@@ -154,6 +154,9 @@ LengthOfLine(FD);ll_df;2
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ae-x
 ll_be=6
@@ -165,3 +168,4 @@ ANSWER:
 2
 THEOREM_SEQUENCE:
 1;circle_property_circular_power_chord_and_chord(1,BEA,DEC,F);Cocircular(F,BA)&Cocircular(F,DC)&Collinear(BEA)&Collinear(DEC);["Equal(Mul(LengthOfLine(ED),LengthOfLine(EC)),Mul(LengthOfLine(EB),LengthOfLine(EA)))"]
+***MODEL_RESPONSE_END***

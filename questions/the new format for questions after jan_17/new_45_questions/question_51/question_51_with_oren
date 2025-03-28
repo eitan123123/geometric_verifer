@@ -237,6 +237,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 (3*a+40)+(2*a+25)-180=0
 
@@ -248,3 +251,5 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; parallel_property_ipsilateral_internal_angle(1,WL,XE); ParallelBetweenLine(WL,XE)&Line(WX); ["Equal(Add(MeasureOfAngle(LWX),MeasureOfAngle(WXE)),180)"]
+***MODEL_RESPONSE_END***
+

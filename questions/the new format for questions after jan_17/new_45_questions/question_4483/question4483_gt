@@ -210,6 +210,9 @@ MeasureOfAngle(DOB);ma_dob;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_dab-64
 GOAL_SYMBOL:
@@ -218,4 +221,6 @@ ANSWER:
 128
 THEOREM_SEQUENCE:
 1;arc_property_circumference_angle_external(1,OBD,A);Cocircular(O,BDA)&Angle(DAB);["Equal(MeasureOfAngle(DAB),Mul(MeasureOfArc(OBD),1/2))"]
+
 2;arc_property_center_angle(1,OBD,O);Arc(OBD)&Angle(DOB)&IsCentreOfCircle(O,O);["Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))"]
+***MODEL_RESPONSE_END***

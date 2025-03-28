@@ -58,6 +58,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_cb-18 ll_cd-12 ma_bad-115
 GOAL_SYMBOL:
@@ -66,3 +69,4 @@ ANSWER:
 65
 THEOREM_SEQUENCE:
 1; parallel_property_ipsilateral_internal_angle(1,AB,DC); ParallelBetweenLine(AB,DC)&Line(AD); ["Equal(Add(MeasureOfAngle(BAD),MeasureOfAngle(ADC)),180)"]
+***MODEL_RESPONSE_END***

@@ -46,6 +46,9 @@ MeasureOfAngle(DCB);ma_dcb;101
 MeasureOfAngle(ADC);ma_adc;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 -a+ma_wzy=2
 -a/2+ma_xwz=8
@@ -60,3 +63,5 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; quadrilateral_property_angle_sum(1,XWZY); Polygon(XWZY); ["Equal(Add(MeasureOfAngle(XWZ),MeasureOfAngle(WZY),MeasureOfAngle(ZYX),MeasureOfAngle(YXW)),360)"]
+***MODEL_RESPONSE_END***
+

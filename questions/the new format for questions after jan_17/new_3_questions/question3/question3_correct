@@ -59,6 +59,9 @@ MeasureOfAngle(DBE);ma_dbe;40
 MeasureOfAngle(ABC);ma_abc;90
 MeasureOfAngle(CAB);ma_cab;None
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abc=40
 ma_bca=90
@@ -69,5 +72,7 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; adjacent_complementary_angle(1, ECB, BCA); Collinear(ECA)&Angle(ECB)&Angle(BCA);["Equal(Add(MeasureOfAngle(ECB), MeasureOfAngle(BCA)), 180)"]
+
 2; parallel_property_alternate_interior_angle(1, CD, AB); ParallelBetweenLine(CD, AB)&Line(CB);["Equal(MeasureOfAngle(DCB), MeasureOfAngle(ABC))"]
 3; angle_addition(1, ECD, DCB); Angle(ECD) & Angle(DCB) & Angle(ECB); ["Equal(MeasureOfAngle(ECB), Add(MeasureOfAngle(ECD), MeasureOfAngle(DCB)))"]
+***MODEL_RESPONSE_END***

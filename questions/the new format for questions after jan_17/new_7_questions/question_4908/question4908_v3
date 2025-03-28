@@ -153,6 +153,9 @@ PerimeterOfTriangle(BDC);pt_dcb;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_nbm=60
 GOAL_SYMBOL:

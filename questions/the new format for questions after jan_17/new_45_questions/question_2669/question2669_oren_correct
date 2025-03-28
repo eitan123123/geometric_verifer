@@ -172,6 +172,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ae-x
 ll_be-6
@@ -186,3 +189,4 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; circle_property_circular_power_chord_and_chord(1,AEB,CED,F); Cocircular(F,AB)&Cocircular(F,CD)&Collinear(AEB)&Collinear(CED); ["Equal(Mul(LengthOfLine(AE),LengthOfLine(EB)),Mul(LengthOfLine(CE),LengthOfLine(ED)))"]
+***MODEL_RESPONSE_END***

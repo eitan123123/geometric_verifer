@@ -87,6 +87,9 @@ MeasureOfAngle(RTS);ma_rts;90
 HeightOfTriangle(SRQ);ht_srq;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-6
 ll_ac-4
@@ -99,9 +102,11 @@ ANSWER:
 2*sqrt(13-6*sqrt(3))+10
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,BDC,CDA);Collinear(BDA)&Angle(BDC)&Angle(CDA);["Equal(Add(MeasureOfAngle(BDC),MeasureOfAngle(CDA)),180)"]
+
 2;right_triangle_judgment_angle(1,BDC);Polygon(BDC)&Equal(MeasureOfAngle(BDC),90);["RightTriangle(BDC)"]
 3;right_triangle_judgment_angle(1,CDA);Polygon(CDA)&Equal(MeasureOfAngle(CDA),90);["RightTriangle(CDA)"]
 4;line_addition(1,BD,DA);Collinear(BDA);["Equal(LengthOfLine(BA),Add(LengthOfLine(BD),LengthOfLine(DA)))"]
 5;right_triangle_property_pythagorean(1,BDC);RightTriangle(BDC);["Equal(Add(Pow(LengthOfLine(BD),2),Pow(LengthOfLine(DC),2)),Pow(LengthOfLine(BC),2))"]
 6;right_triangle_property_pythagorean(1,CDA);RightTriangle(CDA);["Equal(Add(Pow(LengthOfLine(CD),2),Pow(LengthOfLine(DA),2)),Pow(LengthOfLine(CA),2))"]
 7;triangle_perimeter_formula(1,BAC);Polygon(BAC);["Equal(PerimeterOfTriangle(BAC),Add(LengthOfLine(BA),LengthOfLine(AC),LengthOfLine(CB)))"]
+***MODEL_RESPONSE_END***

@@ -44,6 +44,9 @@ MeasureOfAngle(BAC);ma_bac;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-2
 ll_bc-1
@@ -57,3 +60,4 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; sine_theorem(1,BAC); Polygon(BAC); ["Equal(Mul(LengthOfLine(BA),Sin(MeasureOfAngle(BAC))),Mul(LengthOfLine(BC),Sin(MeasureOfAngle(ACB))))"]
+***MODEL_RESPONSE_END***

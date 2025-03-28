@@ -159,6 +159,9 @@ MeasureOfAngle(DCA);ma_oca;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 CD=12
 DE=8
@@ -173,6 +176,8 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; similar_triangle_property_line_ratio(1,BCD,FDE); SimilarBetweenTriangle(BCD,FDE); ["Equal(LengthOfLine(CD),Mul(LengthOfLine(DE),RatioOfSimilarTriangle(BCD,FDE)))"]
+
 2; triangle_perimeter_formula(1,FDE); Polygon(FDE); ["Equal(PerimeterOfTriangle(FDE),Add(LengthOfLine(FD),LengthOfLine(DE),LengthOfLine(EF)))"]
 3; similar_triangle_property_perimeter_ratio(1,BCD,FDE); SimilarBetweenTriangle(BCD,FDE); ["Equal(PerimeterOfTriangle(BCD),Mul(PerimeterOfTriangle(FDE),RatioOfSimilarTriangle(BCD,FDE)))"]
 4; triangle_perimeter_formula(1,BCD); Polygon(BCD); ["Equal(PerimeterOfTriangle(BCD),Add(LengthOfLine(BC),LengthOfLine(CD),LengthOfLine(DB)))"]
+***MODEL_RESPONSE_END***

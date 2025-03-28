@@ -187,6 +187,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_adg-36
 ma_age-104
@@ -201,4 +204,6 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; adjacent_complementary_angle(1,DGA,AGE); Collinear(DGE)&Angle(DGA)&Angle(AGE); ["Equal(Add(MeasureOfAngle(DGA),MeasureOfAngle(AGE)),180)"]
+
 2; triangle_property_angle_sum(1,ADG); Polygon(ADG); ["Equal(Add(MeasureOfAngle(ADG),MeasureOfAngle(DGA),MeasureOfAngle(GAD)),180)"]
+***MODEL_RESPONSE_END***

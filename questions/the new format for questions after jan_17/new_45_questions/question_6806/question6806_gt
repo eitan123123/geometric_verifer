@@ -158,6 +158,9 @@ LengthOfLine(CB);ll_bc;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ad-ll_ao
 ll_ab-ll_ac
@@ -170,6 +173,7 @@ ANSWER:
 120
 THEOREM_SEQUENCE:
 1;equilateral_triangle_property_angle(1,ABC);EquilateralTriangle(ABC);["Equal(MeasureOfAngle(CAB),60)"]
+
 2;adjacent_complementary_angle(1,DAO,OAB);Collinear(DAB)&Angle(DAO)&Angle(OAB);["Equal(Add(MeasureOfAngle(DAO),MeasureOfAngle(OAB)),180)"]
 3;isosceles_triangle_judgment_line_equal(1,AOD);Polygon(AOD)&Equal(LengthOfLine(AO),LengthOfLine(AD));["IsoscelesTriangle(AOD)"]
 4;isosceles_triangle_property_angle_equal(1,AOD);IsoscelesTriangle(AOD);["Equal(MeasureOfAngle(AOD),MeasureOfAngle(ODA))"]
@@ -177,3 +181,4 @@ THEOREM_SEQUENCE:
 6;triangle_property_angle_sum(1,OAB);Polygon(OAB);["Equal(Add(MeasureOfAngle(OAB),MeasureOfAngle(ABO),MeasureOfAngle(BOA)),180)"]
 7;triangle_property_angle_sum(1,ODB);Polygon(ODB);["Equal(Add(MeasureOfAngle(ODB),MeasureOfAngle(DBO),MeasureOfAngle(BOD)),180)"]
 8;isosceles_triangle_property_line_coincidence(2,BCA,O);IsoscelesTriangle(BCA)&IsMedianOfTriangle(BO,BCA);["IsAltitudeOfTriangle(BO,BCA)", "IsBisectorOfAngle(BO,ABC)"]
+***MODEL_RESPONSE_END***

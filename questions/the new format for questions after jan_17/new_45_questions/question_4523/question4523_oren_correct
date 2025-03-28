@@ -227,6 +227,9 @@ MeasureOfAngle(COA);ma_coa;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_bcd-110
 
@@ -238,4 +241,6 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; arc_property_circumference_angle_internal(1,OBD,C); Cocircular(O,BCD)&Angle(BCD); ["Equal(MeasureOfAngle(BCD),Sub(180,Mul(MeasureOfArc(OBD),1/2)))"]
+
 2; arc_property_center_angle(1,OBD,O); Arc(OBD)&Angle(DOB)&IsCentreOfCircle(O,O); ["Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))"]
+***MODEL_RESPONSE_END***

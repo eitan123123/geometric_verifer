@@ -88,6 +88,9 @@ PerimeterOfTriangle(BCA);pt_abc;None
 PerimeterOfTriangle(CAB);pt_abc;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_def=25
 ma_gfd=65
@@ -98,4 +101,6 @@ ANSWER:
 25
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,EGD,DGF);Collinear(EGF)&Angle(EGD)&Angle(DGF);["Equal(Add(MeasureOfAngle(EGD),MeasureOfAngle(DGF)),180)"]
+
 2;triangle_property_angle_sum(1,DGF);Polygon(DGF);["Equal(Add(MeasureOfAngle(DGF),MeasureOfAngle(GFD),MeasureOfAngle(FDG)),180)"]
+***MODEL_RESPONSE_END***

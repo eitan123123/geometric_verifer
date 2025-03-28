@@ -202,6 +202,9 @@ LengthOfLine(MC);ll_mc;None
 LengthOfLine(CM);ll_mc;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_bd-1/5
 rc_o-1
@@ -212,6 +215,7 @@ ANSWER:
 6/5
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,ABO,OBC);Collinear(ABC)&Angle(ABO)&Angle(OBC);["Equal(Add(MeasureOfAngle(ABO),MeasureOfAngle(OBC)),180)"]
+
 2;radius_of_circle_property_length_equal(1,OA,O);Cocircular(O,A)&Line(OA)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OA),RadiusOfCircle(O))"]
 3;radius_of_circle_property_length_equal(1,OD,O);Cocircular(O,D)&Line(OD)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OD),RadiusOfCircle(O))"]
 4;radius_of_circle_property_length_equal(1,OC,O);Cocircular(O,C)&Line(OC)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OC),RadiusOfCircle(O))"]
@@ -221,3 +225,4 @@ THEOREM_SEQUENCE:
 8;right_triangle_judgment_angle(1,OBC);Polygon(OBC)&Equal(MeasureOfAngle(OBC),90);["RightTriangle(OBC)"]
 9;right_triangle_property_pythagorean(1,ABO);RightTriangle(ABO);["Equal(Add(Pow(LengthOfLine(AB),2),Pow(LengthOfLine(BO),2)),Pow(LengthOfLine(AO),2))"]
 10;right_triangle_property_pythagorean(1,OBC);RightTriangle(OBC);["Equal(Add(Pow(LengthOfLine(OB),2),Pow(LengthOfLine(BC),2)),Pow(LengthOfLine(OC),2))"]
+***MODEL_RESPONSE_END***

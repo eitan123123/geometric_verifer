@@ -54,6 +54,9 @@ MeasureOfAngle(PQR);ma_pqr;128
 LengthOfLine(PQ);ll_pq;None
 LengthOfLine(QP);ll_pq;None
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_cb=18
 ll_cd=12
@@ -64,3 +67,4 @@ ANSWER:
 65
 THEOREM_SEQUENCE:
 1;parallel_property_ipsilateral_internal_angle(1,AB,DC);ParallelBetweenLine(AB,DC)&Line(AD);["Equal(Add(MeasureOfAngle(BAD),MeasureOfAngle(ADC)),180)"]
+***MODEL_RESPONSE_END***

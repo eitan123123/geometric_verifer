@@ -166,6 +166,9 @@ LengthOfLine(ED);ll_de;None
 LengthOfLine(BC);ll_bc;None
 LengthOfLine(CB);ll_bc;None
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-6
 ll_af-8
@@ -179,6 +182,7 @@ ANSWER:
 15
 THEOREM_SEQUENCE:
 1;line_addition(1,AB,BC);Collinear(ABC);["Equal(LengthOfLine(AC),Add(LengthOfLine(AB),LengthOfLine(BC)))"]
+
 2;line_addition(1,AF,FE);Collinear(AFE);["Equal(LengthOfLine(AE),Add(LengthOfLine(AF),LengthOfLine(FE)))"]
 3;line_addition(1,CD,DE);Collinear(CDE);["Equal(LengthOfLine(CE),Add(LengthOfLine(CD),LengthOfLine(DE)))"]
 4;parallelogram_judgment_parallel_and_parallel(1,BCDF);Polygon(BCDF)&ParallelBetweenLine(BF,CD)&ParallelBetweenLine(CB,DF);["Parallelogram(BCDF)"]
@@ -188,3 +192,4 @@ THEOREM_SEQUENCE:
 8;similar_triangle_property_line_ratio(1,FAB,EAC);SimilarBetweenTriangle(FAB,EAC);["Equal(LengthOfLine(AB),Mul(LengthOfLine(AC),RatioOfSimilarTriangle(FAB,EAC)))"]
 9;similar_triangle_property_line_ratio(1,BFA,CEA);SimilarBetweenTriangle(BFA,CEA);["Equal(LengthOfLine(FA),Mul(LengthOfLine(EA),RatioOfSimilarTriangle(BFA,CEA)))"]
 10;similar_triangle_property_line_ratio(1,ABF,ACE);SimilarBetweenTriangle(ABF,ACE);["Equal(LengthOfLine(BF),Mul(LengthOfLine(CE),RatioOfSimilarTriangle(ABF,ACE)))"]
+***MODEL_RESPONSE_END***

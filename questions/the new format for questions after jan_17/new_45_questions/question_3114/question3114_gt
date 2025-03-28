@@ -380,6 +380,9 @@ MeasureOfAngle(OPB);ma_apb;34
 MeasureOfAngle(BCA);ma_bca;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_bcd-120
 GOAL_SYMBOL:
@@ -388,6 +391,7 @@ ANSWER:
 30
 THEOREM_SEQUENCE:
 1;arc_property_circumference_angle_external(1,ODB,C);Cocircular(O,DBC)&Angle(BCD);["Equal(MeasureOfAngle(BCD),Mul(MeasureOfArc(ODB),1/2))"]
+
 2;arc_property_circumference_angle_internal(1,ODB,A);Cocircular(O,DAB)&Angle(DAB);["Equal(MeasureOfAngle(DAB),Sub(180,Mul(MeasureOfArc(ODB),1/2)))"]
 3;radius_of_circle_property_length_equal(1,OD,O);Cocircular(O,D)&Line(OD)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OD),RadiusOfCircle(O))"]
 4;radius_of_circle_property_length_equal(1,OA,O);Cocircular(O,A)&Line(OA)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OA),RadiusOfCircle(O))"]
@@ -397,3 +401,4 @@ THEOREM_SEQUENCE:
 8;angle_addition(1,ODA,ADP);Angle(ODA)&Angle(ADP)&Angle(ODP);["Equal(MeasureOfAngle(ODP),Add(MeasureOfAngle(ODA),MeasureOfAngle(ADP)))"]
 9;adjacent_complementary_angle(1,PAD,DAO);Collinear(PAO)&Angle(PAD)&Angle(DAO);["Equal(Add(MeasureOfAngle(PAD),MeasureOfAngle(DAO)),180)"]
 10;triangle_property_angle_sum(1,ADP);Polygon(ADP);["Equal(Add(MeasureOfAngle(ADP),MeasureOfAngle(DPA),MeasureOfAngle(PAD)),180)"]
+***MODEL_RESPONSE_END***

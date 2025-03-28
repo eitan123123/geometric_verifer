@@ -313,6 +313,9 @@ Outputs:
 Outputs for Problem B:
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_bpy-3*x
 mar_pac-(2*x+15)
@@ -326,6 +329,8 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; arc_property_center_angle(1,PCY,P); Arc(PCY)&Angle(CPY)&IsCentreOfCircle(P,P); ["Equal(MeasureOfArc(PCY),MeasureOfAngle(CPY))"]
+
 2; arc_property_center_angle(1,PAC,P); Arc(PAC)&Angle(APC)&IsCentreOfCircle(P,P); ["Equal(MeasureOfArc(PAC),MeasureOfAngle(APC))"]
 3; angle_addition(1,BPC,CPY); Angle(BPC)&Angle(CPY)&Angle(BPY); ["Equal(MeasureOfAngle(BPY),Add(MeasureOfAngle(BPC),MeasureOfAngle(CPY)))"]
 4; flat_angle(1,BPA); Collinear(BPA); ["Equal(MeasureOfAngle(BPA),180)"]
+***MODEL_RESPONSE_END***

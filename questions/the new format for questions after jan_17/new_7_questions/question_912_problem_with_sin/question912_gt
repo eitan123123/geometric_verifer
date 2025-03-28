@@ -107,6 +107,9 @@ MeasureOfArc(AXW);mar_axw;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ac=12
 ma_dbc=45
@@ -119,6 +122,7 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1;diameter_of_circle_property_right_angle(1,BCA,D);IsDiameterOfCircle(AB,D)&Cocircular(D,BCA)&Angle(BCA);["PerpendicularBetweenLine(BC,AC)"]
+
 2;triangle_property_angle_sum(1,CAB);Polygon(CAB);["Equal(Add(MeasureOfAngle(CAB),MeasureOfAngle(ABC),MeasureOfAngle(BCA)),180)"]
 3;sine_theorem(1,ABC);Polygon(ABC);["Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))"]
 4;sine_theorem(1,BCA);Polygon(BCA);["Equal(Mul(LengthOfLine(BC),Sin(MeasureOfAngle(BCA))),Mul(LengthOfLine(BA),Sin(MeasureOfAngle(CAB))))"]
@@ -126,3 +130,4 @@ THEOREM_SEQUENCE:
 6;circle_property_length_of_radius_and_diameter(1,D);Circle(D);["Equal(DiameterOfCircle(D),Mul(RadiusOfCircle(D),2))"]
 7;triangle_area_formula_sine(1,CAB);Polygon(CAB);["Equal(AreaOfTriangle(CAB),Mul(LengthOfLine(CA),LengthOfLine(CB),Sin(MeasureOfAngle(BCA)),1/2))"]
 8;circle_area_formula(1,D);Circle(D);["Equal(AreaOfCircle(D),Mul(pi,RadiusOfCircle(D),RadiusOfCircle(D)))"]
+***MODEL_RESPONSE_END***

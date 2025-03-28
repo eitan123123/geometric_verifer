@@ -155,6 +155,9 @@ MeasureOfAngle(DOB);ma_dob;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abc=80
 GOAL_SYMBOL:
@@ -163,4 +166,6 @@ ANSWER:
 100
 THEOREM_SEQUENCE:
 1;arc_property_circumference_angle_external(1,OCA,B);Cocircular(O,CAB)&Angle(ABC);["Equal(MeasureOfAngle(ABC),Mul(MeasureOfArc(OCA),1/2))"]
+
 2;arc_property_circumference_angle_internal(1,OCA,D);Cocircular(O,CDA)&Angle(CDA);["Equal(MeasureOfAngle(CDA),Sub(180,Mul(MeasureOfArc(OCA),1/2)))"]
+***MODEL_RESPONSE_END***

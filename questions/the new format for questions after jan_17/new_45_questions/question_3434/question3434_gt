@@ -153,6 +153,9 @@ MeasureOfAngle(BCA);ma_bca;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_bae-90
 ma_edc-33
@@ -162,6 +165,7 @@ ANSWER:
 78
 THEOREM_SEQUENCE:
 1;congruent_triangle_property_line_equal(1,BAC,EAD);CongruentBetweenTriangle(BAC,EAD);["Equal(LengthOfLine(AC),LengthOfLine(AD))"]
+
 2;isosceles_triangle_judgment_line_equal(1,ADC);Polygon(ADC)&Equal(LengthOfLine(AD),LengthOfLine(AC));["IsoscelesTriangle(ADC)"]
 3;isosceles_triangle_property_angle_equal(1,ADC);IsoscelesTriangle(ADC);["Equal(MeasureOfAngle(ADC),MeasureOfAngle(DCA))"]
 4;adjacent_complementary_angle(1,CED,DEA);Collinear(CEA)&Angle(CED)&Angle(DEA);["Equal(Add(MeasureOfAngle(CED),MeasureOfAngle(DEA)),180)"]
@@ -169,3 +173,4 @@ THEOREM_SEQUENCE:
 6;triangle_property_angle_sum(1,CAD);Polygon(CAD);["Equal(Add(MeasureOfAngle(CAD),MeasureOfAngle(ADC),MeasureOfAngle(DCA)),180)"]
 7;triangle_property_angle_sum(1,CED);Polygon(CED);["Equal(Add(MeasureOfAngle(CED),MeasureOfAngle(EDC),MeasureOfAngle(DCE)),180)"]
 8;congruent_triangle_property_angle_equal(1,BAC,EAD);CongruentBetweenTriangle(BAC,EAD);["Equal(MeasureOfAngle(CBA),MeasureOfAngle(DEA))"]
+***MODEL_RESPONSE_END***

@@ -44,6 +44,9 @@ MeasureOfAngle(BCA);ma_bca;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 (a+2) + (a/2 + 8) + a + (a-28) = 360
 
@@ -55,3 +58,5 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; quadrilateral_property_angle_sum(WZYX); Polygon(WZYX); ["Equal(Add(MeasureOfAngle(WZY),MeasureOfAngle(ZYX),MeasureOfAngle(YXW),MeasureOfAngle(XWZ)),360)"]
+***MODEL_RESPONSE_END***
+

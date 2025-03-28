@@ -75,6 +75,8 @@ MeasureOfAngle(BCA);ma_bca;None
 Outputs:
 Outputs for Problem B:
 
+
+
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abd−x
@@ -91,3 +93,4 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; quadrilateral_property_angle_sum(1,ABCD); Polygon(ABCD); ["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCD),MeasureOfAngle(CDA),MeasureOfAngle(DAB)),360)"]
+***MODEL_RESPONSE_END***

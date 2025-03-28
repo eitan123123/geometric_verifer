@@ -354,6 +354,9 @@ MeasureOfAngle(DAE);ma_dab;None
 MeasureOfAngle(DAB);ma_dab;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_dba-20
 ma_dea-80
@@ -363,6 +366,8 @@ ANSWER:
 120
 THEOREM_SEQUENCE:
 1;adjacent_complementary_angle(1,BED,DEA);Collinear(BEA)&Angle(BED)&Angle(DEA);["Equal(Add(MeasureOfAngle(BED),MeasureOfAngle(DEA)),180)"]
+
 2;triangle_property_angle_sum(1,DBE);Polygon(DBE);["Equal(Add(MeasureOfAngle(DBE),MeasureOfAngle(BED),MeasureOfAngle(EDB)),180)"]
 3;arc_property_circumference_angle_external(1,OBC,D);Cocircular(O,BCD)&Angle(CDB);["Equal(MeasureOfAngle(CDB),Mul(MeasureOfArc(OBC),1/2))"]
 4;arc_property_center_angle(1,OBC,O);Arc(OBC)&Angle(COB)&IsCentreOfCircle(O,O);["Equal(MeasureOfArc(OBC),MeasureOfAngle(COB))"]
+***MODEL_RESPONSE_END***

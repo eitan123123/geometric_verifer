@@ -243,6 +243,9 @@ PerimeterOfTriangle(FCD);pt_cdf;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab=4
 ll_bc=6
@@ -255,7 +258,9 @@ ANSWER:
 10
 THEOREM_SEQUENCE:
 1;perpendicular_bisector_property_distance_equal(1,EF,AC);IsPerpendicularBisectorOfLine(EF,AC);["Equal(LengthOfLine(EA),LengthOfLine(EC))"]
+
 2;line_addition(1,AE,ED);Collinear(AED);["Equal(LengthOfLine(AD),Add(LengthOfLine(AE),LengthOfLine(ED)))"]
 3;parallelogram_property_opposite_line_equal(1,ABCD);Parallelogram(ABCD);["Equal(LengthOfLine(BA),LengthOfLine(CD))"]
 4;parallelogram_property_opposite_line_equal(1,BCDA);Parallelogram(BCDA);["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
 5;triangle_perimeter_formula(1,ECD);Polygon(ECD);["Equal(PerimeterOfTriangle(ECD),Add(LengthOfLine(EC),LengthOfLine(CD),LengthOfLine(DE)))"]
+***MODEL_RESPONSE_END***

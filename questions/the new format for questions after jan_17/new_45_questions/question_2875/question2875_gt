@@ -139,6 +139,9 @@ MeasureOfAngle(DAE);ma_dae;None
 MeasureOfAngle(EAB);ma_eab;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_abe-80
 -ma_abe+ma_dae
@@ -153,6 +156,7 @@ ANSWER:
 30
 THEOREM_SEQUENCE:
 1;parallel_property_collinear_extend(3,CB,DA,E);ParallelBetweenLine(CB,DA)&Collinear(CEB);["ParallelBetweenLine(CE,DA)", "ParallelBetweenLine(EB,DA)"]
+
 2;parallel_property_alternate_interior_angle(1,AD,BE);ParallelBetweenLine(AD,BE)&Line(AE);["Equal(MeasureOfAngle(DAE),MeasureOfAngle(BEA))"]
 3;isosceles_triangle_judgment_angle_equal(1,ABE);Polygon(ABE)&Equal(MeasureOfAngle(ABE),MeasureOfAngle(BEA));["IsoscelesTriangle(ABE)"]
 4;isosceles_triangle_judgment_line_equal(1,AED);Polygon(AED)&Equal(LengthOfLine(AE),LengthOfLine(AD));["IsoscelesTriangle(AED)"]
@@ -160,3 +164,4 @@ THEOREM_SEQUENCE:
 6;parallelogram_property_opposite_angle_equal(1,DABC);Parallelogram(DABC);["Equal(MeasureOfAngle(CDA),MeasureOfAngle(ABC))"]
 7;triangle_property_angle_sum(1,AED);Polygon(AED);["Equal(Add(MeasureOfAngle(AED),MeasureOfAngle(EDA),MeasureOfAngle(DAE)),180)"]
 8;angle_addition(1,CDE,EDA);Angle(CDE)&Angle(EDA)&Angle(CDA);["Equal(MeasureOfAngle(CDA),Add(MeasureOfAngle(CDE),MeasureOfAngle(EDA)))"]
+***MODEL_RESPONSE_END***

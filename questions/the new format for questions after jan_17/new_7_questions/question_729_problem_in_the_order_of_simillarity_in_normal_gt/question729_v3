@@ -85,6 +85,9 @@ MeasureOfAngle(DEC);ma_aec;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 FH=12
 GH=12
@@ -94,3 +97,5 @@ ANSWER:
 12
 THEOREM_SEQUENCE:
 1; line_addition(FH,HG); Collinear(FHG); ["Equal(LengthOfLine(FG),Add(LengthOfLine(FH),LengthOfLine(HG)))"]
+***MODEL_RESPONSE_END***
+

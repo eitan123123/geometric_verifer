@@ -225,6 +225,9 @@ LengthOfLine(CD);ll_cd;None
 LengthOfLine(DC);ll_cd;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_ocb=55
 GOAL_SYMBOL:
@@ -233,6 +236,7 @@ ANSWER:
 70
 THEOREM_SEQUENCE:
 1;radius_of_circle_property_length_equal(1,OC,O);Cocircular(O,C)&Line(OC)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OC),RadiusOfCircle(O))"]
+
 2;radius_of_circle_property_length_equal(1,OB,O);Cocircular(O,B)&Line(OB)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OB),RadiusOfCircle(O))"]
 3;isosceles_triangle_judgment_line_equal(1,OCB);Polygon(OCB)&Equal(LengthOfLine(OC),LengthOfLine(OB));["IsoscelesTriangle(OCB)"]
 4;isosceles_triangle_property_angle_equal(1,OCB);IsoscelesTriangle(OCB);["Equal(MeasureOfAngle(OCB),MeasureOfAngle(CBO))"]
@@ -241,3 +245,4 @@ THEOREM_SEQUENCE:
 7;tangent_of_circle_property_perpendicular(2,PA,O,O);IsTangentOfCircle(PA,O)&Angle(PAO)&IsCentreOfCircle(O,O);["PerpendicularBetweenLine(PA,OA)"]
 8;tangent_of_circle_property_perpendicular(1,PB,O,O);IsTangentOfCircle(PB,O)&Angle(OBP)&IsCentreOfCircle(O,O);["PerpendicularBetweenLine(OB,PB)"]
 9;quadrilateral_property_angle_sum(1,AOBP);Polygon(AOBP);["Equal(Add(MeasureOfAngle(AOB),MeasureOfAngle(OBP),MeasureOfAngle(BPA),MeasureOfAngle(PAO)),360)"]
+***MODEL_RESPONSE_END***

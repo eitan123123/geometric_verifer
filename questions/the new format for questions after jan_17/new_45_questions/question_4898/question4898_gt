@@ -105,6 +105,9 @@ MeasureOfAngle(BAO);ma_bao;40
 MeasureOfAngle(BAC);ma_bao;40
 MeasureOfAngle(BCO);ma_bco;None
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_ocb=70
 GOAL_SYMBOL:
@@ -113,9 +116,11 @@ ANSWER:
 50
 THEOREM_SEQUENCE:
 1;tangent_of_circle_property_perpendicular(2,AB,O,O);IsTangentOfCircle(AB,O)&Angle(ABO)&IsCentreOfCircle(O,O);["PerpendicularBetweenLine(AB,OB)"]
+
 2;triangle_property_angle_sum(1,OCB);Polygon(OCB);["Equal(Add(MeasureOfAngle(OCB),MeasureOfAngle(CBO),MeasureOfAngle(BOC)),180)"]
 3;triangle_property_angle_sum(1,BOA);Polygon(BOA);["Equal(Add(MeasureOfAngle(BOA),MeasureOfAngle(OAB),MeasureOfAngle(ABO)),180)"]
 4;radius_of_circle_property_length_equal(1,OC,O);Cocircular(O,C)&Line(OC)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OC),RadiusOfCircle(O))"]
 5;radius_of_circle_property_length_equal(1,OB,O);Cocircular(O,B)&Line(OB)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OB),RadiusOfCircle(O))"]
 6;isosceles_triangle_judgment_line_equal(1,OCB);Polygon(OCB)&Equal(LengthOfLine(OC),LengthOfLine(OB));["IsoscelesTriangle(OCB)"]
 7;isosceles_triangle_property_angle_equal(1,OCB);IsoscelesTriangle(OCB);["Equal(MeasureOfAngle(OCB),MeasureOfAngle(CBO))"]
+***MODEL_RESPONSE_END***

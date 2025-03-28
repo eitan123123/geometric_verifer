@@ -264,6 +264,9 @@ LengthOfLine(OP);ll_op;None
 LengthOfLine(PO);ll_op;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ab-10
 ll_cd-6
@@ -274,6 +277,7 @@ ANSWER:
 1
 THEOREM_SEQUENCE:
 1;diameter_of_circle_judgment_pass_centre(1,AOB,O);Cocircular(O,AB)&Collinear(AOB)&IsCentreOfCircle(O,O);["IsDiameterOfCircle(AB,O)"]
+
 2;diameter_of_circle_property_length_equal(1,AB,O);IsDiameterOfCircle(AB,O);["Equal(LengthOfLine(AB),DiameterOfCircle(O))"]
 3;circle_property_length_of_radius_and_diameter(1,O);Circle(O);["Equal(DiameterOfCircle(O),Mul(RadiusOfCircle(O),2))"]
 4;radius_of_circle_property_length_equal(1,OC,O);Cocircular(O,C)&Line(OC)&IsCentreOfCircle(O,O);["Equal(LengthOfLine(OC),RadiusOfCircle(O))"]
@@ -283,3 +287,4 @@ THEOREM_SEQUENCE:
 8;line_addition(1,OE,EB);Collinear(OEB);["Equal(LengthOfLine(OB),Add(LengthOfLine(OE),LengthOfLine(EB)))"]
 9;right_triangle_judgment_angle(1,CEO);Polygon(CEO)&Equal(MeasureOfAngle(CEO),90);["RightTriangle(CEO)"]
 10;right_triangle_property_pythagorean(1,CEO);RightTriangle(CEO);["Equal(Add(Pow(LengthOfLine(CE),2),Pow(LengthOfLine(EO),2)),Pow(LengthOfLine(CO),2))"]
+***MODEL_RESPONSE_END***

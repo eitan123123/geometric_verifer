@@ -87,6 +87,9 @@ LengthOfLine(CA);ll_ac;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ac-8
 ll_bc-6
@@ -98,6 +101,7 @@ ANSWER:
 4/5
 THEOREM_SEQUENCE:
 1;line_addition(1,AD,DB);Collinear(ADB);["Equal(LengthOfLine(AB),Add(LengthOfLine(AD),LengthOfLine(DB)))"]
+
 2;adjacent_complementary_angle(1,ADC,CDB);Collinear(ADB)&Angle(ADC)&Angle(CDB);["Equal(Add(MeasureOfAngle(ADC),MeasureOfAngle(CDB)),180)"]
 3;right_triangle_judgment_angle(1,ADC);Polygon(ADC)&Equal(MeasureOfAngle(ADC),90);["RightTriangle(ADC)"]
 4;right_triangle_judgment_angle(1,CDB);Polygon(CDB)&Equal(MeasureOfAngle(CDB),90);["RightTriangle(CDB)"]
@@ -107,3 +111,4 @@ THEOREM_SEQUENCE:
 8;right_triangle_property_pythagorean(1,BCA);RightTriangle(BCA);["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
 9;sine_theorem(1,CDB);Polygon(CDB);["Equal(Mul(LengthOfLine(CD),Sin(MeasureOfAngle(CDB))),Mul(LengthOfLine(CB),Sin(MeasureOfAngle(DBC))))"]
 10;sine_theorem(1,DBC);Polygon(DBC);["Equal(Mul(LengthOfLine(DB),Sin(MeasureOfAngle(DBC))),Mul(LengthOfLine(DC),Sin(MeasureOfAngle(BCD))))"]
+***MODEL_RESPONSE_END***

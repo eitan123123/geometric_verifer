@@ -358,6 +358,9 @@ MeasureOfAngle(FBD);ma_fbd;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_mjn-35
 ma_pnm-90
@@ -370,6 +373,7 @@ ANSWER:
 35/2
 THEOREM_SEQUENCE:
 1;rectangle_property_diagonal_equal(1,PNML);Rectangle(PNML)&Line(PM)&Line(NL);["Equal(LengthOfLine(PM),LengthOfLine(NL))"]
+
 2;parallelogram_property_diagonal_bisection(1,PNML,J);Parallelogram(PNML)&Collinear(PJM)&Collinear(NJL);["IsMidpointOfLine(J,PM)"]
 3;parallelogram_property_diagonal_bisection(1,NMLP,J);Parallelogram(NMLP)&Collinear(NJL)&Collinear(MJP);["IsMidpointOfLine(J,NL)"]
 4;line_addition(1,PJ,JM);Collinear(PJM);["Equal(LengthOfLine(PM),Add(LengthOfLine(PJ),LengthOfLine(JM)))"]
@@ -378,3 +382,4 @@ THEOREM_SEQUENCE:
 7;isosceles_triangle_judgment_line_equal(1,JPN);Polygon(JPN)&Equal(LengthOfLine(JP),LengthOfLine(JN));["IsoscelesTriangle(JPN)"]
 8;isosceles_triangle_property_angle_equal(1,JPN);IsoscelesTriangle(JPN);["Equal(MeasureOfAngle(JPN),MeasureOfAngle(PNJ))"]
 9;triangle_property_angle_sum(1,JPN);Polygon(JPN);["Equal(Add(MeasureOfAngle(JPN),MeasureOfAngle(PNJ),MeasureOfAngle(NJP)),180)"]
+***MODEL_RESPONSE_END***

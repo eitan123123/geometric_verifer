@@ -217,6 +217,9 @@ MeasureOfAngle(BCD);ma_bcd;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 at_abc=65
 at_abc-at_dab-at_dca
@@ -230,6 +233,8 @@ ANSWER:
 10
 THEOREM_SEQUENCE:
 1;altitude_of_triangle_judgment(1,DN,DAB);Polygon(DAB)&Line(DN)&Collinear(ANB)&Equal(MeasureOfAngle(AND),90);["IsAltitudeOfTriangle(DN,DAB)"]
+
 2;altitude_of_triangle_judgment(1,DM,DCA);Polygon(DCA)&Line(DM)&Collinear(CMA)&Equal(MeasureOfAngle(CMD),90);["IsAltitudeOfTriangle(DM,DCA)"]
 3;triangle_area_formula_common(1,DCA);Polygon(DCA);["Equal(AreaOfTriangle(DCA),Mul(HeightOfTriangle(DCA),LengthOfLine(CA),1/2))"]
 4;triangle_area_formula_common(1,DAB);Polygon(DAB);["Equal(AreaOfTriangle(DAB),Mul(HeightOfTriangle(DAB),LengthOfLine(AB),1/2))"]
+***MODEL_RESPONSE_END***

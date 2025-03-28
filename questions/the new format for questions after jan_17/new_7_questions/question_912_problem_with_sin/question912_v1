@@ -107,6 +107,9 @@ MeasureOfArc(AXW);mar_axw;None
 Outputs:
 Outputs for Problem B:
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ac=12
 ma_dbc=45
@@ -119,8 +122,10 @@ ANSWER:
 
 THEOREM_SEQUENCE:
 1; diameter_of_circle_property_right_angle(1,BCA,D); IsDiameterOfCircle(BA,D)&Cocircular(DBCA)&Angle(BCA); ["PerpendicularBetweenLine(BC,AC)"]
+
 2; triangle_area_formula_sine(1,CAB); Polygon(CAB); ["Equal(AreaOfTriangle(CAB),Mul(LengthOfLine(CA),LengthOfLine(CB),Sin(MeasureOfAngle(ACB)),1/2))"]
 3; diameter_of_circle_property_length_equal(1,BA,D); IsDiameterOfCircle(BA,D); ["Equal(LengthOfLine(BA),DiameterOfCircle(D))"]
 4; circle_property_length_of_radius_and_diameter(1,D); Circle(D); ["Equal(DiameterOfCircle(D),Mul(RadiusOfCircle(D),2))"]
 5; circle_area_formula(1,D); Circle(D); ["Equal(AreaOfCircle(D),Mul(pi,RadiusOfCircle(D),RadiusOfCircle(D)))"]
+***MODEL_RESPONSE_END***
 

@@ -97,6 +97,9 @@ MeasureOfAngle(BCO);ma_bco;None
 
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ma_acd=20
 ma_acb=90
@@ -106,9 +109,11 @@ ANSWER:
 50
 THEOREM_SEQUENCE:
 1;angle_addition(1,ACD,DCB);Angle(ACD)&Angle(DCB)&Angle(ACB);["Equal(MeasureOfAngle(ACB),Add(MeasureOfAngle(ACD),MeasureOfAngle(DCB)))"]
+
 2;triangle_property_angle_sum(1,BDC);Polygon(BDC);["Equal(Add(MeasureOfAngle(BDC),MeasureOfAngle(DCB),MeasureOfAngle(CBD)),180)"]
 3;triangle_property_angle_sum(1,ACB);Polygon(ACB);["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
 4;radius_of_circle_property_length_equal(1,BD,B);Cocircular(B,D)&Line(BD)&IsCentreOfCircle(B,B);["Equal(LengthOfLine(BD),RadiusOfCircle(B))"]
 5;radius_of_circle_property_length_equal(1,BC,B);Cocircular(B,C)&Line(BC)&IsCentreOfCircle(B,B);["Equal(LengthOfLine(BC),RadiusOfCircle(B))"]
 6;isosceles_triangle_judgment_line_equal(1,BDC);Polygon(BDC)&Equal(LengthOfLine(BD),LengthOfLine(BC));["IsoscelesTriangle(BDC)"]
 7;isosceles_triangle_property_angle_equal(1,BDC);IsoscelesTriangle(BDC);["Equal(MeasureOfAngle(BDC),MeasureOfAngle(DCB))"]
+***MODEL_RESPONSE_END***

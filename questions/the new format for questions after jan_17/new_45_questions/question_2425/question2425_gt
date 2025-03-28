@@ -169,6 +169,9 @@ PerimeterOfTriangle(BFE);pt_ebf;None
 PerimeterOfTriangle(FEB);pt_ebf;None
 
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_cd=12
 ll_de=8
@@ -180,6 +183,8 @@ ANSWER:
 51/2
 THEOREM_SEQUENCE:
 1;similar_triangle_property_line_ratio(1,BCD,FDE);SimilarBetweenTriangle(BCD,FDE);["Equal(LengthOfLine(CD),Mul(LengthOfLine(DE),RatioOfSimilarTriangle(BCD,FDE)))"]
+
 2;similar_triangle_property_line_ratio(1,CDB,DEF);SimilarBetweenTriangle(CDB,DEF);["Equal(LengthOfLine(DB),Mul(LengthOfLine(EF),RatioOfSimilarTriangle(CDB,DEF)))"]
 3;similar_triangle_property_line_ratio(1,DBC,EFD);SimilarBetweenTriangle(DBC,EFD);["Equal(LengthOfLine(BC),Mul(LengthOfLine(FD),RatioOfSimilarTriangle(DBC,EFD)))"]
 4;triangle_perimeter_formula(1,BCD);Polygon(BCD);["Equal(PerimeterOfTriangle(BCD),Add(LengthOfLine(BC),LengthOfLine(CD),LengthOfLine(DB)))"]
+***MODEL_RESPONSE_END***

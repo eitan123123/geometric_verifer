@@ -195,6 +195,9 @@ PerimeterOfQuadrilateral(BCDA);pq_abcd;None
 PerimeterOfQuadrilateral(CDAB);pq_abcd;None
 PerimeterOfQuadrilateral(DABC);pq_abcd;None
 
+
+
+***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
 ll_ae-4
 ll_bf-3
@@ -212,5 +215,7 @@ ANSWER:
 12
 THEOREM_SEQUENCE:
 1;mirror_similar_triangle_property_line_ratio(1,EDA,ABF);MirrorSimilarBetweenTriangle(EDA,ABF);["Equal(LengthOfLine(DA),Mul(LengthOfLine(BF),RatioOfMirrorSimilarTriangle(EDA,ABF)))"]
+
 2;mirror_similar_triangle_property_line_ratio(1,DAE,FAB);MirrorSimilarBetweenTriangle(DAE,FAB);["Equal(LengthOfLine(AE),Mul(LengthOfLine(AB),RatioOfMirrorSimilarTriangle(DAE,FAB)))"]
 3;parallelogram_area_formula_sine(1,ABCD);Parallelogram(ABCD);["Equal(AreaOfQuadrilateral(ABCD),Mul(LengthOfLine(AB),LengthOfLine(BC),Sin(MeasureOfAngle(ABC))))"]
+***MODEL_RESPONSE_END***
