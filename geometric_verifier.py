@@ -138,7 +138,7 @@ class GeometricTheorem:
         if length_name not in self.lengths:
             self.lengths[length_name] = Real(length_name)
             # Add basic constraint: length >= 0.
-            self.solver.add(self.lengths[length_name] >= 0)
+            self.solver.add(self.lengths[length_name] > 0)
         return self.lengths[length_name]
 
     def canonicalize_mirror_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
@@ -169,6 +169,55 @@ class GeometricTheorem:
         canonical_pair = min((r1, r2) for r1 in rotations1 for r2 in rotations2)
 
         return canonical_pair
+
+    def find_contradictory_constraints(self, max_constraints=15):
+        """
+        Find a small subset of constraints that are contradictory using Z3's unsat core feature.
+
+        Args:
+            max_constraints: Maximum number of constraints to return
+
+        Returns:
+            list: A list of formatted contradictory constraints
+        """
+        from z3 import Solver, unsat, Bool
+
+        # Get all assertions from the current solver
+        assertions = list(self.solver.assertions())
+
+        # Create a new solver for unsat core tracking
+        core_solver = Solver()
+        tracking = {}
+
+        # Add each assertion with a tracking variable
+        for i, a in enumerate(assertions):
+            a_str = str(a)
+
+
+
+            # Create a tracking variable
+            track_var = Bool(f"track_{i}")
+            tracking[track_var] = a
+            core_solver.assert_and_track(a, track_var)
+
+        # Check if still unsat and get the core
+        if core_solver.check() == unsat:
+            core = core_solver.unsat_core()
+
+            # Convert core to original assertions
+            contradiction = []
+            for var in core:
+                if var in tracking:
+                    constraint = self.format_constraint(str(tracking[var]))
+                    if constraint not in contradiction:
+                        contradiction.append(constraint)
+
+            # Limit the number of constraints returned
+            return contradiction[:max_constraints]
+
+        return []  # If not unsatisfiable with the filtered set
+
+
 
     def canonicalize_congruent_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
         """
@@ -553,6 +602,180 @@ class GeometricTheorem:
         # Remove empty categories
         return {k: v for k, v in geometric_data.items() if v}
 
+    def evaluate_trig_function(self, func_name, angle_token, model_answer):
+        """
+        Evaluates a trigonometric function (sin/cos) for an angle.
+
+        Args:
+            func_name: Either "sin" or "cos"
+            angle_token: The angle name (e.g., "BAC")
+            model_answer: The expected answer to verify
+
+        Returns:
+            tuple of (success, value, status)
+        """
+        import math
+        epsilon = 1e-8
+
+        # First, try to get the angle variable directly
+        angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
+
+        # Create or get the trig function variable if it exists
+        trig_var_name = f"{func_name}_{angle_token}"
+        if trig_var_name not in self.variables:
+            self.variables[trig_var_name] = Real(trig_var_name)
+            # Add bounds for sine/cosine
+            self.solver.add(self.variables[trig_var_name] >= -1)
+            self.solver.add(self.variables[trig_var_name] <= 1)
+
+        trig_var = self.variables[trig_var_name]
+
+        if self.solver.check() == sat:
+            model = self.solver.model()
+
+            # First approach: Check if the trig function variable already has a value
+            try:
+                trig_val_str = model.eval(trig_var).as_decimal(10)
+                if trig_val_str.endswith('?'):
+                    trig_val_str = trig_val_str[:-1]
+                trig_val = float(trig_val_str)
+
+                # Check if this value is uniquely determined
+                temp_solver = Solver()
+                for c in self.solver.assertions():
+                    temp_solver.add(c)
+
+                temp_solver.add(Or(trig_var < trig_val - epsilon, trig_var > trig_val + epsilon))
+
+                if temp_solver.check() == unsat:
+                    # Value is uniquely determined
+                    print(f"{func_name}({angle_token}) has a unique value: {trig_val}")
+                    if abs(trig_val - model_answer) < epsilon:
+                        return True, trig_val, "unique"
+                    else:
+                        return False, trig_val, "incompatible"
+            except Exception as e:
+                print(f"Error evaluating {func_name} variable: {e}")
+
+            # Second approach: Try to calculate from the angle if it exists
+            try:
+                angle_val_str = model.eval(angle_var).as_decimal(10)
+                if angle_val_str.endswith('?'):
+                    angle_val_str = angle_val_str[:-1]
+                angle_val = float(angle_val_str)
+
+                # Check if angle is uniquely determined
+                temp_solver = Solver()
+                for c in self.solver.assertions():
+                    temp_solver.add(c)
+
+                temp_solver.add(Or(angle_var < angle_val - epsilon, angle_var > angle_val + epsilon))
+
+                if temp_solver.check() == unsat:
+                    # Angle is uniquely determined, calculate trig function
+                    if func_name == "sin":
+                        calculated_val = math.sin(math.radians(angle_val))
+                    else:  # cos
+                        calculated_val = math.cos(math.radians(angle_val))
+
+                    print(f"Calculated {func_name}({angle_token}) = {calculated_val} from angle = {angle_val}°")
+
+                    if abs(calculated_val - model_answer) < epsilon:
+                        return True, calculated_val, "unique"
+                    else:
+                        return False, calculated_val, "incompatible"
+            except Exception as e:
+                print(f"Error evaluating angle: {e}")
+
+            # Third approach: Try to calculate from the alternate trig function
+            alt_func_name = "cos" if func_name == "sin" else "sin"
+            alt_trig_var_name = f"{alt_func_name}_{angle_token}"
+
+            if alt_trig_var_name in self.variables:
+                alt_trig_var = self.variables[alt_trig_var_name]
+
+                try:
+                    # Get the alternate trig value from the model
+                    alt_trig_val_str = model.eval(alt_trig_var).as_decimal(10)
+                    if alt_trig_val_str.endswith('?'):
+                        alt_trig_val_str = alt_trig_val_str[:-1]
+                    alt_trig_val = float(alt_trig_val_str)
+
+                    # Check if the alternate trig value is uniquely determined
+                    temp_solver = Solver()
+                    for c in self.solver.assertions():
+                        temp_solver.add(c)
+
+                    temp_solver.add(
+                        Or(alt_trig_var < alt_trig_val - epsilon, alt_trig_var > alt_trig_val + epsilon))
+
+                    if temp_solver.check() == unsat:
+                        # Alternate trig value is uniquely determined
+                        # Calculate the angle from the alternate trig function
+                        import math
+
+                        # Get the angle (in degrees) from the alternate trig function
+                        if alt_func_name == "sin":
+                            # If we have sin, use arcsin
+                            if abs(alt_trig_val) > 1:
+                                print(f"Error: Invalid sin value {alt_trig_val} (exceeds 1)")
+                                return False, None, "multiple_values"
+                            angle_in_degrees = math.degrees(math.asin(alt_trig_val))
+                        else:  # alt_func_name == "cos"
+                            # If we have cos, use arccos
+                            if abs(alt_trig_val) > 1:
+                                print(f"Error: Invalid cos value {alt_trig_val} (exceeds 1)")
+                                return False, None, "multiple_values"
+                            angle_in_degrees = math.degrees(math.acos(alt_trig_val))
+
+                        # Handle multiple possible angles (arcsin/arccos can have multiple solutions)
+                        possible_angles = [angle_in_degrees]
+                        if alt_func_name == "sin":
+                            # If sin(θ) = k, then sin(180-θ) = k as well
+                            possible_angles.append(180 - angle_in_degrees)
+                        else:  # alt_func_name == "cos"
+                            # If cos(θ) = k, then cos(360-θ) = k as well
+                            possible_angles.append(360 - angle_in_degrees)
+
+                        # Try each possible angle
+                        for angle_val in possible_angles:
+                            # Calculate the requested trig function using the determined angle
+                            if func_name == "sin":
+                                calculated_val = math.sin(math.radians(angle_val))
+                            else:  # func_name == "cos"
+                                calculated_val = math.cos(math.radians(angle_val))
+
+                            print(
+                                f"Calculated {func_name}({angle_token}) = {calculated_val} from {alt_func_name}({angle_token}) = {alt_trig_val} (angle = {angle_val}°)")
+
+                            # Check if this calculated value matches the expected answer
+                            if abs(calculated_val - model_answer) < epsilon:
+                                return True, calculated_val, "unique"
+
+                        # If we get here, none of the calculated values matched
+                        return False, calculated_val, "incompatible"
+
+                except Exception as e:
+                    print(f"Error calculating from alternate trig function: {e}")
+
+                # If we get here, we couldn't determine the value from any method
+                return False, None, "multiple_values"
+            else:
+                return False, None, "unsatisfiable"
+
+
+
+
+            # If we get here, we couldn't determine the value from any method
+            return False, None, "multiple_values"
+        else:
+            return False, None, "unsatisfiable"
+
+
+
+
+
+
     def add_mirror_similar_triangles(self, tri1: str, tri2: str):
         """Record that triangles tri1 and tri2 are mirror similar (by AA)
         and create a corresponding ratio variable if not already defined."""
@@ -570,12 +793,6 @@ class GeometricTheorem:
     def generate_detailed_feedback(self, goal_type, goal_token, model_answer, verifier_expected_answer=None,
                                    status="multiple_values", additional_info=None):
         """Generate feedback in the user's preferred format with improved content filtering."""
-
-        # For general variable goals, use the specialized function
-        if goal_type == "general" and len(goal_token) == 1 and goal_token.isalpha():
-            # It's a single letter variable like 'p'
-            return self.generate_detailed_feedback_for_variable(goal_token, model_answer, verifier_expected_answer,
-                                                                status)
 
         # Initialize the report with verification status
         report = "verification failed.\n\n"
@@ -607,10 +824,8 @@ class GeometricTheorem:
             report += f"- Goal: value of {goal_token}\n"
 
         # Add your answer and expected/computed value
-        # Add your answer
         report += f"- Model answer: {model_answer}\n"
 
-        # Only add expected answer line if there is an incompatible value
         if verifier_expected_answer is not None and status == "incompatible":
             report += f"- Verifier expected answer: {verifier_expected_answer}\n"
 
@@ -618,6 +833,14 @@ class GeometricTheorem:
 
         if status == "unsatisfiable":
             report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
+
+            # Add information about the contradictory constraints
+            contradictory_constraints = self.find_contradictory_constraints()
+            if contradictory_constraints:
+                report += "  Contradictory constraints:\n"
+                for constraint in contradictory_constraints:
+                    report += f"    {constraint}\n"
+
         elif status == "incompatible":
             report += f"From your proof, the verifier determines the {goal_type} of {goal_token} to be {verifier_expected_answer}, not {model_answer} as you stated in your solution. Check your theorem applications and your answer.\n"
         elif status == "multiple_values":
@@ -742,6 +965,7 @@ class GeometricTheorem:
 
         return report
 
+    # Second function: Update for variable goals specifically
     def generate_detailed_feedback_for_variable(self, variable_name, model_answer, verifier_expected_answer=None,
                                                 status="multiple_values"):
         """Generate detailed feedback specifically for a variable goal with improved formatting."""
@@ -753,10 +977,8 @@ class GeometricTheorem:
         report += f"- Goal: value of {variable_name}\n"
 
         # Add your answer and expected/computed value
-        # Add your answer
         report += f"- Model answer: {model_answer}\n"
 
-        # Only add expected answer line if there is an incompatible value
         if verifier_expected_answer is not None and status == "incompatible":
             report += f"- Verifier expected answer: {verifier_expected_answer}\n"
 
@@ -764,10 +986,18 @@ class GeometricTheorem:
 
         if status == "unsatisfiable":
             report += "Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.\n"
+
+            # Add information about the contradictory constraints
+            contradictory_constraints = self.find_contradictory_constraints()
+            if contradictory_constraints:
+                report += "  Contradictory constraints:\n"
+                for constraint in contradictory_constraints:
+                    report += f"    {constraint}\n"
+
         elif status == "incompatible":
             report += f"From your proof, the verifier determines the value of {variable_name} to be {verifier_expected_answer}, not {model_answer} as you stated in your solution. Check your theorem applications and your answer.\n"
         elif status == "multiple_values":
-            report += f"Your proof doesn't uniquely determine the value. You need  to use additional theorems.\n"
+            report += f"Your proof doesn't uniquely determine the value. You need to use additional theorems.\n"
 
         # Add direct constraints from premises and relevant geometric facts - KEEP SAME TITLE
         report += "- Available premises:\n"
@@ -1364,10 +1594,7 @@ class GeometricTheorem:
 
                         # These angles must be supplementary
                         # Each angle must be between 0° and 180°
-                        self.solver.add(angle1_var > 0)
-                        self.solver.add(angle1_var <= 180)
-                        self.solver.add(angle2_var > 0)
-                        self.solver.add(angle2_var <= 180)
+
 
             # Process endpoints for this order
             if len(point_order) >= 3:
@@ -7359,147 +7586,29 @@ class GeometricTheorem:
                         return False, detailed_feedback
 
                 # Cosine goal: Value(Cos(MeasureOfAngle(XXX)))
-                cos_match = re.search(r'Value\(Cos\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
-                if cos_match:
-                    angle_token = cos_match.group(1)
+                # Cosine goal: Value(Cos(MeasureOfAngle(XXX)))
+                cosine_match = re.search(r'Value\(Cos\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
+                if cosine_match:
+                    angle_token = cosine_match.group(1)
                     print(f"\nGoal cosine: Cos(MeasureOfAngle({angle_token}))")
                     print(f"Expected value: {model_answer}")
 
-                    # Try direct cosine variable first (exact as in the goal)
-                    cos_var_name = f"cos_{angle_token}"
-                    if cos_var_name in self.variables:
-                        print(f"Found cosine variable: {cos_var_name}")
-                        cos_var = self.variables[cos_var_name]
-                        success, value, status = self.check_value_constraint(cos_var, model_answer)
+                    success, value, status = self.evaluate_trig_function("cos", angle_token, model_answer)
 
-                        if success:
-                            print(f"Success: cos({angle_token}) is uniquely determined to be {model_answer}.")
-                            return True, ""
-                        else:
-                            # Generate detailed feedback report
-                            detailed_feedback = self.generate_detailed_feedback(
-                                goal_type="cosine",
-                                goal_token=angle_token,
-                                model_answer=model_answer,
-                                verifier_expected_answer=value,
-                                status=status
-                            )
-                            print(f"Detailed feedback generated for cosine goal.")
-                            return False, detailed_feedback
-
-                    # If no direct cosine variable exists, try to derive it from the law of cosines
-                    print(f"No cosine variable found, attempting to derive from the law of cosines")
-
-                    # Get the angle variable
-                    angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-
-                    if self.solver.check() == sat:
-                        model = self.solver.model()
-
-                        # Try to compute from the angle if that exists
-                        try:
-                            current_angle = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
-                            import math
-                            current_cos = math.cos(math.radians(current_angle))
-                            print(f"Derived cos({angle_token}) = {current_cos} from angle = {current_angle}°")
-
-                            # Check if this matches the expected value
-                            epsilon = 1e-5
-                            if abs(current_cos - model_answer) < epsilon:
-                                print(
-                                    f"Success: cos({angle_token}) = {current_cos} ≈ {model_answer} (within tolerance)")
-                                return True, ""
-                            else:
-                                # Generate detailed feedback with additional info about derived values
-                                additional_info = f"Derived angle value: {current_angle}°\nDerived cosine: {current_cos}"
-                                detailed_feedback = self.generate_detailed_feedback(
-                                    goal_type="cosine",
-                                    goal_token=angle_token,
-                                    model_answer=model_answer,
-                                    verifier_expected_answer=current_cos,
-                                    status="incompatible",
-                                    additional_info=additional_info
-                                )
-                                print(f"Detailed feedback generated for cosine goal.")
-                                return False, detailed_feedback
-                        except Exception as e:
-                            print(f"Could not derive cosine from angle: {e}")
-
-                        # If we couldn't get from the angle directly, try from the triangle sides
-                        try:
-                            # Extract the triangle vertices from the angle token (e.g., CBA -> vertices are C,B,A)
-                            vertex_between = angle_token[1]  # The middle letter is the vertex between the two sides
-                            vertex_left = angle_token[0]  # The first letter is the left ray endpoint
-                            vertex_right = angle_token[2]  # The third letter is the right ray endpoint
-
-                            # Get the three sides of the triangle
-                            side_vertex_left = self.add_length(vertex_between, vertex_left)
-                            side_vertex_right = self.add_length(vertex_between, vertex_right)
-                            side_opposite = self.add_length(vertex_left, vertex_right)
-
-                            # Get their values from the model
-                            side_a_val = float(model.eval(side_vertex_left).as_decimal(10).rstrip('?'))
-                            side_b_val = float(model.eval(side_vertex_right).as_decimal(10).rstrip('?'))
-                            side_c_val = float(model.eval(side_opposite).as_decimal(10).rstrip('?'))
-
-                            print(
-                                f"Triangle sides: {vertex_between}{vertex_left}={side_a_val}, {vertex_between}{vertex_right}={side_b_val}, {vertex_left}{vertex_right}={side_c_val}")
-
-                            # Apply the law of cosines to compute the cosine
-                            if side_a_val > 0 and side_b_val > 0:  # Avoid division by zero
-                                # cos(C) = (a² + b² - c²) / (2ab) where C is the angle at the vertex between sides a and b
-                                computed_cos = (side_a_val ** 2 + side_b_val ** 2 - side_c_val ** 2) / (
-                                            2 * side_a_val * side_b_val)
-
-                                if -1 <= computed_cos <= 1:  # Valid cosine value
-                                    print(f"Computed cos({angle_token}) = {computed_cos} from triangle sides")
-
-                                    # Create the cosine variable if it doesn't exist
-                                    if cos_var_name not in self.variables:
-                                        self.variables[cos_var_name] = Real(cos_var_name)
-                                        self.solver.add(self.variables[cos_var_name] >= -1)
-                                        self.solver.add(self.variables[cos_var_name] <= 1)
-
-                                    # Check if this value can be constrained without conflict
-                                    test_solver = Solver()
-                                    for c in self.solver.assertions():
-                                        test_solver.add(c)
-
-                                    test_solver.add(self.variables[cos_var_name] == computed_cos)
-
-                                    if test_solver.check() == sat:
-                                        self.solver.add(self.variables[cos_var_name] == computed_cos)
-                                        print(f"Added constraint: {cos_var_name} = {computed_cos}")
-
-                                    # Check if the value matches the expected answer
-                                    epsilon = 1e-5
-                                    if abs(computed_cos - model_answer) < epsilon:
-                                        print(
-                                            f"Success: cos({angle_token}) = {computed_cos} ≈ {model_answer} (within tolerance)")
-                                        return True, ""
-                                    else:
-                                        additional_info = f"Computed from sides: cos({angle_token}) = {computed_cos}"
-                                        detailed_feedback = self.generate_detailed_feedback(
-                                            goal_type="cosine",
-                                            goal_token=angle_token,
-                                            model_answer=model_answer,
-                                            verifier_expected_answer=computed_cos,
-                                            status="incompatible",
-                                            additional_info=additional_info
-                                        )
-                                        return False, detailed_feedback
-                        except Exception as e:
-                            print(f"Error computing cosine from triangle sides: {e}")
-
-                    # If we couldn't derive a value, return detailed feedback
-                    detailed_feedback = self.generate_detailed_feedback(
-                        goal_type="cosine",
-                        goal_token=angle_token,
-                        model_answer=model_answer,
-                        status="unsatisfiable" if self.solver.check() != sat else "multiple_values"
-                    )
-                    print(f"Detailed feedback generated for cosine goal.")
-                    return False, detailed_feedback
+                    if success:
+                        print(f"Success: cos({angle_token}) is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="cosine",
+                            goal_token=angle_token,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for cosine goal.")
+                        return False, detailed_feedback
 
                 sin_match = re.search(r'Value\(Sin\(MeasureOfAngle\((\w+)\)\)\)', goal_line)
                 if sin_match:
@@ -7507,69 +7616,22 @@ class GeometricTheorem:
                     print(f"\nGoal sine: Sin(MeasureOfAngle({angle_token}))")
                     print(f"Expected value: {model_answer}")
 
-                    # Check sine variable if it exists
-                    sin_var_name = f"sin_{angle_token}"
-                    sin_var = None
-                    if sin_var_name in self.variables:
-                        sin_var = self.variables[sin_var_name]
-                        success, value, status = self.check_value_constraint(sin_var, model_answer)
+                    success, value, status = self.evaluate_trig_function("sin", angle_token, model_answer)
 
-                        if success:
-                            print(f"Success: sin({angle_token}) = {model_answer} is verified.")
-                            return True, ""
-                        else:
-                            # Generate detailed feedback report
-                            detailed_feedback = self.generate_detailed_feedback(
-                                goal_type="sine",
-                                goal_token=angle_token,
-                                model_answer=model_answer,
-                                verifier_expected_answer=value,
-                                status=status
-                            )
-                            print(f"Detailed feedback generated for sine goal.")
-                            return False, detailed_feedback
+                    if success:
+                        print(f"Success: sin({angle_token}) is uniquely determined to be {model_answer}.")
+                        return True, ""
                     else:
-                        # If no sine variable exists, try to determine it from the angle
-                        angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-
-                        if self.solver.check() == sat:
-                            model = self.solver.model()
-                            try:
-                                current_angle = float(model.eval(angle_var).as_decimal(10).rstrip('?'))
-                                import math
-                                current_sin = math.sin(math.radians(current_angle))
-
-                                epsilon = 1e-5
-                                if abs(current_sin - model_answer) < epsilon:
-                                    print(
-                                        f"Success: sin({angle_token}) = {current_sin} ≈ {model_answer} (within tolerance)")
-                                    return True, ""
-                                else:
-                                    # Generate detailed feedback with additional info about derived values
-                                    additional_info = f"Derived angle value: {current_angle}°\nDerived sine: {current_sin}"
-                                    detailed_feedback = self.generate_detailed_feedback(
-                                        goal_type="sine",
-                                        goal_token=angle_token,
-                                        model_answer=model_answer,
-                                        verifier_expected_answer=current_sin,
-                                        status="incompatible",
-                                        additional_info=additional_info
-                                    )
-                                    print(f"Detailed feedback generated for sine goal.")
-                                    return False, detailed_feedback
-                            except Exception as e:
-                                error_msg = f"Error calculating sine from angle: {str(e)}"
-                                print(f"Error: {error_msg}")
-                                return False, error_msg
-                        else:
-                            detailed_feedback = self.generate_detailed_feedback(
-                                goal_type="sine",
-                                goal_token=angle_token,
-                                model_answer=model_answer,
-                                status="unsatisfiable"
-                            )
-                            print(f"Detailed feedback generated for sine goal.")
-                            return False, detailed_feedback
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="sine",
+                            goal_token=angle_token,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for sine goal.")
+                        return False, detailed_feedback
 
                 # Sine goal and other goal types would follow a similar pattern, using the common
                 # check_value_constraint function where possible and handling special cases as needed
@@ -9304,168 +9366,16 @@ class GeometricTheorem:
 
 
 
-        elif theorem_name == "cosine_theorem":
 
-            version = args[0]
+        # Add this to the cosine_theorem handler in your adding_conclution method
 
-            if version == "1":
 
-                # Parse the conclusion to extract sides and angle
 
-                match = re.search(
 
-                    r'Equal\(Add\(Pow\(LengthOfLine\((\w+)\),2\),Mul\(2,LengthOfLine\((\w+)\),LengthOfLine\((\w+)\),Cos\(MeasureOfAngle\((\w+)\)\)\)\),Add\(Pow\(LengthOfLine\(\2\),2\),Pow\(LengthOfLine\(\3\),2\)\)\)',
 
-                    conclusions[0]
 
-                )
 
-                if not match:
-                    return GeometricError(
 
-                        tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                        message="Invalid conclusion format for cosine_theorem",
-
-                        details=f"Expected cosine theorem format not found in: {conclusions[0]}"
-
-                    )
-
-                # Extract the sides and angle from the theorem
-
-                side1, side2, side3, angle_str = match.groups()
-
-                print(f"Parsed cosine theorem: sides={side1},{side2},{side3}, angle={angle_str}")
-
-                # Get (or create) variables for the sides and angle
-
-                side1_var = self.add_length(side1[0], side1[1])
-
-                side2_var = self.add_length(side2[0], side2[1])
-
-                side3_var = self.add_length(side3[0], side3[1])
-
-                # Use the angle exactly as specified in the theorem
-
-                angle_var = self.add_angle(angle_str[0], angle_str[1], angle_str[2])
-
-                # Create cosine variable for this specific angle
-
-                cos_var_name = f"cos_{angle_str}"
-
-                if cos_var_name not in self.variables:
-                    self.variables[cos_var_name] = Real(cos_var_name)
-
-                    # Add bounds for cosine
-
-                    self.solver.add(self.variables[cos_var_name] >= -1)
-
-                    self.solver.add(self.variables[cos_var_name] <= 1)
-
-                cos_var = self.variables[cos_var_name]
-
-                # Form the law of cosines constraint
-
-                law_of_cosines = (
-
-                        side1_var * side1_var ==
-
-                        side2_var * side2_var + side3_var * side3_var -
-
-                        2 * side2_var * side3_var * cos_var
-
-                )
-
-                # Check if adding this constraint would create a conflict
-
-                test_solver = Solver()
-
-                for c in self.solver.assertions():
-                    test_solver.add(c)
-
-                test_solver.add(law_of_cosines)
-
-                if test_solver.check() == sat:
-
-                    # Safe to add the constraint
-
-                    self.solver.add(law_of_cosines)
-
-                    print(f"Added law of cosines constraint for {angle_str}")
-
-                    # If the solver has unique values for the sides, try to derive the cosine value
-
-                    if self.solver.check() == sat:
-
-                        model = self.solver.model()
-
-                        try:
-
-                            # Test if sides have unique values
-
-                            side1_val = float(model.eval(side1_var).as_decimal(10).rstrip('?'))
-
-                            side2_val = float(model.eval(side2_var).as_decimal(10).rstrip('?'))
-
-                            side3_val = float(model.eval(side3_var).as_decimal(10).rstrip('?'))
-
-                            if side2_val > 0 and side3_val > 0:  # Avoid division by zero
-
-                                # Calculate expected cosine using the law of cosines
-
-                                expected_cos = (side2_val ** 2 + side3_val ** 2 - side1_val ** 2) / (
-                                            2 * side2_val * side3_val)
-
-                                if -1 <= expected_cos <= 1:  # Valid cosine value
-
-                                    # Check if the cosine can be uniquely determined
-
-                                    temp_solver = Solver()
-
-                                    for c in self.solver.assertions():
-                                        temp_solver.add(c)
-
-                                    epsilon = 1e-8
-
-                                    temp_solver.add(
-                                        Or(cos_var < expected_cos - epsilon, cos_var > expected_cos + epsilon))
-
-                                    if temp_solver.check() == unsat:
-
-                                        # The cosine value is uniquely determined
-
-                                        print(f"Cosine value for {angle_str} is uniquely determined as {expected_cos}")
-
-                                        # Safely update the angle value if we can
-
-                                        import math
-
-                                        angle_val = math.degrees(math.acos(expected_cos))
-
-                                        angle_test = Solver()
-
-                                        for c in self.solver.assertions():
-                                            angle_test.add(c)
-
-                                        angle_test.add(angle_var == angle_val)
-
-                                        if angle_test.check() == sat:
-                                            self.solver.add(angle_var == angle_val)
-
-                                            print(f"Set angle {angle_str} = {angle_val}°")
-
-                        except Exception as e:
-
-                            print(f"Note: Could not determine unique values for sides or angle: {e}")
-
-                else:
-
-                    print(f"Warning: Law of cosines constraint would create a conflict - not adding")
-
-                # Make sure solver is still satisfiable
-
-                if self.solver.check() != sat:
-                    print("WARNING: Solver became unsatisfiable after cosine theorem application")
 
         elif theorem_name == "flat_angle":
             version = args[0]
@@ -10575,266 +10485,365 @@ class GeometricTheorem:
 
 
 
+        elif theorem_name == "cosine_theorem":
+            version = args[0]
+            if version == "1":
+                # Parse the conclusion pattern
+                # The law of cosines pattern based on your example:
+                # AC² + 2*BA*BC*cos(CBA) = BA² + BC²
+                pattern = r'Equal\(Add\(Pow\(LengthOfLine\((\w+)\),2\),Mul\(2,LengthOfLine\((\w+)\),LengthOfLine\((\w+)\),Cos\(MeasureOfAngle\((\w+)\)\)\)\),Add\(Pow\(LengthOfLine\((\w+)\),2\),Pow\(LengthOfLine\((\w+)\),2\)\)\)'
+                match = re.search(pattern, conclusions[0])
+
+                if match:
+                    side1, side2, side3, angle_str, side4, side5 = match.groups()
+
+                    # Verify sides match the expected pattern
+                    if side2 != side4 or side3 != side5:
+                        return GeometricError(
+                            tier=ErrorTier.TIER1_THEOREM_CALL,
+                            message="Conclusion format error for cosine_theorem",
+                            details=f"Sides in conclusion don't match expected pattern: {side2} != {side4} or {side3} != {side5}"
+                        )
+
+                    # Get or create variables for sides and angle
+                    length1_var = self.add_length(side1[0], side1[1])
+                    length2_var = self.add_length(side2[0], side2[1])
+                    length3_var = self.add_length(side3[0], side3[1])
+                    angle_var = self.add_angle(angle_str[0], angle_str[1], angle_str[2])
+
+                    # Create or get cosine variable for the angle
+                    cos_var_name = f"cos_{angle_str}"
+                    if cos_var_name not in self.variables:
+                        self.variables[cos_var_name] = Real(cos_var_name)
+                        self.solver.add(self.variables[cos_var_name] >= -1)
+                        self.solver.add(self.variables[cos_var_name] <= 1)
+
+                    cos_var = self.variables[cos_var_name]
+
+                    # Check if the solver is satisfiable
+                    if self.solver.check() == sat:
+                        model = self.solver.model()
+
+                        # Check if angle has a unique value
+                        angle_unique = False
+                        angle_val = None
+                        cos_val = None
+
+                        try:
+                            # Get the current angle value from the model
+                            a_val_str = model.eval(angle_var).as_decimal(10)
+                            if a_val_str.endswith('?'):
+                                a_val_str = a_val_str[:-1]
+
+                            angle_val = float(a_val_str)
+
+                            # Check if this value is uniquely determined
+                            temp_solver = Solver()
+                            for c in self.solver.assertions():
+                                temp_solver.add(c)
+
+                            epsilon = 1e-6
+                            temp_solver.add(Or(
+                                angle_var < angle_val - epsilon,
+                                angle_var > angle_val + epsilon
+                            ))
+
+                            if temp_solver.check() == unsat:
+                                # Angle is uniquely determined
+                                angle_unique = True
+                                import math
+                                cos_val = math.cos(math.radians(angle_val))
+                                print(f"Angle {angle_str} has unique value {angle_val}°, cos = {cos_val}")
+
+                                # Add the cosine value to the variable
+                                self.solver.add(cos_var == cos_val)
+                        except Exception as e:
+                            print(f"Error checking angle: {e}")
+
+                        # Add the law of cosines constraint in the exact format from the conclusion
+                        # AC² + 2*BA*BC*cos(CBA) = BA² + BC²
+                        self.solver.add(
+                            length1_var ** 2 + 2 * length2_var * length3_var * cos_var == length2_var ** 2 + length3_var ** 2)
+                        print(f"Added cosine theorem constraint for triangle with angle {angle_str}")
+                        return None
+                    else:
+                        # Solver is not satisfiable
+                        return GeometricError(
+                            tier=ErrorTier.TIER2_PREMISE,
+                            message="Solver unsat when trying to evaluate angles for cosine theorem"
+                        )
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
+                        message="Conclusion format error for cosine_theorem",
+                        details=f"Expected pattern not found in: {conclusions[0]}"
+                    )
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL,
+                    message=f"Unsupported version {version} for cosine_theorem"
+                )
 
 
 
         elif theorem_name == "sine_theorem":
 
-            # Expected conclusion pattern:
+            version = args[0]
 
-            # Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),
+            if version == "1":
 
-            #       Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))
+                # Parse the conclusion pattern
 
-            pattern = r'Equal\(Mul\(LengthOfLine\((\w{2})\),Sin\(MeasureOfAngle\((\w{3})\)\)\),Mul\(LengthOfLine\((\w{2})\),Sin\(MeasureOfAngle\((\w{3})\)\)\)\)'
+                pattern = r'Equal\(Mul\(LengthOfLine\((\w{2})\),Sin\(MeasureOfAngle\((\w{3})\)\)\),Mul\(LengthOfLine\((\w{2})\),Sin\(MeasureOfAngle\((\w{3})\)\)\)\)'
 
-            match = re.search(pattern, conclusions[0])
+                match = re.search(pattern, conclusions[0])
 
-            import math
+                import math
 
-            if match:
+                if match:
 
-                side1, angle1_str, side2, angle2_str = match.groups()
+                    side1, angle1_str, side2, angle2_str = match.groups()
 
-                # Get (or create) the Z3 variables for the segments and angles
+                    # Get or create variables for sides and angles
 
-                length1_var = self.add_length(side1[0], side1[1])
+                    length1_var = self.add_length(side1[0], side1[1])
 
-                length2_var = self.add_length(side2[0], side2[1])
+                    length2_var = self.add_length(side2[0], side2[1])
 
-                angle1_var = self.add_angle(angle1_str[0], angle1_str[1], angle1_str[2])
+                    angle1_var = self.add_angle(angle1_str[0], angle1_str[1], angle1_str[2])
 
-                angle2_var = self.add_angle(angle2_str[0], angle2_str[1], angle2_str[2])
+                    angle2_var = self.add_angle(angle2_str[0], angle2_str[1], angle2_str[2])
 
-                # Create or get sine variables for both angles
+                    # Create or get sine variables for both angles
 
-                sin1_var_name = f"sin_{angle1_str}"
+                    sin1_var_name = f"sin_{angle1_str}"
 
-                sin2_var_name = f"sin_{angle2_str}"
+                    sin2_var_name = f"sin_{angle2_str}"
 
-                if sin1_var_name not in self.variables:
-                    self.variables[sin1_var_name] = Real(sin1_var_name)
+                    if sin1_var_name not in self.variables:
+                        self.variables[sin1_var_name] = Real(sin1_var_name)
 
-                    self.solver.add(self.variables[sin1_var_name] >= 0)
+                        self.solver.add(self.variables[sin1_var_name] >= 0)
 
-                    self.solver.add(self.variables[sin1_var_name] <= 1)
+                        self.solver.add(self.variables[sin1_var_name] <= 1)
 
-                if sin2_var_name not in self.variables:
-                    self.variables[sin2_var_name] = Real(sin2_var_name)
+                    if sin2_var_name not in self.variables:
+                        self.variables[sin2_var_name] = Real(sin2_var_name)
 
-                    self.solver.add(self.variables[sin2_var_name] >= 0)
+                        self.solver.add(self.variables[sin2_var_name] >= 0)
 
-                    self.solver.add(self.variables[sin2_var_name] <= 1)
+                        self.solver.add(self.variables[sin2_var_name] <= 1)
 
-                sin1_var = self.variables[sin1_var_name]
+                    sin1_var = self.variables[sin1_var_name]
 
-                sin2_var = self.variables[sin2_var_name]
+                    sin2_var = self.variables[sin2_var_name]
 
-                # Check if the angles have unique values
+                    # Check if the solver is satisfiable
 
-                unique_angles = True
+                    if self.solver.check() == sat:
 
-                angle1_val = None
+                        model = self.solver.model()
 
-                angle2_val = None
+                        # Initialize flags for unique angle values
 
-                if self.solver.check() == sat:
+                        angle1_unique = False
 
-                    model = self.solver.model()
+                        angle2_unique = False
 
-                    # Check if angle1 has a unique value
+                        angle1_val = None
 
-                    try:
+                        angle2_val = None
 
-                        a1_val_str = model.eval(angle1_var).as_decimal(10)
+                        sin1_val = None
 
-                        if a1_val_str.endswith('?'):
-                            a1_val_str = a1_val_str[:-1]
+                        sin2_val = None
 
-                        angle1_val = float(a1_val_str)
+                        # Check angle1 (e.g., BAC)
 
-                        # Check if angle2 has a unique value
+                        try:
 
-                        a2_val_str = model.eval(angle2_var).as_decimal(10)
+                            # Get the current angle value from the model
 
-                        if a2_val_str.endswith('?'):
-                            a2_val_str = a2_val_str[:-1]
+                            a1_val_str = model.eval(angle1_var).as_decimal(10)
 
-                        angle2_val = float(a2_val_str)
+                            if a1_val_str.endswith('?'):
+                                a1_val_str = a1_val_str[:-1]
 
-                        # Check uniqueness with temporary solvers
+                            angle1_val = float(a1_val_str)
 
-                        temp_solver1 = Solver()
+                            # Check if this value is uniquely determined
 
-                        for c in self.solver.assertions():
-                            temp_solver1.add(c)
+                            temp_solver = Solver()
 
-                        epsilon = 1e-6
+                            for c in self.solver.assertions():
+                                temp_solver.add(c)
 
-                        temp_solver1.add(Or(
+                            epsilon = 1e-6
 
-                            angle1_var < angle1_val - epsilon,
+                            temp_solver.add(Or(
 
-                            angle1_var > angle1_val + epsilon
+                                angle1_var < angle1_val - epsilon,
 
-                        ))
+                                angle1_var > angle1_val + epsilon
 
-                        temp_solver2 = Solver()
+                            ))
 
-                        for c in self.solver.assertions():
-                            temp_solver2.add(c)
+                            if temp_solver.check() == unsat:
+                                # Angle is uniquely determined
 
-                        temp_solver2.add(Or(
+                                angle1_unique = True
 
-                            angle2_var < angle2_val - epsilon,
+                                sin1_val = math.sin(math.radians(angle1_val))
 
-                            angle2_var > angle2_val + epsilon
+                                print(f"Angle {angle1_str} has unique value {angle1_val}°, sin = {sin1_val}")
 
-                        ))
+                                # Add the sine value to the variable
 
-                        if temp_solver1.check() == sat or temp_solver2.check() == sat:
-                            # At least one angle doesn't have a unique value
+                                self.solver.add(sin1_var == sin1_val)
 
-                            unique_angles = False
+                        except Exception as e:
 
+                            print(f"Error checking angle1: {e}")
 
-                    except Exception as e:
+                        # Check angle2 (e.g., ACB)
 
-                        print(f"Error evaluating angles: {e}")
+                        try:
 
-                        unique_angles = False
+                            # Get the current angle value from the model
 
-                    if unique_angles:
+                            a2_val_str = model.eval(angle2_var).as_decimal(10)
 
-                        # Both angles have unique values, calculate sines
+                            if a2_val_str.endswith('?'):
+                                a2_val_str = a2_val_str[:-1]
 
-                        sin1 = math.sin(math.radians(angle1_val))
+                            angle2_val = float(a2_val_str)
 
-                        sin2 = math.sin(math.radians(angle2_val))
+                            # Check if this value is uniquely determined
 
-                        # Add sine values to variables
+                            temp_solver = Solver()
 
-                        self.solver.add(sin1_var == sin1)
+                            for c in self.solver.assertions():
+                                temp_solver.add(c)
 
-                        self.solver.add(sin2_var == sin2)
+                            epsilon = 1e-6
 
-                        # IMPORTANT: CORRECT LAW OF SINES CONSTRAINT
+                            temp_solver.add(Or(
 
-                        # In Law of Sines, we need to pair each angle with the OPPOSITE side
+                                angle2_var < angle2_val - epsilon,
 
-                        # To identify the opposite sides, we need to analyze the triangle
+                                angle2_var > angle2_val + epsilon
 
-                        # Determine the triangle from the angles
+                            ))
 
-                        # The first angle (angle1_str) is at vertex angle1_str[1]
+                            if temp_solver.check() == unsat:
 
-                        # The second angle (angle2_str) is at vertex angle2_str[1]
+                                # Angle is uniquely determined
 
-                        # Find the triangle containing both vertices
+                                angle2_unique = True
 
-                        triangle = None
+                                sin2_val = math.sin(math.radians(angle2_val))
 
-                        for poly in self.polygons:
+                                print(f"Angle {angle2_str} has unique value {angle2_val}°, sin = {sin2_val}")
 
-                            if len(poly) == 3 and angle1_str[1] in poly and angle2_str[1] in poly:
-                                triangle = poly
+                                # Add the sine value to the variable
 
-                                break
+                                self.solver.add(sin2_var == sin2_val)
 
-                        if triangle:
+                                # Check specifically for 90 degree angles
 
-                            # Now determine which sides are opposite to which angles
+                                if abs(angle2_val - 90.0) < epsilon:
+                                    print(f"Angle {angle2_str} is 90 degrees, setting sin({angle2_str}) = 1.0")
 
-                            # For an angle at vertex X, the opposite side is the side not containing X
+                                    self.solver.add(sin2_var == 1.0)
 
-                            # Get vertices not in angle1/angle2
+                        except Exception as e:
 
-                            other_vertex = next(v for v in triangle if v != angle1_str[1] and v != angle2_str[1])
+                            print(f"Error checking angle2: {e}")
 
-                            # The side opposite to angle1_str is between angle2_str[1] and other_vertex
+                        # Now add the Law of Sines constraint with the right pairing
 
-                            opposite_side1 = self.add_length(angle2_str[1], other_vertex)
+                        if angle1_unique and angle2_unique:
 
-                            # The side opposite to angle2_str is between angle1_str[1] and other_vertex
+                            # Both angles have unique values, use those directly
 
-                            opposite_side2 = self.add_length(angle1_str[1], other_vertex)
+                            self.solver.add(length1_var * sin1_val == length2_var * sin2_val)
 
-                            # Apply the correctly paired Law of Sines constraint
+                            print(
+                                f"Added sine theorem constraint with known values: {side1} * {sin1_val} = {side2} * {sin2_val}")
 
-                            self.solver.add(sin1_var * opposite_side2 == sin2_var * opposite_side1)
+                        elif angle1_unique:
 
-                            print(f"Added sine theorem constraint with known angles: "
+                            # Only angle1 is unique
 
-                                  f"sin({angle1_str})={sin1} * opposite_side2 = sin({angle2_str})={sin2} * opposite_side1")
+                            self.solver.add(length1_var * sin1_val == length2_var * sin2_var)
+
+                            print(
+                                f"Added sine theorem constraint with partial known values: {side1} * {sin1_val} = {side2} * sin({angle2_str})")
+
+                        elif angle2_unique:
+
+                            # Only angle2 is unique
+
+                            self.solver.add(length1_var * sin1_var == length2_var * sin2_val)
+
+                            print(
+                                f"Added sine theorem constraint with partial known values: {side1} * sin({angle1_str}) = {side2} * {sin2_val}")
 
                         else:
 
-                            # If we can't determine the triangle, use a more general constraint
+                            # Neither angle has a unique value, but match the sides with their corresponding angles
 
-                            # Try both possible pairings and see which one is consistent
+                            self.solver.add(length1_var * sin1_var == length2_var * sin2_var)
 
-                            # Original constraint from code
+                            print(
+                                f"Added sine theorem constraint with variables: {side1} * sin({angle1_str}) = {side2} * sin({angle2_str})")
 
-                            self.solver.add(length1_var * sin2 == length2_var * sin1)
+                        # Additional check specifically for right triangles
 
-                            print(f"Added sine theorem constraint: {side1} * {sin2} = {side2} * {sin1}")
+                        # This ensures any 90-degree angle is explicitly handled
+
+                        for angle_str, angle_var, sin_var in [(angle1_str, angle1_var, sin1_var),
+                                                              (angle2_str, angle2_var, sin2_var)]:
+
+                            # Check if this angle is constrained to be 90 degrees
+
+                            right_angle_solver = Solver()
+
+                            for c in self.solver.assertions():
+                                right_angle_solver.add(c)
+
+                            right_angle_solver.add(angle_var != 90)
+
+                            if right_angle_solver.check() == unsat:
+                                # This is a 90-degree angle, set sin = 1
+
+                                self.solver.add(sin_var == 1.0)
+
+                                print(f"Added constraint for right angle: sin({angle_str}) = 1.0")
 
                     else:
 
-                        # At least one angle doesn't have unique value, use variables
+                        # Solver is not satisfiable
 
-                        # Use a more general constraint since we can't determine the exact triangle structure
+                        return GeometricError(
 
-                        # This will apply the Law of Sines with the sides and angles as matched in the conclusion
+                            tier=ErrorTier.TIER2_PREMISE,
 
-                        self.solver.add(length1_var * sin2_var == length2_var * sin1_var)
+                            message="Solver unsat when trying to evaluate angles for sine theorem"
 
-                        print(
-                            f"Added sine theorem constraint with variables: {side1} * sin({angle2_str}) = {side2} * sin({angle1_str})")
-
-                        # Try to solve for the sine values if possible
-
-                        if self.solver.check() == sat:
-                            updated_model = self.solver.model()
-
-                            # See if we can derive unique values for the sines
-
-                            sin1_val_updated = updated_model.eval(sin1_var)
-
-                            sin2_val_updated = updated_model.eval(sin2_var)
-
-                            print(
-                                f"Updated sine values: sin({angle1_str}) = {sin1_val_updated}, sin({angle2_str}) = {sin2_val_updated}")
-
-                            # Try to derive angles if sines are uniquely determined
-
-                            # This part would be similar to the previous implementation checking for uniqueness
-
-                            # and deriving angles when possible
+                        )
 
                 else:
 
-                    # If solver is not satisfiable, return an error
-
                     return GeometricError(
 
-                        tier=ErrorTier.TIER2_PREMISE,
+                        tier=ErrorTier.TIER1_THEOREM_CALL,
 
-                        message="Solver unsat when trying to evaluate angles for sine theorem"
+                        message="Conclusion format error for sine_theorem",
+
+                        details=f"Expected pattern Equal(Mul(LengthOfLine(XX),Sin(MeasureOfAngle(XXX))),Mul(LengthOfLine(XX),Sin(MeasureOfAngle(XXX)))) but got {conclusions[0]}"
 
                     )
-
-            else:
-
-                return GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL,
-
-                    message="Conclusion format error for sine_theorem",
-
-                    details=f"Expected pattern Equal(Mul(LengthOfLine(XX),Sin(MeasureOfAngle(XXX))),Mul(LengthOfLine(XX),Sin(MeasureOfAngle(XXX)))) but got {conclusions[0]}"
-
-                )
 
 
 
@@ -11638,7 +11647,7 @@ class GeometricTheorem:
 
                     # Ensure the side lengths are positive.
 
-                    self.solver.add(leg1_var > 0, leg2_var > 0, hyp_var > 0)
+
 
                     # Add the Pythagorean constraint.
 
