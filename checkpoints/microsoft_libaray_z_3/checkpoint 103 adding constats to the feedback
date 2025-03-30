@@ -314,9 +314,7 @@ class GeometricTheorem:
         if geometric_data:
             for category, facts in geometric_data.items():
                 if facts:  # Only show categories with facts
-                    report += f"  {category}: "
-                    cleaned_facts = []
-
+                    report += f"  {category}:\n"
                     for fact in facts:
                         # Clean up each fact by removing redundant prefixes
                         cleaned_fact = fact
@@ -326,10 +324,7 @@ class GeometricTheorem:
                             for pattern, replacement in category_patterns[category]:
                                 cleaned_fact = cleaned_fact.replace(pattern, replacement)
 
-                        cleaned_facts.append(cleaned_fact)
-
-                    # Join all facts with commas and add a newline at the end
-                    report += f"{', '.join(cleaned_facts)}\n"
+                        report += f"    {cleaned_fact}\n"
         else:
             report += NO_GEOMETRIC_FACTS
 
