@@ -115,7 +115,7 @@ class GeometricTheorem:
         self.altitudes = {}
         self.quad_areas = {}
         self.quad_heights = {}
-
+        self.quadrilateral_perimeters = {}
         # For handling both algebraic and numeric expressions
         self.variables = {}
         self.found_tier_1_or_2_error = False
@@ -156,6 +156,7 @@ class GeometricTheorem:
         # 2) We'll store any 'IsDiameterOfCircle(...)' statements here
         self.is_diameter_of_circle = []  # list of (line, circleName)
 
+        self.midsegments_of_quadrilaterals = {}
         # 3) We’ll also store any 'Cocircular(...)' facts, if needed
         self.cocircular_facts = []  # e.g. [("D", "B", "C", "A")] means D,B,C,A are on the same circle.
 
@@ -1047,10 +1048,140 @@ class GeometricTheorem:
         else:
             return False, None, "unknown"
 
+    def normalize_quadrilateral(self, quad_name: str) -> str:
+        """
+        Normalize a quadrilateral name to handle different permutations.
+        For a quadrilateral, we find all cyclic permutations and return the
+        lexicographically smallest one.
+        """
+        # Get all cyclic permutations
+        permutations = []
+        n = len(quad_name)
+        for i in range(n):
+            permutation = quad_name[i:] + quad_name[:i]
+            permutations.append(permutation)
 
+        # Return the lexicographically smallest permutation
+        return min(permutations)
 
+    def is_midsegment_of_quadrilateral(self, segment: str, quad: str) -> bool:
+        """
+        Check if the given segment is stored as a midsegment of the given quadrilateral.
+        This handles normalization of the quadrilateral name.
+        """
+        # Normalize quadrilateral name
+        norm_quad = self.normalize_quadrilateral(quad)
 
+        # Check all permutations of the segment (FE vs EF)
+        segments = [segment, segment[::-1]]
 
+        # Check if any combination exists in our stored midsegments
+        for seg in segments:
+            if (seg, norm_quad) in self.midsegments_of_quadrilaterals:
+                return True
+
+        return False
+
+    def identify_midsegment_quadrilateral(self, segment: str, quad: str) -> bool:
+        """
+        Check if a segment can be identified as a midsegment of a quadrilateral
+        by analyzing if it connects midpoints of opposite sides.
+        """
+        if len(segment) != 2 or len(quad) != 4:
+            return False
+
+        # Check if we have midpoint information about the segment endpoints
+        e_midpoint_of = []
+        f_midpoint_of = []
+
+        # Use previously established midpoint information
+        if hasattr(self, "midpoints"):
+            for (p1, p2), midpoint in self.midpoints.items():
+                if midpoint == segment[0]:  # First point of segment (e.g., "E")
+                    e_midpoint_of.append((p1, p2))
+                elif midpoint == segment[1]:  # Second point of segment (e.g., "F")
+                    f_midpoint_of.append((p1, p2))
+
+        # If we don't have enough midpoint information, return False
+        if not e_midpoint_of or not f_midpoint_of:
+            return False
+
+        # Get the sides of the quadrilateral (in order)
+        sides = [
+            (quad[0], quad[1]),
+            (quad[1], quad[2]),
+            (quad[2], quad[3]),
+            (quad[3], quad[0])
+        ]
+
+        # Convert sides to sets for easier comparison (AB == BA)
+        sides_sets = [set(side) for side in sides]
+
+        # Check if E and F are midpoints of opposite sides
+        for e_side in e_midpoint_of:
+            e_side_set = set(e_side)
+            e_side_idx = -1
+
+            # Find which side E is the midpoint of
+            for i, side_set in enumerate(sides_sets):
+                if e_side_set == side_set:
+                    e_side_idx = i
+                    break
+
+            if e_side_idx == -1:
+                continue
+
+            # Check if F is the midpoint of the opposite side
+            opposite_idx = (e_side_idx + 2) % 4
+            opposite_side_set = sides_sets[opposite_idx]
+
+            for f_side in f_midpoint_of:
+                if set(f_side) == opposite_side_set:
+                    return True
+
+        return False
+
+    def check_midsegment_with_permutations(self, segment: str, quad: str) -> bool:
+        """
+        Check if a segment is a midsegment of a quadrilateral considering all
+        possible permutations of the quadrilateral.
+        """
+        # Check all cyclic permutations of the quadrilateral
+        for i in range(len(quad)):
+            perm = quad[i:] + quad[:i]
+
+            # Check both segment orientations
+            if self.is_midsegment_of_quadrilateral(segment, perm) or \
+                    self.is_midsegment_of_quadrilateral(segment[::-1], perm):
+                return True
+
+            # Also try to identify it geometrically
+            if self.identify_midsegment_quadrilateral(segment, perm) or \
+                    self.identify_midsegment_quadrilateral(segment[::-1], perm):
+                # If identified, store it for future reference
+                norm_quad = self.normalize_quadrilateral(perm)
+                self.midsegments_of_quadrilaterals[(segment, norm_quad)] = True
+                self.midsegments_of_quadrilaterals[(segment[::-1], norm_quad)] = True
+                return True
+
+        return False
+
+    def get_opposite_sides_of_quadrilateral(self, quad: str) -> list:
+        """
+        Get the pairs of opposite sides in a quadrilateral.
+        """
+        if len(quad) != 4:
+            return []
+
+        # For a quadrilateral with vertices in cyclic order A,B,C,D:
+        # - Side 1: AB, Side 2: BC, Side 3: CD, Side 4: DA
+        # - Opposite sides are: (AB, CD) and (BC, DA)
+        sides = [
+            (quad[0] + quad[1], quad[2] + quad[3]),  # Sides 1 and 3
+            (quad[1] + quad[2], quad[3] + quad[0])  # Sides 2 and 4
+        ]
+
+        return sides
 
     def add_mirror_similar_triangles(self, tri1: str, tri2: str):
         """Record that triangles tri1 and tri2 are mirror similar (by AA)
@@ -2334,6 +2465,146 @@ class GeometricTheorem:
                     ))
             elif version == "2":
                 print("2")
+
+
+        elif theorem_name == "tangent_of_circle_property_length_equal":
+            version = args[0]
+            if version == "1":
+                if len(args) < 4:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for tangent_of_circle_property_length_equal",
+                        details="Expected: tangent_of_circle_property_length_equal(1, tangent1, tangent2, circle)"
+                    ))
+
+                tangent1 = args[1].strip()  # e.g., "AM"
+                tangent2 = args[2].strip()  # e.g., "AG"
+                circle = args[3].strip()  # e.g., "O"
+
+                # Verify the tangent facts in the premise
+                tangent1_match = re.search(
+                    r'IsTangentOfCircle\(' + re.escape(tangent1) + ',' + re.escape(circle) + r'\)', premise)
+                tangent2_match = re.search(
+                    r'IsTangentOfCircle\(' + re.escape(tangent2) + ',' + re.escape(circle) + r'\)', premise)
+
+                if not tangent1_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing IsTangentOfCircle({tangent1},{circle}) in premise",
+                        details=f"Both tangent lines must be established as tangents to the circle"
+                    ))
+
+                if not tangent2_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing IsTangentOfCircle({tangent2},{circle}) in premise",
+                        details=f"Both tangent lines must be established as tangents to the circle"
+                    ))
+
+                # Verify both segments start from the same point
+                if tangent1[0] != tangent2[0]:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Tangent segments {tangent1} and {tangent2} do not share the same starting point",
+                        details=f"For this theorem, both tangent segments must start from the same external point"
+                    ))
+
+                # Also check if these tangent facts are stored in the system
+                if (tangent1, circle) not in self.tangent_facts:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Tangent fact IsTangentOfCircle({tangent1},{circle}) not established in the system",
+                        details=f"Known tangent facts: {self.tangent_facts}"
+                    ))
+
+                if (tangent2, circle) not in self.tangent_facts:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Tangent fact IsTangentOfCircle({tangent2},{circle}) not established in the system",
+                        details=f"Known tangent facts: {self.tangent_facts}"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for tangent_of_circle_property_length_equal"
+                ))
+
+
+        elif theorem_name == "quadrilateral_perimeter_formula":
+            version = args[0]
+            if version == "1":
+                if len(args) < 2:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Missing quadrilateral name for quadrilateral_perimeter_formula",
+                        details="Expected: quadrilateral_perimeter_formula(1, quadrilateral)"
+                    ))
+
+                quad = args[1].strip()  # e.g., "ABCD"
+
+                # Verify that the quadrilateral is defined in the premise
+                polygon_match = re.search(r'Polygon\(' + re.escape(quad) + r'\)', premise)
+
+                if not polygon_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Polygon({quad}) in premise",
+                        details="The quadrilateral must be established as a polygon"
+                    ))
+
+                # Also check if the quadrilateral is stored in the system's polygons
+                if quad not in self.polygons and self.normalize_quadrilateral(quad) not in self.polygons:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Polygon {quad} is not defined in the system",
+                        details=f"Known polygons: {self.polygons}"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for quadrilateral_perimeter_formula"
+                ))
+
+
+
+
+        elif theorem_name == "midsegment_of_quadrilateral_property_length":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for midsegment_of_quadrilateral_property_length",
+                        details="Expected: midsegment_of_quadrilateral_property_length(1, segment, quadrilateral)"
+                    ))
+
+                segment = args[1].strip()
+                quad = args[2].strip()
+
+                # Try to extract the midsegment relationship from the premise
+                midsegment_match = re.search(
+                    r'IsMidsegmentOfQuadrilateral\(' + re.escape(segment) + ',' + re.escape(quad) + r'\)', premise)
+
+                # If not found directly in premise, check if it's in our stored data with permutations
+                if not midsegment_match:
+                    if not self.check_midsegment_with_permutations(segment, quad):
+                        return return_error(GeometricError(
+                            tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                            message=f"Missing IsMidsegmentOfQuadrilateral({segment},{quad}) in premise",
+                            details="The line must be established as a midsegment of the quadrilateral"
+                        ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for midsegment_of_quadrilateral_property_length"
+                ))
+
 
         elif theorem_name == "parallelogram_area_formula_sine":
             version = args[0]
@@ -6832,6 +7103,20 @@ class GeometricTheorem:
                                 angle_name, expression = value_match.group(1), value_match.group(2).strip()
                                 print(f"Found angle expression in TEXT_CDL: {angle_name} = {expression}")
                                 self.add_algebraic_angle(angle_name, expression)
+                    elif line.startswith('IsMidsegmentOfQuadrilateral('):
+                        match = re.match(r'IsMidsegmentOfQuadrilateral\((\w+),(\w+)\)', line)
+                        if match:
+                            segment, quad = match.groups()
+
+                            # Normalize quadrilateral name
+                            norm_quad = self.normalize_quadrilateral(quad)
+
+                            # Store both orientations of the segment
+                            self.midsegments_of_quadrilaterals[(segment, norm_quad)] = True
+                            self.midsegments_of_quadrilaterals[(segment[::-1], norm_quad)] = True
+
+                            print(f"Recorded midsegment of quadrilateral: {segment} is a midsegment of {quad}")
+
                     elif line.startswith('Equal(LengthOfLine('):
                         # Try first to match length equality between two lines
                         equality_match = re.match(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', line)
@@ -7751,6 +8036,43 @@ class GeometricTheorem:
                         print(f"Detailed feedback generated for arc length goal.")
                         return False, detailed_feedback
 
+                # Add this after other goal type checks like arc_measure, length, etc.
+                quad_perimeter_match = re.search(r'Value\(PerimeterOfQuadrilateral\((\w+)\)\)', goal_line)
+                if quad_perimeter_match:
+                    quad_name = quad_perimeter_match.group(1)
+                    print(f"\nGoal quadrilateral perimeter: {quad_name}")
+                    print(f"Expected perimeter: {model_answer}")
+
+                    # Create or get the perimeter variable for this quadrilateral
+                    if not hasattr(self, "quadrilateral_perimeters"):
+                        self.quadrilateral_perimeters = {}
+
+                    if quad_name not in self.quadrilateral_perimeters:
+                        perimeter_var = Real(f"perimeter_{quad_name}")
+                        self.quadrilateral_perimeters[quad_name] = perimeter_var
+                    else:
+                        perimeter_var = self.quadrilateral_perimeters[quad_name]
+
+                    # Check if the perimeter matches the model answer
+                    success, value, status = self.check_value_constraint(perimeter_var, model_answer)
+
+                    if success:
+                        print(
+                            f"Success: Quadrilateral perimeter {quad_name} is uniquely determined to be {model_answer}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback report
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="quadrilateral_perimeter",
+                            goal_token=quad_name,
+                            model_answer=model_answer,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for quadrilateral perimeter goal.")
+                        return False, detailed_feedback
+
+
                 sum_lengths_match = re.search(r'Value\(Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)', goal_line)
                 if sum_lengths_match:
                     line1 = sum_lengths_match.group(1)
@@ -8527,6 +8849,145 @@ class GeometricTheorem:
         temp_solver.add(var1 != var2)
         return temp_solver.check() == unsat
 
+    def apply_trig_constraints(self):
+        """
+        Applies numeric constraints to sine and cosine variables
+        when the corresponding angles have unique values.
+        """
+        import math
+        from z3 import sat, unsat, Solver, Or
+
+        # First, check if the solver is satisfiable
+        if self.solver.check() != sat:
+            print("Solver is unsatisfiable, cannot apply trig constraints")
+            return 0
+
+        # Get the current model
+        model = self.solver.model()
+
+        # Look for all sin_XXX and cos_XXX variables in self.variables
+        trig_vars = []
+
+        for var_name, var in self.variables.items():
+            if var_name.startswith("sin_") or var_name.startswith("cos_"):
+                parts = var_name.split("_", 1)
+                if len(parts) == 2:
+                    func, angle_name = parts
+                    angle_var_name = f"angle_{angle_name}"
+
+                    if angle_var_name in self.angles:
+                        trig_vars.append({
+                            "trig_var_name": var_name,
+                            "angle_var_name": angle_var_name,
+                            "angle_var": self.angles[angle_var_name],
+                            "trig_var": self.variables[var_name],
+                            "func": func,
+                            "angle_name": angle_name
+                        })
+
+        if not trig_vars:
+            return 0
+
+        # For each trig variable, check if the angle has a unique value
+        constraints_added = 0
+
+        for data in trig_vars:
+            angle_var = data["angle_var"]
+            trig_var = data["trig_var"]
+            func = data["func"]
+            angle_name = data["angle_name"]
+            trig_var_name = data["trig_var_name"]
+
+            # Try to get the current angle value from the model
+            try:
+                angle_val_str = model.eval(angle_var).as_decimal(10)
+                if angle_val_str.endswith('?'):
+                    angle_val_str = angle_val_str[:-1]
+                angle_val = float(angle_val_str)
+
+                # Check if this angle value is uniquely determined
+                temp_solver = Solver()
+                for c in self.solver.assertions():
+                    temp_solver.add(c)
+
+                epsilon = 1e-6
+                temp_solver.add(Or(
+                    angle_var < angle_val - epsilon,
+                    angle_var > angle_val + epsilon
+                ))
+
+                if temp_solver.check() == unsat:
+                    # Calculate exact trig value based on special cases or general formula
+                    if abs(angle_val - 90) < epsilon:
+                        # 90 degrees
+                        if func == "sin":
+                            exact_trig_val = 1.0
+                        else:  # cos
+                            exact_trig_val = 0.0
+                    elif abs(angle_val - 0) < epsilon:
+                        # 0 degrees
+                        if func == "sin":
+                            exact_trig_val = 0.0
+                        else:  # cos
+                            exact_trig_val = 1.0
+                    elif abs(angle_val - 180) < epsilon:
+                        # 180 degrees
+                        if func == "sin":
+                            exact_trig_val = 0.0
+                        else:  # cos
+                            exact_trig_val = -1.0
+                    elif abs(angle_val - 45) < epsilon or abs(angle_val - 135) < epsilon:
+                        # 45 or 135 degrees
+                        sqrt2_over_2 = math.sqrt(2) / 2
+                        if func == "sin":
+                            exact_trig_val = sqrt2_over_2
+                        else:  # cos
+                            exact_trig_val = sqrt2_over_2 if abs(angle_val - 45) < epsilon else -sqrt2_over_2
+                    elif abs(angle_val - 30) < epsilon or abs(angle_val - 150) < epsilon:
+                        # 30 or 150 degrees
+                        if func == "sin":
+                            exact_trig_val = 0.5
+                        else:  # cos
+                            exact_trig_val = math.sqrt(3) / 2 if abs(angle_val - 30) < epsilon else -math.sqrt(3) / 2
+                    elif abs(angle_val - 60) < epsilon or abs(angle_val - 120) < epsilon:
+                        # 60 or 120 degrees
+                        if func == "sin":
+                            exact_trig_val = math.sqrt(3) / 2
+                        else:  # cos
+                            exact_trig_val = 0.5 if abs(angle_val - 60) < epsilon else -0.5
+                    else:
+                        # General case
+                        if func == "sin":
+                            exact_trig_val = math.sin(math.radians(angle_val))
+                        else:  # cos
+                            exact_trig_val = math.cos(math.radians(angle_val))
+
+                    # Round to help with numerical stability
+                    exact_trig_val = round(exact_trig_val, 10)
+
+                    # Check if the trig variable is already constrained to this value
+                    trig_temp_solver = Solver()
+                    for c in self.solver.assertions():
+                        trig_temp_solver.add(c)
+
+                    trig_temp_solver.add(Or(
+                        trig_var < exact_trig_val - epsilon,
+                        trig_var > exact_trig_val + epsilon
+                    ))
+
+                    if trig_temp_solver.check() == sat:
+                        # Trig variable can have a different value, add constraint
+                        self.solver.add(trig_var == exact_trig_val)
+                        constraints_added += 1
+                        print(f"Added constraint: {func}({angle_name}) = {exact_trig_val} (angle = {angle_val}°)")
+
+            except Exception as e:
+                print(f"Error processing angle {angle_name}: {e}")
+
+        return constraints_added
+
+
+
     def adding_conclution(self, theorem_name: str, args: List[str], premise: str, conclusions: List[str]) -> \
             Optional[GeometricError]:
         print(f"\nProcessing theorem step: {theorem_name}")
@@ -8604,7 +9065,10 @@ class GeometricTheorem:
             "arc_addition_measure",
             "diameter_of_circle_judgment_pass_centre",
             "isosceles_triangle_property_line_coincidence",
-            "parallelogram_area_formula_sine"
+            "parallelogram_area_formula_sine",
+            "midsegment_of_quadrilateral_property_length",
+            "tangent_of_circle_property_length_equal",
+            "quadrilateral_perimeter_formula"
         ]
 
         if theorem_name not in valid_theorems:
@@ -8631,6 +9095,131 @@ class GeometricTheorem:
             elif version == "2":
                 print("2")
 
+        # For the tangent_of_circle_property_length_equal theorem
+        elif theorem_name == "tangent_of_circle_property_length_equal":
+            version = args[0]
+            if version == "1":
+                # Extract the two tangent lines and the circle from the args
+                line1 = args[1].strip()  # e.g., "AM"
+                line2 = args[2].strip()  # e.g., "AG"
+                circle = args[3].strip()  # e.g., "O"
+
+                # Check conclusion format
+                match = re.search(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', conclusions[0])
+                if match:
+                    # Get length variables for both tangent lines
+                    len1_var = self.add_length(line1[0], line1[1])
+                    len2_var = self.add_length(line2[0], line2[1])
+
+                    # Add the constraint that they are equal
+                    self.solver.add(len1_var == len2_var)
+
+                    print(f"Added tangent length equality constraint: {line1} = {line2}")
+                    return None
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for tangent_of_circle_property_length_equal",
+                        details=f"Expected Equal(LengthOfLine(XX),LengthOfLine(YY)) but got {conclusions[0]}"
+                    )
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for tangent_of_circle_property_length_equal"
+                )
+
+        # For the quadrilateral_perimeter_formula theorem
+        elif theorem_name == "quadrilateral_perimeter_formula":
+            version = args[0]
+            if version == "1":
+                if len(args) < 2:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Missing quadrilateral name for quadrilateral_perimeter_formula",
+                        details="Expected: quadrilateral_perimeter_formula(1, quadrilateral)"
+                    )
+
+                quad = args[1].strip()  # e.g., "ABCD"
+
+                # Extract the sides from the conclusion using a more flexible pattern
+                # Handle different possible formats of the conclusion
+                match = re.search(
+                    r'Equal\(Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\),LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\),(PerimeterOfQuadrilateral\((\w+)\)|perimeter_(\w+))\)',
+                    conclusions[0]
+                )
+
+                if match:
+                    side1, side2, side3, side4 = match.groups()[:4]
+                    # The perimeter part could be in different forms, so handle that flexibly
+                    perimeter_quad = match.group(6) if match.group(6) else match.group(7) if match.group(7) else quad
+
+                    # Verify that the quadrilateral names match if a name was specified
+                    if perimeter_quad != quad:
+                        return GeometricError(
+                            tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                            message=f"Quadrilateral name mismatch: {perimeter_quad} vs {quad}",
+                            details=f"The quadrilateral in the conclusion must match the one in the theorem call"
+                        )
+
+                    # Create length variables for each side
+                    side1_var = self.add_length(side1[0], side1[1])
+                    side2_var = self.add_length(side2[0], side2[1])
+                    side3_var = self.add_length(side3[0], side3[1])
+                    side4_var = self.add_length(side4[0], side4[1])
+
+                    # Create or get perimeter variable
+                    if not hasattr(self, "quadrilateral_perimeters"):
+                        self.quadrilateral_perimeters = {}
+
+                    perimeter_var = Real(f"perimeter_{quad}")
+                    self.quadrilateral_perimeters[quad] = perimeter_var
+
+                    # Add constraint: perimeter = sum of sides
+                    self.solver.add(perimeter_var == side1_var + side2_var + side3_var + side4_var)
+
+                    print(
+                        f"Added quadrilateral perimeter constraint: perimeter({quad}) = {side1} + {side2} + {side3} + {side4}")
+                    return None
+                else:
+                    # Try a simpler pattern that doesn't rely on the PerimeterOfQuadrilateral term
+                    match = re.search(
+                        r'Equal\(Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\),LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\),(.*?)\)',
+                        conclusions[0]
+                    )
+
+                    if match:
+                        side1, side2, side3, side4 = match.groups()[:4]
+
+                        # Create length variables for each side
+                        side1_var = self.add_length(side1[0], side1[1])
+                        side2_var = self.add_length(side2[0], side2[1])
+                        side3_var = self.add_length(side3[0], side3[1])
+                        side4_var = self.add_length(side4[0], side4[1])
+
+                        # Create or get perimeter variable
+                        if not hasattr(self, "quadrilateral_perimeters"):
+                            self.quadrilateral_perimeters = {}
+
+                        perimeter_var = Real(f"perimeter_{quad}")
+                        self.quadrilateral_perimeters[quad] = perimeter_var
+
+                        # Add constraint: perimeter = sum of sides
+                        self.solver.add(perimeter_var == side1_var + side2_var + side3_var + side4_var)
+
+                        print(
+                            f"Added quadrilateral perimeter constraint: perimeter({quad}) = {side1} + {side2} + {side3} + {side4}")
+                        return None
+                    else:
+                        return GeometricError(
+                            tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                            message="Conclusion format error for quadrilateral_perimeter_formula",
+                            details=f"Expected conclusion with four side lengths but got {conclusions[0]}"
+                        )
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for quadrilateral_perimeter_formula"
+                )
 
         elif theorem_name == "arc_addition_measure":
             version = args[0]
@@ -8668,7 +9257,45 @@ class GeometricTheorem:
                     message=f"Unsupported version {version} for arc_addition_measure"
                 )
 
+        elif theorem_name == "midsegment_of_quadrilateral_property_length":
+            version = args[0]
+            if version == "1":
+                segment = args[1].strip()
+                quad = args[2].strip()
 
+                # Check the conclusion format
+                # Expected conclusion: "Equal(Add(LengthOfLine(AD),LengthOfLine(BC)),Mul(LengthOfLine(EF),2))"
+                match = re.search(
+                    r'Equal\(Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\),Mul\(LengthOfLine\(' +
+                    re.escape(segment) + r'\),2\)\)',
+                    conclusions[0]
+                )
+
+                if match:
+                    side1, side2 = match.groups()
+
+                    # Get length variables for all segments
+                    segment_var = self.add_length(segment[0], segment[1])
+                    side1_var = self.add_length(side1[0], side1[1])
+                    side2_var = self.add_length(side2[0], side2[1])
+
+                    # Add the constraint: segment = (side1 + side2) / 2
+                    # Or equivalently: 2 * segment = side1 + side2
+                    self.solver.add(segment_var * 2 == side1_var + side2_var)
+
+                    print(f"Added midsegment property constraint: 2 * {segment} = {side1} + {side2}")
+                    return None
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for midsegment_of_quadrilateral_property_length",
+                        details=f"Expected pattern Equal(Add(LengthOfLine(XX),LengthOfLine(YY)),Mul(LengthOfLine({segment}),2)) but got {conclusions[0]}"
+                    )
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for midsegment_of_quadrilateral_property_length"
+                )
         elif theorem_name == "parallelogram_area_formula_sine":
             version = args[0]
             if version == "1":
@@ -11084,7 +11711,14 @@ class GeometricTheorem:
                     angle2_var = self.add_angle(angle2_str[0], angle2_str[1], angle2_str[2])
 
                     # Create or get sine variables for both angles
-
+                    start_first, vertex_first, end_first = angle1_str[0], angle1_str[1], angle1_str[2]
+                    start_second, vertex_second, end_second = angle2_str[0], angle2_str[1], angle2_str[2]
+                    if start_first > end_first:
+                        # Swap start and end if needed to maintain alphabetical order
+                        angle1_str = end_first + vertex_first + start_first
+                    if start_second > end_second:
+                        # Swap start and end if needed to maintain alphabetical order
+                        angle2_str = end_second + vertex_second + start_second
                     sin1_var_name = f"sin_{angle1_str}"
 
                     sin2_var_name = f"sin_{angle2_str}"
@@ -12344,6 +12978,12 @@ class GeometricTheorem:
             elif version == "2":
                 print("2")
 
+        constraints_added = self.apply_trig_constraints()
+        if constraints_added > 0:
+            print(f"Added {constraints_added} trigonometric constraints after theorem {theorem_name}")
+
+        return None  # or return the error if there was one
+
 
 def get_cyclic_variations_rectangle(para_name: str) -> Set[str]:
     """Return all cyclic variations of a polygon name.
@@ -12424,7 +13064,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions/question_1726/question_1726_random",
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_3419/question3419_gt",
         print_output=False)
 
     if not result:

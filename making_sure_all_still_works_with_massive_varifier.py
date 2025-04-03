@@ -9,9 +9,9 @@ from geometric_verifier import verify_geometric_proof
 def verify_all_proofs(base_directory):
     # List of question numbers to specifically check
     required_questions = [
-        51, 69, 127, 178, 192, 246, 358, 437, 449, 464, 532, 696, 716, 844, 847,
+        51, 69, 127, 178, 192, 246, 358, 437, 449, 464, 532, 696, 716, 759, 844, 847,
         1258, 1490, 1726, 1854, 1945, 1975, 2106, 2114, 2196, 2200, 2323, 2410, 2425, 2614, 4099,
-        2624, 2669, 2761, 2851, 2875, 2916, 2999, 3027, 3272, 3412, 3418, 3434, 3580, 3634, 3983, 4134, 4187, 4254,
+        2624, 2669, 2761, 2851, 2875, 2916, 2999, 3027, 3272, 3412, 3418, 3419, 3434, 3580, 3634, 3983, 4134, 4187, 4254,
         4473, 4476,
         4483, 4489, 4523, 4796, 4797, 4892, 4898, 4910, 4923, 5080, 5179, 5230, 5208, 5399, 5431, 5440, 5510, 5563,
         5645, 5708, 5779, 5805,
@@ -113,5 +113,5 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         base_dir = sys.argv[1]
     else:
-        base_dir = "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions"
+        base_dir = "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions"
     verify_all_proofs(base_dir)

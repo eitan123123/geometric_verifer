@@ -48,6 +48,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         base_dir = sys.argv[1]
     else:
-        base_dir = "/Users/eitan/Desktop/lean/lean_python/questions/the new format for questions after jan_17/new_45_questions"
+        base_dir = "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions"
 
     verify_all_proofs(base_dir)
