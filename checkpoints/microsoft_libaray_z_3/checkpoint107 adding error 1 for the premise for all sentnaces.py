@@ -2571,7 +2571,7 @@ class GeometricTheorem:
             else:
                 return return_error(GeometricError(
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message="these is no such version for the theorem quadrilateral_perimeter_formula",
+                    message="these is no such version for the theorem",
                     details="these is no such version for the theorem quadrilateral_perimeter_formula"
                 ))
 
@@ -9155,19 +9155,9 @@ class GeometricTheorem:
                             is_valid, error = self.validate_theorem_premises(theorem_name, args, premise)
                             if not is_valid:
                                 print(f"\nError in {error.tier.name}:")
-                                # --- MODIFICATION START ---
-                                if error.tier == ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION:
-                                    # For TIER1, print details first if available, then message as fallback
-                                    if error.details:
-                                        print(f"Details: {error.details}")
-                                    else:
-                                        print(f"Message: {error.message}")  # Fallback if no details
-                                else:
-                                    # For TIER2/TIER3, print message first, then details if available
-                                    print(f"Message: {error.message}")
-                                    if error.details:
-                                        print(f"Details: {error.details}")
-                                # --- MODIFICATION END ---
+                                print(f"Message: {error.message}")
+                                if error.details:
+                                    print(f"Details: {error.details}")
 
                                 if error.tier == ErrorTier.TIER2_PREMISE_VIOLATION:
                                     # Use the special formatted feedback for premise errors
@@ -9182,19 +9172,9 @@ class GeometricTheorem:
                             error = self.adding_conclution(theorem_name, args, premise, conclusions)
                             if error:
                                 print(f"\nError in {error.tier.name}:")
-                                # --- MODIFICATION START ---
-                                if error.tier == ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION:
-                                    # For TIER1, print details first if available, then message as fallback
-                                    if error.details:
-                                        print(f"Details: {error.details}")
-                                    else:
-                                        print(f"Message: {error.message}")  # Fallback if no details
-                                else:
-                                    # For TIER2/TIER3, print message first, then details if available
-                                    print(f"Message: {error.message}")
-                                    if error.details:
-                                        print(f"Details: {error.details}")
-                                # --- MODIFICATION END ---
+                                print(f"Message: {error.message}")
+                                if error.details:
+                                    print(f"Details: {error.details}")
 
                                 if error.tier == ErrorTier.TIER2_PREMISE_VIOLATION:
                                     # Use the special formatted feedback for premise errors
@@ -14791,7 +14771,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_6322/question6322_gt",
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_1945/question1945_try",
         print_output=False)
 
     if not result:
