@@ -2576,7 +2576,147 @@ class GeometricTheorem:
                 ))
 
 
+        elif theorem_name == "congruent_triangle_judgment_aas":
+            version = args[0]
+            if version in {"1", "2", "3"}:
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for congruent_triangle_judgment_aas",
+                        details=f"Expected: congruent_triangle_judgment_aas({version}, triangle1, triangle2)"
+                    ))
 
+                tri1, tri2 = args[1].strip(), args[2].strip()
+
+                # Check if both triangles exist as polygons
+                if self.normalize_triangle(tri1) not in self.polygons:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangle {tri1} not defined",
+                        details=f"Known polygons: {self.polygons}"
+                    ))
+
+                if self.normalize_triangle(tri2) not in self.polygons:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangle {tri2} not defined",
+                        details=f"Known polygons: {self.polygons}"
+                    ))
+
+                # Check for polygon definitions in premise
+                polygon_matches = re.findall(r'Polygon\((\w+)\)', premise)
+                if len(polygon_matches) < 2:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing polygon definitions in premise",
+                        details="congruent_triangle_judgment_aas requires both triangles to be defined"
+                    ))
+
+                # Check for angle equalities
+                angle_equalities = re.findall(r'Equal\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)', premise)
+                if len(angle_equalities) < 2:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Insufficient angle equalities in premise",
+                        details="congruent_triangle_judgment_aas requires at least 2 equal angle pairs"
+                    ))
+
+                # Check for side equality - differs by version
+                if version == "1":
+                    # Check first sides of triangles (AB and DE)
+                    side1 = tri1[0] + tri1[1]  # e.g., "AB"
+                    side2 = tri2[0] + tri2[1]  # e.g., "DE"
+                    side_pattern = r'Equal\(LengthOfLine\(' + re.escape(side1) + r'\),LengthOfLine\(' + re.escape(
+                        side2) + r'\)\)'
+                    if not re.search(side_pattern, premise):
+                        return return_error(GeometricError(
+                            tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                            message=f"Missing side equality in premise for version 1",
+                            details=f"Version 1 requires Equal(LengthOfLine({side1}),LengthOfLine({side2}))"
+                        ))
+                elif version == "2":
+                    # Check second sides of triangles (BC and EF)
+                    side1 = tri1[1] + tri1[2]  # e.g., "BC"
+                    side2 = tri2[1] + tri2[2]  # e.g., "EF"
+                    side_pattern = r'Equal\(LengthOfLine\(' + re.escape(side1) + r'\),LengthOfLine\(' + re.escape(
+                        side2) + r'\)\)'
+                    if not re.search(side_pattern, premise):
+                        return return_error(GeometricError(
+                            tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                            message=f"Missing side equality in premise for version 2",
+                            details=f"Version 2 requires Equal(LengthOfLine({side1}),LengthOfLine({side2}))"
+                        ))
+                elif version == "3":
+                    # Check third sides of triangles (AC and DF)
+                    side1 = tri1[0] + tri1[2]  # e.g., "AC"
+                    side2 = tri2[0] + tri2[2]  # e.g., "DF"
+                    side_pattern = r'Equal\(LengthOfLine\(' + re.escape(side1) + r'\),LengthOfLine\(' + re.escape(
+                        side2) + r'\)\)'
+                    if not re.search(side_pattern, premise):
+                        return return_error(GeometricError(
+                            tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                            message=f"Missing side equality in premise for version 3",
+                            details=f"Version 3 requires Equal(LengthOfLine({side1}),LengthOfLine({side2}))"
+                        ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem congruent_triangle_judgment_aas"
+                ))
+
+
+        elif theorem_name == "similar_triangle_property_area_square_ratio":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for similar_triangle_property_area_square_ratio",
+                        details="Expected: similar_triangle_property_area_square_ratio(1, triangle1, triangle2)"
+                    ))
+
+                tri1, tri2 = args[1].strip(), args[2].strip()
+
+                # Check if the premise states that the triangles are similar
+                similar_match = re.search(r'SimilarBetweenTriangle\((\w+),(\w+)\)', premise)
+                if not similar_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing similar triangles relationship in premise",
+                        details="similar_triangle_property_area_square_ratio requires SimilarBetweenTriangle(...)"
+                    ))
+
+                premise_tri1, premise_tri2 = similar_match.groups()
+
+                # Check if the triangles in the premise match those in the function call
+                norm_call_triangles = self.normalize_similar_triangles(tri1, tri2)
+                norm_premise_triangles = self.normalize_similar_triangles(premise_tri1, premise_tri2)
+
+                if norm_call_triangles != norm_premise_triangles:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangle mismatch: call uses {tri1},{tri2} but premise has {premise_tri1},{premise_tri2}",
+                        details="Triangles in the theorem call must match those in the premise"
+                    ))
+
+                # Check if the triangles are actually marked as similar in the system
+                if not self.are_triangles_similar(tri1, tri2):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangles {tri1} and {tri2} not proven similar",
+                        details=f"Known similar triangle pairs: {self.similar_triangles}"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem similar_triangle_property_area_square_ratio"
+                ))
 
 
         elif theorem_name == "midsegment_of_quadrilateral_property_length":
@@ -3113,6 +3253,154 @@ class GeometricTheorem:
                 ))
 
 
+        elif theorem_name == "congruent_arc_judgment_chord_equal":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for congruent_arc_judgment_chord_equal",
+                        details="Expected: congruent_arc_judgment_chord_equal(1, arc1, arc2)"
+                    ))
+
+                arc1, arc2 = args[1].strip(), args[2].strip()
+
+                # Check that the premise mentions both arcs
+                arc1_match = re.search(r'Arc\(' + re.escape(arc1) + r'\)', premise)
+                arc2_match = re.search(r'Arc\(' + re.escape(arc2) + r'\)', premise)
+
+                if not arc1_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Arc({arc1}) in premise",
+                        details="congruent_arc_judgment_chord_equal requires both arcs to be defined"
+                    ))
+
+                if not arc2_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Arc({arc2}) in premise",
+                        details="congruent_arc_judgment_chord_equal requires both arcs to be defined"
+                    ))
+
+                # Extract circle and chord for first arc
+                circle1 = arc1[0]
+                chord1 = arc1[1:]
+
+                # Extract circle and chord for second arc
+                circle2 = arc2[0]
+                chord2 = arc2[1:]
+
+                # Check that the chords are defined as lines
+                chord1_match = re.search(r'Line\(' + re.escape(chord1) + r'\)', premise)
+                chord2_match = re.search(r'Line\(' + re.escape(chord2) + r'\)', premise)
+
+                if not chord1_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Line({chord1}) in premise",
+                        details="congruent_arc_judgment_chord_equal requires both chords to be defined as lines"
+                    ))
+
+                if not chord2_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Line({chord2}) in premise",
+                        details="congruent_arc_judgment_chord_equal requires both chords to be defined as lines"
+                    ))
+
+                # Check for cocircularity (points of second chord lie on the first circle)
+                cocircular_match = re.search(
+                    r'Cocircular\(' + re.escape(circle1) + r',.*' + re.escape(chord2) + r'.*\)', premise)
+
+                if not cocircular_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Cocircular({circle1}, ...) containing points {chord2} in premise",
+                        details="congruent_arc_judgment_chord_equal requires points of the second chord to lie on the first circle"
+                    ))
+
+                # Check for equal chord lengths
+                chord_equality_match = re.search(
+                    r'Equal\(LengthOfLine\(' + re.escape(chord1) + r'\),LengthOfLine\(' + re.escape(chord2) + r'\)\)',
+                    premise)
+                if not chord_equality_match:
+                    # Try reverse order too
+                    chord_equality_match = re.search(
+                        r'Equal\(LengthOfLine\(' + re.escape(chord2) + r'\),LengthOfLine\(' + re.escape(
+                            chord1) + r'\)\)', premise)
+
+                if not chord_equality_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing chord length equality in premise",
+                        details=f"Need Equal(LengthOfLine({chord1}),LengthOfLine({chord2})) in premise"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem congruent_arc_judgment_chord_equal"
+                ))
+
+
+        elif theorem_name == "congruent_arc_property_measure_equal":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for congruent_arc_property_measure_equal",
+                        details="Expected: congruent_arc_property_measure_equal(1, arc1, arc2)"
+                    ))
+
+                arc1, arc2 = args[1].strip(), args[2].strip()
+
+                # Check for the congruent arcs relationship in the premise
+                congruent_match = re.search(r'CongruentBetweenArc\((\w+),(\w+)\)', premise)
+                if not congruent_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing congruent arcs relationship in premise",
+                        details="congruent_arc_property_measure_equal requires CongruentBetweenArc(...) in premise"
+                    ))
+
+                premise_arc1, premise_arc2 = congruent_match.groups()
+
+                # Check if the arcs in the premise match those in the function call (in any order)
+                if not ((arc1 == premise_arc1 and arc2 == premise_arc2) or
+                        (arc1 == premise_arc2 and arc2 == premise_arc1)):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Arc mismatch: function call uses {arc1},{arc2} but premise has {premise_arc1},{premise_arc2}",
+                        details="Arcs in the function call must match those in the premise"
+                    ))
+
+                # Check if the arcs are recorded as congruent in the system
+                if not hasattr(self, "congruent_arcs"):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Arcs {arc1} and {arc2} not proven congruent",
+                        details="No congruent arcs have been established in the system"
+                    ))
+
+                canonical_arc_pair = tuple(sorted([arc1, arc2]))
+                if canonical_arc_pair not in self.congruent_arcs:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Arcs {arc1} and {arc2} not proven congruent",
+                        details=f"Known congruent arcs: {self.congruent_arcs}"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem congruent_arc_property_measure_equal"
+                ))
 
 
 
@@ -10345,7 +10633,11 @@ class GeometricTheorem:
             "parallelogram_area_formula_sine",
             "midsegment_of_quadrilateral_property_length",
             "tangent_of_circle_property_length_equal",
-            "quadrilateral_perimeter_formula"
+            "quadrilateral_perimeter_formula",
+            "congruent_triangle_judgment_aas",
+            "similar_triangle_property_area_square_ratio",
+            "congruent_arc_judgment_chord_equal",
+            "congruent_arc_property_measure_equal"
         ]
 
         if theorem_name not in valid_theorems:
@@ -10402,6 +10694,131 @@ class GeometricTheorem:
                 return GeometricError(
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
                     message=f"Unsupported version {version} for tangent_of_circle_property_length_equal"
+                )
+
+
+        elif theorem_name == "congruent_arc_judgment_chord_equal":
+            version = args[0]
+            if version == "1":
+                # Parse the conclusion to extract the two arcs
+                arc_match = re.search(r'CongruentBetweenArc\((\w+),(\w+)\)', conclusions[0])
+                if not arc_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for congruent_arc_judgment_chord_equal",
+                        details=f"Expected CongruentBetweenArc(...) pattern but got {conclusions[0]}"
+                    )
+
+                arc1, arc2 = arc_match.groups()
+
+                # Store the congruent arc relationship
+                if not hasattr(self, "congruent_arcs"):
+                    self.congruent_arcs = []
+
+                # Create a canonical representation of the arc pair to avoid duplicates
+                canonical_arc_pair = tuple(sorted([arc1, arc2]))
+
+                if canonical_arc_pair not in self.congruent_arcs:
+                    self.congruent_arcs.append(canonical_arc_pair)
+
+                print(f"Added congruent arcs relationship: {arc1} and {arc2} are congruent")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for congruent_arc_judgment_chord_equal",
+                    details="Only version 1 is supported"
+                )
+
+        elif theorem_name == "congruent_arc_property_measure_equal":
+            version = args[0]
+            if version == "1":
+                # Parse the conclusion to extract the arc measures
+                match = re.search(r'Equal\(MeasureOfArc\((\w+)\),MeasureOfArc\((\w+)\)\)', conclusions[0])
+                if not match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for congruent_arc_property_measure_equal",
+                        details=f"Expected Equal(MeasureOfArc(...),MeasureOfArc(...)) pattern but got {conclusions[0]}"
+                    )
+
+                arc1, arc2 = match.groups()
+
+                # Get or create arc measure variables
+                arc1_var = self.add_arc(arc1)
+                arc2_var = self.add_arc(arc2)
+
+                # Add the constraint that the arc measures are equal
+                self.solver.add(arc1_var == arc2_var)
+
+                print(f"Added arc measure equality: MeasureOfArc({arc1}) = MeasureOfArc({arc2})")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for congruent_arc_property_measure_equal",
+                    details="Only version 1 is supported"
+                )
+
+        elif theorem_name == "similar_triangle_property_area_square_ratio":
+            version = args[0]
+            if version == "1":
+                # Parse conclusion to extract triangle names
+                area_ratio_match = re.search(
+                    r'Equal\(AreaOfTriangle\((\w+)\),Mul\(AreaOfTriangle\((\w+)\),RatioOfSimilarTriangle\((\w+),(\w+)\),RatioOfSimilarTriangle\((\w+),(\w+)\)\)\)',
+                    conclusions[0]
+                )
+
+                if not area_ratio_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for similar_triangle_property_area_square_ratio",
+                        details=f"Expected area ratio pattern not found in: {conclusions[0]}"
+                    )
+
+                tri1, tri2, ratio_tri1_1, ratio_tri2_1, ratio_tri1_2, ratio_tri2_2 = area_ratio_match.groups()
+
+                # Verify all triangle names are consistent
+                if not (tri1 == ratio_tri1_1 == ratio_tri1_2 and tri2 == ratio_tri2_1 == ratio_tri2_2):
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Inconsistent triangle names in conclusion",
+                        details=f"All references to the first triangle should be {tri1} and second triangle should be {tri2}"
+                    )
+
+                # Create area variables for both triangles
+                norm_tri1 = self.normalize_triangle(tri1)
+                norm_tri2 = self.normalize_triangle(tri2)
+
+                if norm_tri1 not in self.triangle_areas:
+                    self.triangle_areas[norm_tri1] = Real(f"areaTriangle_{norm_tri1}")
+                    self.solver.add(self.triangle_areas[norm_tri1] >= 0)
+
+                if norm_tri2 not in self.triangle_areas:
+                    self.triangle_areas[norm_tri2] = Real(f"areaTriangle_{norm_tri2}")
+                    self.solver.add(self.triangle_areas[norm_tri2] >= 0)
+
+                area_tri1 = self.triangle_areas[norm_tri1]
+                area_tri2 = self.triangle_areas[norm_tri2]
+
+                # Get the similarity ratio variable
+                norm_similar_pair = self.normalize_similar_triangles(tri1, tri2)
+                if norm_similar_pair not in self.triangle_ratios:
+                    ratio_var_name = f"ratio_{norm_similar_pair[0]}_{norm_similar_pair[1]}"
+                    self.triangle_ratios[norm_similar_pair] = Real(ratio_var_name)
+
+                ratio_var = self.triangle_ratios[norm_similar_pair]
+
+                # Add the constraint: area_tri1 = area_tri2 * ratio^2
+                self.solver.add(area_tri1 == area_tri2 * ratio_var * ratio_var)
+
+                print(f"Added area ratio constraint: Area({tri1}) = Area({tri2}) * [Ratio({tri1},{tri2})]²")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for similar_triangle_property_area_square_ratio",
+                    details="Only version 1 is supported"
                 )
 
         # For the quadrilateral_perimeter_formula theorem
@@ -10496,6 +10913,32 @@ class GeometricTheorem:
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
                     message=f"Unsupported version {version} for quadrilateral_perimeter_formula"
                 )
+
+        elif theorem_name == "congruent_triangle_judgment_aas":
+            version = args[0]
+            if version in {"1", "2", "3"}:
+                match = re.search(r'CongruentBetweenTriangle\((\w+),(\w+)\)', conclusions[0])
+                if match:
+                    tri1, tri2 = match.groups()
+                    canonical_pair = self.canonicalize_congruent_triangle_pair(tri1, tri2)
+                    if canonical_pair not in self.congruent_triangles:
+                        self.congruent_triangles.append(canonical_pair)
+                    print(f"Added congruent triangles via AAS: {tri1} and {tri2} (canonical: {canonical_pair})")
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for congruent_triangle_judgment_aas",
+                        details=f"Expected CongruentBetweenTriangle(...) but got {conclusions[0]}"
+                    )
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for congruent_triangle_judgment_aas",
+                    details="Supported versions are 1, 2, and 3"
+                )
+
+
+
 
         elif theorem_name == "arc_addition_measure":
             version = args[0]
@@ -14791,8 +15234,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_6322/question6322_gt",
-        print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_6146/question6146_gt",print_output=False)
 
     if not result:
         print(feedback)

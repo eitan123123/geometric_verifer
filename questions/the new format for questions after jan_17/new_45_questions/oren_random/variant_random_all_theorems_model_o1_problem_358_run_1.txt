@@ -1,0 +1,146 @@
+Inputs for Problem B:
+DESCRIPTION:
+As shown in the diagram, BA=h, CA=3, ∠BAC=45°, AC⊥BC. Find the value of h.
+CONSTRUCTION_CDL:
+Shape(CB,BA,AC)
+TEXT_CDL:
+Equal(LengthOfLine(BA),h)
+Equal(LengthOfLine(CA),3)
+Equal(MeasureOfAngle(BAC),45)
+PerpendicularBetweenLine(AC,BC)
+GOAL_CDL:
+Value(h)
+CONSTRUCTION_CDL_EXTENDED:
+Shape(BA,AC,CB)
+Shape(AC,CB,BA)
+Point(C)
+Point(B)
+Point(A)
+Line(CB)
+Line(BC)
+Line(BA)
+Line(AB)
+Line(AC)
+Line(CA)
+Angle(CBA)
+Angle(BAC)
+Angle(ACB)
+Angle(ABC)
+Angle(CAB)
+Angle(BCA)
+Polygon(CBA)
+Polygon(CAB)
+Polygon(BCA)
+Polygon(BAC)
+Polygon(ACB)
+Polygon(ABC)
+SYMBOLS_AND_VALUES:
+DiameterOfCircle(B);dc_b;20
+LengthOfLine(BD);ll_bd;None
+LengthOfLine(DB);ll_bd;None
+Free(x);x;None
+MeasureOfAngle(ACD);ma_ace;45
+MeasureOfAngle(ACE);ma_ace;45
+MeasureOfAngle(BCD);ma_ace;45
+MeasureOfAngle(BCE);ma_ace;45
+MeasureOfAngle(BDE);ma_bde;90
+
+Outputs:
+Outputs for Problem B:
+
+***MODEL_RESPONSE_BEGIN***
+EQUATIONS:
+h^2-18=0
+
+GOAL_SYMBOL:
+h
+
+ANSWER:
+42426407/10000000
+
+THEOREM_SEQUENCE:
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; triangle_property_angle_sum(1,ACB); Polygon(ACB); ["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+3; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+***MODEL_RESPONSE_END***
+RETRIES_MESSAGES:
+#run: 1; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Verification failed. Theorem <right_triangle_judgment_angle> branch error. Expected dict_keys(['1']) but got None. Please rewrite your response, you should change only the call to theorem <right_triangle_judgment_angle> by adding the branch number from the dict_keys as the first argument
+Model Answer:
+RETRY_ANSWER:
+3√2
+RETRY_THEOREM_SEQUENCE:
+1; right_triangle_judgment_angle(ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; triangle_property_angle_sum(ACB); Polygon(ACB); ["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+3; right_triangle_property_pythagorean(ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+#run: 1; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Verification failed. Theorem <triangle_property_angle_sum> branch error. Expected dict_keys(['1']) but got None. Please rewrite your response, you should change only the call to theorem <triangle_property_angle_sum> by adding the branch number from the dict_keys as the first argument
+Model Answer:
+RETRY_ANSWER:
+3√2
+RETRY_THEOREM_SEQUENCE:
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; triangle_property_angle_sum(ACB); Polygon(ACB); ["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+3; right_triangle_property_pythagorean(ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+#run: 1; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Verification failed. Theorem <right_triangle_property_pythagorean> branch error. Expected dict_keys(['1']) but got None. Please rewrite your response, you should change only the call to theorem <right_triangle_property_pythagorean> by adding the branch number from the dict_keys as the first argument
+Model Answer:
+RETRY_ANSWER:
+3√2
+RETRY_THEOREM_SEQUENCE:
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; triangle_property_angle_sum(1,ACB); Polygon(ACB); ["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+3; right_triangle_property_pythagorean(ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+#run: 1; #retry: 4; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Error parsing answer '3√2': Invalid literal for Fraction: '3√2'
+Model Answer:
+RETRY_ANSWER:
+3√2
+RETRY_THEOREM_SEQUENCE:
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; triangle_property_angle_sum(1,ACB); Polygon(ACB); ["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+3; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+#run: 1; #retry: 5; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+verification failed.
+
+- Goal: value of h
+- Model answer: 4.2426407
+- Error: Your proof doesn't uniquely determine the value. You need to use additional theorems to constrain the value.
+- Available premises:
+  Perpendicular Lines: AC ⊥ BC
+  Right Triangles: ACB
+  Polygons: ABC, ACB
+- Theorems related to the goal:
+  Step 1 - right_triangle_judgment_angle(1, ACB): RightTriangle(ACB)
+  Step 3 - right_triangle_property_pythagorean(1, ACB): Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))
+- Solver constraints directly related to this goal:
+  None found
+
+Variable h is not uniquely determined
+Please fix the proof.
+Model Answer:
+RETRY_ANSWER:
+42426407/10000000
+RETRY_THEOREM_SEQUENCE:
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; triangle_property_angle_sum(1,ACB); Polygon(ACB); ["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+3; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+#RETRIES:
+5
+#RUNS:
+1
+
+
+GT_EQUATIONS:
+-h+ll_ba
+ll_ca-3
+ma_bac-45
+ma_acb-90
+GT_GOAL_SYMBOL:
+h
+GT_ANSWER:
+3*sqrt(2)
+GT_THEOREM_SEQUENCE:
+1;triangle_property_angle_sum(1,ACB);Polygon(ACB);["Equal(Add(MeasureOfAngle(ACB),MeasureOfAngle(CBA),MeasureOfAngle(BAC)),180)"]
+2;sine_theorem(1,ACB);Polygon(ACB);["Equal(Mul(LengthOfLine(AC),Sin(MeasureOfAngle(ACB))),Mul(LengthOfLine(AB),Sin(MeasureOfAngle(CBA))))"]
+
