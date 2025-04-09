@@ -415,7 +415,6 @@ ANSWER:
 1/7
 THEOREM_SEQUENCE:
 1;midsegment_of_triangle_judgment_parallel(2,HD,CFB);Polygon(CFB)&Collinear(CHF)&Collinear(CDB)&Line(HD)&ParallelBetweenLine(HD,FB)&Equal(LengthOfLine(CD),LengthOfLine(BD));["IsMidsegmentOfTriangle(HD,CFB)"]
-
 2;parallel_property_collinear_extend(3,BF,DH,E);ParallelBetweenLine(BF,DH)&Collinear(BEF);["ParallelBetweenLine(BE,DH)", "ParallelBetweenLine(EF,DH)"]
 3;parallel_property_corresponding_angle(1,EF,DH,A);ParallelBetweenLine(EF,DH)&Collinear(AED);["Equal(MeasureOfAngle(AEF),MeasureOfAngle(EDH))"]
 4;parallel_property_corresponding_angle(2,HD,FB,A);ParallelBetweenLine(HD,FB)&Collinear(HFA);["Equal(MeasureOfAngle(DHF),MeasureOfAngle(BFA))"]

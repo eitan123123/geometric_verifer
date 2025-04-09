@@ -109,7 +109,6 @@ class GeometricTheorem:
         self.theorem_sequence = []
         self.question_name = "unknown_question"
         self.defined_lines = set()
-        self.mirror_congruent_triangles = []
 
 
         self.triangle_areas = {}
@@ -8443,26 +8442,16 @@ class GeometricTheorem:
 
                         print("Successfully extracted content from between model response markers")
 
-            # adding all the points from the CONSTRUCTION_CDL_EXTENDED for the collinear
-            if CONSTRUCTION_CDL_EXTENDED in sections:
-                for line in sections[CONSTRUCTION_CDL_EXTENDED]:
-                    if line.startswith('Point('):
-                        name = line[6:-1]
-                        self.add_point(name)
-
+            # just a scan
+            normal_collinear_set = set()
             if CONSTRUCTION_CDL in sections:
-                print("\nProcessing CONSTRUCTION_CDL section...")
                 for line in sections[CONSTRUCTION_CDL]:
-                    print(f"Processing line: {line}")
                     if line.startswith('Collinear('):
-                        points = line[10:-1]  # Extract points
+                        points = line[10:-1]  # Extract points from "Collinear(...)"
                         normalized_points = self.normalize_collinear_points(points)
-                        if normalized_points not in [''.join(fact) for fact in self.collinear_facts]:
-                            self.collinear_facts.append(list(normalized_points))
-                            self.add_collinear_fact(list(normalized_points))
-                            print(f"Added normalized collinear points: {normalized_points}")
+                        # Here we use ''.join(...) as a simple string representation
+                        normal_collinear_set.add(''.join(normalized_points))
             # Process CONSTRUCTION_CDL_EXTENDED first
-
             if CONSTRUCTION_CDL_EXTENDED in sections:
                 print("\nProcessing CONSTRUCTION_CDL_EXTENDED section...")
                 for line in sections[CONSTRUCTION_CDL_EXTENDED]:
@@ -8478,7 +8467,11 @@ class GeometricTheorem:
                                 normalized_points = self.normalize_collinear_points(three_points)
                                 normalized_str = ''.join(normalized_points)
 
-
+                                # If the same fact appears in the main CONSTRUCTION_CDL section, skip it
+                                if normalized_str in normal_collinear_set:
+                                    print(
+                                        f"Skipping duplicate collinear fact from extended section: {normalized_points}")
+                                    continue
 
                                 # Otherwise, add it
                                 self.collinear_facts.append(list(normalized_points))
@@ -8490,7 +8483,9 @@ class GeometricTheorem:
                             normalized_str = ''.join(normalized_points)
 
                             # If the same fact appears in the main CONSTRUCTION_CDL section, skip it
-
+                            if normalized_str in normal_collinear_set:
+                                print(f"Skipping duplicate collinear fact from extended section: {normalized_points}")
+                                continue
 
                             # Otherwise, add it
                             self.collinear_facts.append(list(normalized_points))
@@ -8724,7 +8719,17 @@ class GeometricTheorem:
             # Parse goal and verify
 
             # Process CONSTRUCTION_CDL facts
-
+            if CONSTRUCTION_CDL in sections:
+                print("\nProcessing CONSTRUCTION_CDL section...")
+                for line in sections[CONSTRUCTION_CDL]:
+                    print(f"Processing line: {line}")
+                    if line.startswith('Collinear('):
+                        points = line[10:-1]  # Extract points
+                        normalized_points = self.normalize_collinear_points(points)
+                        if normalized_points not in [''.join(fact) for fact in self.collinear_facts]:
+                            self.collinear_facts.append(list(normalized_points))
+                            self.add_collinear_fact(list(normalized_points))
+                            print(f"Added normalized collinear points: {normalized_points}")
 
             # Parse TEXT_CDL facts
             # Inside parse_and_verify_proof method
@@ -8807,63 +8812,6 @@ class GeometricTheorem:
 
                             print(
                                 f"Added equilateral triangle: {triangle} with all sides equal and all angles = 60°")
-                    elif line.startswith('MirrorCongruentBetweenTriangle('):
-                        match = re.match(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', line)
-                        if match:
-                            tri1, tri2 = match.groups()
-                            print(f"Found mirror congruent triangles in TEXT_CDL: {tri1} and {tri2}")
-                            # Use the canonicalization function you provided
-                            canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
-                            # Store if not already present
-                            if canonical_pair not in self.mirror_congruent_triangles:
-                                self.mirror_congruent_triangles.append(canonical_pair)
-                                print(
-                                    f"Added mirror congruent triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
-                        else:
-                            print(f"Warning: Could not parse MirrorCongruentBetweenTriangle line: {line}")
-                    elif line.startswith('Equal(RadiusOfCircle('):
-                        match = re.match(r'Equal\(RadiusOfCircle\((\w+)\),(.*?)\)', line)
-                        if match:
-                            circle_name, expression = match.groups()
-                            expression = expression.strip()
-                            print(f"Found radius value in TEXT_CDL: RadiusOfCircle({circle_name}) = {expression}")
-                            try:
-                                # Try parsing as numeric first
-                                # Use Fraction for potentially better precision if input is like "1/5"
-                                from fractions import Fraction
-                                try:
-                                    # Try Fraction first
-                                    value = float(Fraction(expression))
-                                except ValueError:
-                                    # Fallback to direct float conversion
-                                    value = float(expression)
-
-                                # Get or create the radius variable
-                                if circle_name not in self.circle_radii:
-                                    self.circle_radii[circle_name] = Real(f"radius_{circle_name}")
-                                    # Ensure radius is positive (or non-negative)
-                                    self.solver.add(
-                                        self.circle_radii[circle_name] > 0)  # Use > 0 for physical plausibility
-                                radius_var = self.circle_radii[circle_name]
-
-                                # Add the constraint
-                                self.solver.add(radius_var == value)
-                                print(f"Added numeric radius constraint: radius_{circle_name} = {value}")
-                            except ValueError:
-                                # Handle algebraic expression if necessary (less common for radius)
-                                print(f"Warning: Could not parse radius value as numeric: {expression}")
-                                variables = self.extract_variables(expression)
-                                for var in variables:
-                                    if var not in self.variables:
-                                        self.variables[var] = Real(var)
-                                        print(f"Created new variable for algebraic radius: {var}")
-                                expr = self.parse_algebraic_expression(expression)
-                                if circle_name not in self.circle_radii:
-                                    self.circle_radii[circle_name] = Real(f"radius_{circle_name}")
-                                    self.solver.add(self.circle_radii[circle_name] > 0)
-                                radius_var = self.circle_radii[circle_name]
-                                self.solver.add(radius_var == expr)
-                                print(f"Added algebraic radius constraint: radius_{circle_name} = {expr}")
                     elif line.startswith('IsMidsegmentOfQuadrilateral('):
                         match = re.match(r'IsMidsegmentOfQuadrilateral\((\w+),(\w+)\)', line)
                         if match:
@@ -8877,6 +8825,7 @@ class GeometricTheorem:
                             self.midsegments_of_quadrilaterals[(segment[::-1], norm_quad)] = True
 
                             print(f"Recorded midsegment of quadrilateral: {segment} is a midsegment of {quad}")
+
                     elif line.startswith('Equal(LengthOfLine('):
                         # Try first to match length equality between two lines
                         equality_match = re.match(r'Equal\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)', line)
@@ -8919,6 +8868,7 @@ class GeometricTheorem:
                                 expr = self.parse_algebraic_expression(expression)
                                 self.solver.add(length_var == expr)
                                 print(f"Added algebraic length constraint: {line_name} = {expr}")
+
                     elif line.startswith('MirrorSimilarBetweenTriangle('):
                         match = re.match(r'MirrorSimilarBetweenTriangle\((\w+),(\w+)\)', line)
                         if match:
@@ -8930,6 +8880,7 @@ class GeometricTheorem:
                                 self.mirror_similar_triangles.append(canonical_pair)
                                 print(
                                     f"Added mirror similar triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
+
                     elif line.startswith('CongruentBetweenTriangle('):
 
                         match = re.match(r'CongruentBetweenTriangle\((\w+),(\w+)\)', line)
@@ -8947,6 +8898,7 @@ class GeometricTheorem:
                                 self.congruent_triangles.append(canonical_pair)
 
                             print(f"Added congruent triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
+
                     elif line.startswith('Equal(PerimeterOfTriangle('):
                         # Match pattern like: Equal(PerimeterOfTriangle(OCD),23)
                         perimeter_match = re.match(r'Equal\(PerimeterOfTriangle\((\w+)\),(.+)\)', line)
@@ -9003,6 +8955,7 @@ class GeometricTheorem:
                                 self.solver.add(perimeter_var == expr)
                                 print(
                                     f"Added algebraic perimeter constraint: PerimeterOfTriangle({triangle_name}) = {expr}")
+
                     elif line.startswith('IsBisectorOfAngle('):
                         match = re.match(r'IsBisectorOfAngle\((\w+),(\w+)\)', line)
                         if match:
@@ -9050,6 +9003,9 @@ class GeometricTheorem:
                             if not hasattr(self, 'angle_bisectors'):
                                 self.angle_bisectors = []
                             self.angle_bisectors.append((bisector_line, angle))
+
+
+
                     elif line.startswith('IsAltitudeOfTriangle('):
                         match = re.match(r'IsAltitudeOfTriangle\((\w+),(\w+)\)', line)
                         if match:
@@ -9057,83 +9013,59 @@ class GeometricTheorem:
                             print(
                                 f"Found triangle altitude in TEXT_CDL: {altitude_line} is altitude of triangle {triangle}")
 
+                            # Extract vertices - altitude line should start from one vertex of the triangle
+                            # and end at a point on the opposite side
                             if len(triangle) != 3 or len(altitude_line) != 2:
-                                print(f"Warning: Invalid format for altitude/triangle: {altitude_line}, {triangle}")
+                                print(f"Warning: Invalid format. Expected 3-vertex triangle and 2-point altitude line")
                                 continue
 
+                            # Find which vertex of the triangle is the start of the altitude
                             vertex = None
-                            for v_idx in range(len(triangle)):
-                                if triangle[v_idx] == altitude_line[0]:  # Assume altitude starts at a vertex
-                                    vertex = altitude_line[0]
-                                    break
-                                elif triangle[v_idx] == altitude_line[1]:  # Check other end too
-                                    vertex = altitude_line[1]
-                                    # Swap if vertex is second char in altitude_line
-                                    altitude_line = altitude_line[::-1]
+                            for v in triangle:
+                                if v in altitude_line:
+                                    vertex = v
                                     break
 
                             if vertex is None:
                                 print(
-                                    f"Warning: Altitude line '{altitude_line}' doesn't start/end at a vertex of triangle '{triangle}'.")
+                                    f"Warning: Altitude {altitude_line} doesn't start from any vertex of triangle {triangle}")
                                 continue
 
-                            foot = altitude_line[1]  # The point where altitude meets the base (or its extension)
+                            # Find the endpoint of the altitude (the point not in the triangle vertices)
+                            endpoint = altitude_line[0] if altitude_line[1] == vertex else altitude_line[1]
+
+                            # Find the two vertices forming the opposite side
                             opposite_vertices = [v for v in triangle if v != vertex]
-
                             if len(opposite_vertices) != 2:
-                                print(
-                                    f"Warning: Could not identify opposite side for altitude {altitude_line} in {triangle}")
+                                print(f"Warning: Could not identify opposite side for altitude {altitude_line}")
                                 continue
 
-                            # Add the 90-degree constraint.
-                            # The angle is formed by one of the opposite vertices, the foot, and the vertex.
-                            # Example: Altitude CD for triangle CAB. Vertex C, Foot D. Opposite A, B. Angle CDA = 90 or CDB = 90.
-                            # Need collinearity (like ADB) to know which one. If D is *on* AB.
-                            # Let's assume the standard case where the foot is on the opposite side segment.
-                            # The angle is vertex-foot-opposite_vertex. e.g., CDB
-                            angle_at_foot1 = self.add_angle(vertex, foot, opposite_vertices[0])
-                            angle_at_foot2 = self.add_angle(vertex, foot, opposite_vertices[1])
+                            # For BE altitude in triangle BCA, we need angle BEC = 90°
+                            # Create angle variables for both possible orientations of the perpendicular angle
+                            angle1 = f"{vertex}{endpoint}{opposite_vertices[0]}"
+                            angle2 = f"{vertex}{endpoint}{opposite_vertices[1]}"
 
-                            # We need to determine which angle should be 90. Check collinearity.
-                            base_collinear = None
-                            foot_on_base_segment = False
-                            for fact in self.collinear_facts:
-                                fact_set = set(fact)
-                                # Check if foot and opposite vertices are collinear
-                                if foot in fact_set and set(opposite_vertices).issubset(fact_set):
-                                    base_collinear = fact
-                                    # Check if foot is BETWEEN the opposite vertices
-                                    try:
-                                        idx_f = fact.index(foot)
-                                        idx_o1 = fact.index(opposite_vertices[0])
-                                        idx_o2 = fact.index(opposite_vertices[1])
-                                        if (idx_o1 < idx_f < idx_o2) or (idx_o2 < idx_f < idx_o1):
-                                            foot_on_base_segment = True
-                                    except ValueError:
-                                        pass  # Point not found
-                                    break
+                            # Normalize angle names
+                            norm_angle1 = self.normalize_angle_name(angle1)
+                            norm_angle2 = self.normalize_angle_name(angle2)
 
-                            if foot_on_base_segment:
-                                # If foot is between base vertices (e.g., ADB), both angles are 90
-                                self.solver.add(angle_at_foot1 == 90)
-                                self.solver.add(angle_at_foot2 == 90)
-                                print(
-                                    f"Added altitude constraints: ∠{vertex}{foot}{opposite_vertices[0]} = 90°, ∠{vertex}{foot}{opposite_vertices[1]} = 90°")
-                            elif base_collinear:
-                                # Foot is on the line extension. Assume one angle is 90. Which one?
-                                # Convention needed. Let's assume the one involving the first opposite vertex?
-                                self.solver.add(angle_at_foot1 == 90)
-                                print(
-                                    f"Added altitude constraint (foot on extension): ∠{vertex}{foot}{opposite_vertices[0]} = 90°")
-                                # Could also infer the other is 180-90=90 if collinearity allows.
-                                # self.solver.add(angle_at_foot2 == 90) # Might be redundant or incorrect depending on setup
-                            else:
-                                print(
-                                    f"Warning: Collinearity of foot '{foot}' with base '{''.join(opposite_vertices)}' not established for altitude '{altitude_line}'. Cannot reliably set 90° angle.")
+                            # Add 90 degree constraints for both angles
+                            angle1_var = self.add_angle(norm_angle1[0], norm_angle1[1], norm_angle1[2])
+                            self.solver.add(angle1_var == 90)
+                            print(f"Added altitude perpendicular constraint: {norm_angle1} = 90°")
 
-                            # Store the altitude fact if needed
-                            if not hasattr(self, 'triangle_altitudes'): self.triangle_altitudes = []
+                            # We don't need to add constraints for both angles if they're the same normalized angle
+                            if norm_angle1 != norm_angle2:
+                                angle2_var = self.add_angle(norm_angle2[0], norm_angle2[1], norm_angle2[2])
+                                self.solver.add(angle2_var == 90)
+                                print(f"Added altitude perpendicular constraint: {norm_angle2} = 90°")
+
+                            # Store the altitude fact for later reference
+                            if not hasattr(self, 'triangle_altitudes'):
+                                self.triangle_altitudes = []
                             self.triangle_altitudes.append((altitude_line, triangle))
+
+
                     elif line.startswith("IsPerpendicularBisectorOfLine("):
                         # Match a statement like: IsPerpendicularBisectorOfLine(EF,AC)
                         match = re.match(r'IsPerpendicularBisectorOfLine\((\w+),(\w+)\)', line)
@@ -9236,6 +9168,7 @@ class GeometricTheorem:
 
                             print(
                                 f"Processed perpendicular bisector: {bisector_point} divides {bisected} equally with right angles")
+
                     elif line.startswith("Equal(AreaOfTriangle("):
 
                         # Parse text like: Equal(AreaOfTriangle(ABC),65) or Equal(AreaOfTriangle(ABC),Add(AreaOfTriangle(DCA),AreaOfTriangle(DAB)))
@@ -9365,6 +9298,7 @@ class GeometricTheorem:
                                     self.solver.add(area_var == expr)
 
                                     print(f"Added algebraic triangle area constraint: Area({triangle}) = {expr}")
+
                     elif line.startswith("IsMidpointOfLine("):
                         # Matches a fact like: IsMidpointOfLine(C,AO)
                         match = re.match(r'IsMidpointOfLine\((\w+),(\w+)\)', line)
@@ -9409,6 +9343,7 @@ class GeometricTheorem:
                             print(f"Recorded midpoint: {midpoint} is the midpoint of segment {segment[0]}{segment[1]}")
                         else:
                             print("Error parsing IsMidpointOfLine fact in TEXT_CDL.")
+
                     elif line.startswith('ParallelBetweenLine('):
 
                         match = re.search(r'ParallelBetweenLine\((\w+),\s*(\w+)\)', line)
@@ -9433,6 +9368,7 @@ class GeometricTheorem:
                                     self.parallel_pairs.add((v2, v1))
 
                             print(f"Added all combinations: {self.parallel_pairs}")
+
                     elif line.startswith('Equal(DiameterOfCircle('):
                         # This should match a line like: Equal(DiameterOfCircle(A),10)
                         match = re.match(r'Equal\(DiameterOfCircle\((\w+)\),\s*(.+)\)', line)
@@ -9461,188 +9397,47 @@ class GeometricTheorem:
                                 print(f"Created diameter variable: {diam_name}")
                             self.solver.add(self.circle_diameters[diam_name] == value)
                             print(f"Added constraint: {diam_name} == {value}")
+
                     elif line.startswith('Equal(MeasureOfArc('):
                         match = re.match(r'Equal\(MeasureOfArc\((\w+)\),(.+)\)', line)
                         if match:
                             arc_name, expression = match.group(1), match.group(2).strip()
                             print(f"Found arc expression in TEXT_CDL: {arc_name} = {expression}")
                             self.add_algebraic_arc(arc_name, expression)
+                    # --- New branch for division of line lengths:
                     elif line.startswith('Equal(Div(LengthOfLine('):
                         match = re.match(r'Equal\(Div\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\),(.+)\)', line)
                         if match:
                             line1, line2, expression = match.groups()
                             expression = expression.strip()
-                            print(f"Found division length expression in TEXT_CDL: Div({line1},{line2}) = {expression}")
-
-                            # Get Z3 variables for the lengths
-                            try:
-                                len1 = self.add_length(line1[0], line1[1])
-                                len2 = self.add_length(line2[0], line2[1])
-                            except IndexError:
-                                print(f"Error: Invalid line name format in '{line}'. Skipping.")
-                                continue  # Skip this line
-
-                            # Try to parse the expression on the right side
-                            div_val = None
-                            numeric_ratio_value = None
-                            try:
-                                # Try Fraction first for precision (e.g., "3/2")
-                                from fractions import Fraction
-                                numeric_ratio_value = float(Fraction(expression))
-                                div_val = numeric_ratio_value  # Use the numeric value for the constraint
-                                print(f"Parsed division value as fraction: {numeric_ratio_value}")
-                            except ValueError:
-                                try:
-                                    # Fallback: Try standard float conversion (e.g., "1.5")
-                                    numeric_ratio_value = float(expression)
-                                    div_val = numeric_ratio_value  # Use the numeric value
-                                    print(f"Parsed division value as float: {numeric_ratio_value}")
-                                except ValueError:
-                                    try:
-                                        # Fallback: Treat as algebraic expression (e.g., "x/2")
-                                        print(f"Could not parse '{expression}' as numeric, treating as algebraic.")
-                                        variables = self.extract_variables(expression)
-                                        for var in variables:
-                                            if var not in self.variables:
-                                                self.variables[var] = Real(var)
-                                        div_val = self.parse_algebraic_expression(expression)  # Z3 expression object
-                                    except Exception as e_parse:
-                                        print(
-                                            f"Error parsing division expression '{expression}': {str(e_parse)}. Skipping constraint.")
-                                        continue  # Skip adding this constraint
-
-                            # --- Store Numeric Ratio if Found ---
-                            if numeric_ratio_value is not None:
-                                if not hasattr(self, 'numeric_length_ratios'):
-                                    self.numeric_length_ratios = {}
-                                norm_line1 = self.normalize_line_name(line1)
-                                norm_line2 = self.normalize_line_name(line2)
-                                # Store ratio L1/L2
-                                self.numeric_length_ratios[(norm_line1, norm_line2)] = numeric_ratio_value
-                                # Store ratio L2/L1 if value is non-zero
-                                if abs(numeric_ratio_value) > 1e-9:
-                                    self.numeric_length_ratios[(norm_line2, norm_line1)] = 1.0 / numeric_ratio_value
-                                print(f"Stored known numeric ratio: {norm_line1}/{norm_line2} = {numeric_ratio_value}")
-                            # --- End Storing ---
-
-                            # Add the Z3 constraint
-                            if div_val is not None:
-                                # Use multiplication form: len1 == len2 * div_val
-                                # This handles both numeric div_val and Z3 expression div_val
-                                self.solver.add(len1 == len2 * div_val)
-                                print(f"Added Z3 constraint: Length({line1}) == Length({line2}) * ({expression})")
-                            else:
-                                print(f"Warning: Could not determine value for constraint: {line}")
-                    elif line.startswith('Equal(LengthOfLine(') and 'Mul(LengthOfLine(' in line:
-                        # Handle cases like Equal(LengthOfLine(L1), Mul(LengthOfLine(L2), Value))
-                        match = re.match(r'Equal\(LengthOfLine\((\w+)\),Mul\(LengthOfLine\((\w+)\),(.+)\)\)', line)
-                        if match:
-                            line1, line2, expression = match.groups()
-                            expression = expression.strip()
                             print(
-                                f"Found multiplication length expression: Length({line1}) = Length({line2}) * ({expression})")
+                                f"Found division length expression in TEXT_CDL: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expression}")
 
-                            # Get Z3 variables for the lengths
+                            # Get the two length variables
+                            len1 = self.add_length(line1[0], line1[1])
+                            len2 = self.add_length(line2[0], line2[1])
+
+                            # Try to parse the expression as a fraction first
                             try:
-                                len1 = self.add_length(line1[0], line1[1])
-                                len2 = self.add_length(line2[0], line2[1])
-                            except IndexError:
-                                print(f"Error: Invalid line name format in '{line}'. Skipping.")
-                                continue  # Skip this line
-
-                            # Try to evaluate expression numerically
-                            numeric_value = None
-                            parsed_expr = None
-                            try:
-                                # Try simple float/fraction first
-                                try:
-                                    from fractions import Fraction
-                                    numeric_value = float(Fraction(expression))
-                                except ValueError:
-                                    numeric_value = float(expression)
-                                print(f"Parsed multiplier as numeric: {numeric_value}")
-                                parsed_expr = numeric_value  # Use numeric value directly
-                            except ValueError:
-                                # Not a simple numeric value, treat as algebraic
-                                print(f"Could not parse multiplier '{expression}' as numeric, treating as algebraic.")
-                                try:
-                                    variables = self.extract_variables(expression)
-                                    for var in variables:
-                                        if var not in self.variables:
-                                            self.variables[var] = Real(var)
-                                    parsed_expr = self.parse_algebraic_expression(expression)  # Z3 expression object
-                                except Exception as e_parse:
-                                    print(
-                                        f"Error parsing multiplier expression '{expression}': {str(e_parse)}. Skipping constraint.")
-                                    continue  # Skip adding this constraint
-
-                            # --- Store Numeric Ratio if Found ---
-                            if numeric_value is not None:
-                                if not hasattr(self, 'numeric_length_ratios'):
-                                    self.numeric_length_ratios = {}
-                                norm_line1 = self.normalize_line_name(line1)
-                                norm_line2 = self.normalize_line_name(line2)
-                                # Store ratio L1/L2
-                                self.numeric_length_ratios[(norm_line1, norm_line2)] = numeric_value
-                                # Store ratio L2/L1 if value is non-zero
-                                if abs(numeric_value) > 1e-9:
-                                    self.numeric_length_ratios[(norm_line2, norm_line1)] = 1.0 / numeric_value
-                                print(f"Stored known numeric ratio: {norm_line1}/{norm_line2} = {numeric_value}")
-                            # --- End Storing ---
-
-                            # Add the Z3 constraint
-                            if parsed_expr is not None:
-                                self.solver.add(len1 == len2 * parsed_expr)
-                                print(f"Added Z3 constraint: Length({line1}) == Length({line2}) * ({expression})")
-                            else:
-                                print(f"Warning: Could not determine value for constraint: {line}")
-
-                        # ... (elif block for 'Equal(LengthOfLine(' without Mul - standard numeric/algebraic assignment) ...
-                        # This block should remain as you likely already have it, handling lines like:
-                        # Equal(LengthOfLine(AB), 5) or Equal(LengthOfLine(CD), x)
-                    elif line.startswith('Equal(LengthOfLine('):  # Assuming this is the fall-through case
-                        match = re.match(r'Equal\(LengthOfLine\((\w+)\),(.+)\)', line)
-                        if match:
-                            line_name, expression = match.groups()
-                            expression = expression.strip()
-                            print(f"Found length assignment expression: Length({line_name}) = {expression}")
-                            # Get (or create) the length variable
-                            try:
-                                length_var = self.add_length(line_name[0], line_name[1])
-                            except IndexError:
-                                print(f"Error: Invalid line name format '{line_name}' in '{line}'. Skipping.")
-                                continue
-
-                            # Parse and add constraint
-                            parsed_val = None
-                            try:
-                                # Try numeric first
                                 from fractions import Fraction
+                                div_val = float(Fraction(expression))
+                                print(f"Parsed division value as fraction: {div_val}")
+                            except Exception as e:
                                 try:
-                                    parsed_val = float(Fraction(expression))
-                                except ValueError:
-                                    parsed_val = float(expression)
-                                print(f"Parsed assignment value as numeric: {parsed_val}")
-                            except ValueError:
-                                # Treat as algebraic
-                                print(
-                                    f"Could not parse assignment value '{expression}' as numeric, treating as algebraic.")
-                                try:
-                                    variables = self.extract_variables(expression)
-                                    for var in variables:
-                                        if var not in self.variables:
-                                            self.variables[var] = Real(var)
-                                    parsed_val = self.parse_algebraic_expression(expression)
-                                except Exception as e_parse:
-                                    print(
-                                        f"Error parsing assignment expression '{expression}': {str(e_parse)}. Skipping constraint.")
+                                    # Fall back to safe evaluation with limited context
+                                    div_val = float(eval(expression, {"__builtins__": {}}, {"pi": 3.141592653589793}))
+                                    print(f"Parsed division value using eval: {div_val}")
+                                except Exception as e2:
+                                    print(f"Error parsing division value '{expression}': {str(e2)}")
                                     continue
 
-                            if parsed_val is not None:
-                                self.solver.add(length_var == parsed_val)
-                                print(f"Added Z3 constraint: Length({line_name}) == {expression}")
-                            else:
-                                print(f"Warning: Could not determine value for constraint: {line}")
+                            # Add the division constraint (rewritten to avoid potential division by zero)
+                            self.solver.add(len1 == len2 * div_val)  # Equivalent to len1/len2 == div_val
+                            print(
+                                f"Added division constraint: {line1} = {line2} * {div_val} (equivalent to {line1}/{line2} = {div_val})")
+                        else:
+                            print(f"Error: Could not parse division expression in line: {line}")
+                    # --- New branch for median facts:
                     elif line.startswith("IsMedianOfTriangle("):
                         # Matches a fact like: IsMedianOfTriangle(AD,ABC)
                         match = re.match(r'IsMedianOfTriangle\((\w+),(\w{3})\)', line)
@@ -9761,64 +9556,6 @@ class GeometricTheorem:
                         if match:
                             tri1, tri2 = match.groups()
                             self.add_similar_triangles(tri1, tri2)
-                    elif line.startswith('RightTriangle('):
-                        # Matches lines like: RightTriangle(BCA)
-                        match = re.match(r'RightTriangle\((\w{3})\)', line)
-                        if match:
-                            triangle = match.group(1)
-                            print(f"Found right triangle in TEXT_CDL: {triangle}")
-                            normalized_triangle = self.normalize_triangle(triangle)
-
-                            # Add to the set of known right triangles
-                            if not hasattr(self, 'right_triangles'): self.right_triangles = set()
-                            self.right_triangles.add(normalized_triangle)
-
-                            # Assume the middle letter is the vertex with the right angle (convention)
-                            # For BCA, the right angle is at C (angle BCA)
-                            vertex = triangle[1]
-                            p1 = triangle[0]
-                            p3 = triangle[2]
-                            right_angle_var = self.add_angle(p1, vertex, p3)
-
-                            # Add the 90-degree constraint
-                            self.solver.add(right_angle_var == 90)
-                            print(f"Added right angle constraint based on RightTriangle fact: ∠{p1}{vertex}{p3} = 90°")
-                        else:
-                            print(f"Warning: Could not parse RightTriangle line: {line}")
-                    elif line.startswith("Equal(AreaOfTriangle("):
-                        # Matches lines like: Equal(AreaOfTriangle(ADC),9)
-                        match = re.match(r'Equal\(AreaOfTriangle\((\w+)\),(.*)\)', line)
-                        if match:
-                            triangle, expression = match.groups()
-                            expression = expression.strip()
-                            normalized_triangle = ''.join(sorted(triangle))  # Normalize for lookup
-                            print(f"Found triangle area in TEXT_CDL: AreaOfTriangle({triangle}) = {expression}")
-
-                            # Create or get the area variable
-                            if not hasattr(self, "triangle_areas"): self.triangle_areas = {}
-                            if normalized_triangle not in self.triangle_areas:
-                                self.triangle_areas[normalized_triangle] = Real(f"areaTriangle_{normalized_triangle}")
-                                self.solver.add(self.triangle_areas[normalized_triangle] >= 0)
-                            area_var = self.triangle_areas[normalized_triangle]
-
-                            # Parse the expression (numeric or algebraic)
-                            try:
-                                eval_env = {"sqrt": math.sqrt, "pi": math.pi}
-                                value = float(eval(expression, {"__builtins__": {}}, eval_env))
-                                self.solver.add(area_var == value)
-                                print(f"Added numeric triangle area constraint: Area({triangle}) = {value}")
-                            except Exception:
-                                print(f"Could not evaluate area as numeric: {expression}. Treating as algebraic.")
-                                variables = self.extract_variables(expression)
-                                for var in variables:
-                                    if var not in self.variables: self.variables[var] = Real(var)
-                                expr = self.parse_algebraic_expression(expression)
-                                self.solver.add(area_var == expr)
-                                print(f"Added algebraic triangle area constraint: Area({triangle}) = {expr}")
-                        else:
-                            print(f"Warning: Could not parse AreaOfTriangle line: {line}")
-
-
 
             print("\nCollected facts:")
             print("Collinear points:", self.collinear_facts)
@@ -10028,49 +9765,6 @@ class GeometricTheorem:
                         print(f"Detailed feedback generated for arc length goal.")
                         return False, detailed_feedback
 
-                triangle_area_match = re.search(r'Value\(AreaOfTriangle\((\w+)\)\)', goal_line)
-                if triangle_area_match:
-                    triangle_name = triangle_area_match.group(1)  # e.g., "CDB"
-                    print(f"\nGoal type: Triangle Area ({triangle_name})")
-                    print(f"Expected area: {model_answer}")
-
-                    # Normalize the triangle name for dictionary lookup
-                    normalized_triangle = ''.join(sorted(triangle_name))
-
-                    # Check if the area variable exists
-                    if not hasattr(self, "triangle_areas") or normalized_triangle not in self.triangle_areas:
-                        error_msg = f"Area variable for triangle {triangle_name} (normalized: {normalized_triangle}) not defined by any theorem."
-                        print(f"Error: {error_msg}")
-                        # Known areas for debugging:
-                        known_areas = list(getattr(self, 'triangle_areas', {}).keys())
-                        print(f"Known triangle areas: {known_areas}")
-                        return False, self.generate_detailed_feedback("triangle_area", triangle_name, model_answer,
-                                                                      status="insufficient_info", error_message=error_msg)
-
-                    triangle_area_var = self.triangle_areas[normalized_triangle]
-                    self.solver.add(triangle_area_var>0)
-                    # Check if the value matches the expected answer
-                    success, value, status = self.check_value_constraint(triangle_area_var, model_answer, epsilon=epsilon)
-
-                    if success:
-                        print(f"Success: The area of triangle {triangle_name} is uniquely determined to be {model_answer}.")
-                        return True, ""
-                    else:
-                        # Generate detailed feedback report
-                        detailed_feedback = self.generate_detailed_feedback(
-                            goal_type="triangle_area",
-                            goal_token=triangle_name,
-                            model_answer=model_answer,
-                            verifier_expected_answer=value,
-                            status=status
-                        )
-                        print(f"Detailed feedback generated for triangle area goal.")
-                        return False, detailed_feedback
-                    # --- END OF ADDED BLOCK ---
-
-
-
-
                 # Add this after other goal type checks like arc_measure, length, etc.
                 quad_perimeter_match = re.search(r'Value\(PerimeterOfQuadrilateral\((\w+)\)\)', goal_line)
                 if quad_perimeter_match:
@@ -10107,42 +9801,6 @@ class GeometricTheorem:
                         print(f"Detailed feedback generated for quadrilateral perimeter goal.")
                         return False, detailed_feedback
 
-                sum_angles_match = re.search(r'Value\(Add\(MeasureOfAngle\((\w+)\),MeasureOfAngle\((\w+)\)\)\)',
-                                             goal_line)
-                if sum_angles_match:
-                    angle1_token = sum_angles_match.group(1)
-                    angle2_token = sum_angles_match.group(2)
-                    goal_token = f"{angle1_token}+{angle2_token}"  # For feedback reporting
-                    print(f"\nGoal type: Sum of Angles ({goal_token})")
-                    print(f"Expected sum: {model_answer}")
-
-                    # Get the Z3 variables for the angles
-                    angle1_var = self.add_angle(angle1_token[0], angle1_token[1], angle1_token[2])
-                    angle2_var = self.add_angle(angle2_token[0], angle2_token[1], angle2_token[2])
-
-                    # Create the sum expression
-                    sum_expr = angle1_var + angle2_var
-
-                    # Check if the value matches the expected answer
-                    success, value, status = self.check_value_constraint(sum_expr, model_answer, epsilon=epsilon)
-
-                    if success:
-                        print(
-                            f"Success: The sum of angles {angle1_token} + {angle2_token} is uniquely determined to be {model_answer}.")
-                        return True, ""
-                    else:
-                        # Generate detailed feedback report
-                        detailed_feedback = self.generate_detailed_feedback(
-                            goal_type="sum_angle",  # Use a descriptive type
-                            goal_token=goal_token,
-                            model_answer=model_answer,
-                            verifier_expected_answer=value,
-                            status=status,
-                            # Add info about individual angles if helpful
-                            additional_info=f"Angle 1: {angle1_token}\nAngle 2: {angle2_token}"
-                        )
-                        print(f"Detailed feedback generated for sum of angles goal.")
-                        return False, detailed_feedback
 
                 sum_lengths_match = re.search(r'Value\(Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)', goal_line)
                 if sum_lengths_match:
@@ -10286,7 +9944,7 @@ class GeometricTheorem:
                                     model_answer=model_answer,
                                     verifier_expected_answer=alt_ratio,
                                     status=status,
-                                    additional_info=""
+                                    additional_info=f"Current computed ratio: {verifier_expected_answer:.6f}\nAlternative ratio: {alt_ratio:.6f if alt_ratio else 'undefined (division by zero)'}"
                                 )
                                 print(f"Detailed feedback generated for division goal.")
                                 return False, detailed_feedback
@@ -13666,7 +13324,6 @@ class GeometricTheorem:
                 )
 
 
-
         elif theorem_name == "midsegment_of_triangle_judgment_parallel":
 
             version = args[0]
@@ -13697,17 +13354,6 @@ class GeometricTheorem:
 
             triangle_token = args[2].strip()
 
-            if len(midseg_line) != 2 or len(triangle_token) != 3:
-                return GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                    message=f"Invalid input format for midsegment/triangle: '{midseg_line}', '{triangle_token}'",
-
-                    details="Midsegment must have 2 points, triangle must have 3."
-
-                )
-
             # Expected conclusion: ["IsMidsegmentOfTriangle(DE,ABC)"]
 
             m = re.search(r'IsMidsegmentOfTriangle\((\w+),(\w+)\)', conclusions[0])
@@ -13716,7 +13362,7 @@ class GeometricTheorem:
 
                 conclusion_line, conclusion_triangle = m.groups()
 
-                # Basic check: conclusion tokens must match theorem call arguments
+                # We expect these tokens to match the ones from the theorem call
 
                 if conclusion_line != midseg_line or conclusion_triangle != triangle_token:
                     return GeometricError(
@@ -13729,12 +13375,12 @@ class GeometricTheorem:
 
                     )
 
-                # Record this midsegment fact (useful for other property theorems)
+                # Record this midsegment fact
 
                 if not hasattr(self, "midsegments"):
                     self.midsegments = set()
 
-                # Ensure midsegment_fact uses the *exact* strings from the conclusion/call
+                # Store the midsegment fact
 
                 midsegment_fact = ("IsMidsegmentOfTriangle", (midseg_line, triangle_token))
 
@@ -13743,249 +13389,46 @@ class GeometricTheorem:
                 print(
                     f"[Version {version}] Added midsegment judgment: IsMidsegmentOfTriangle({midseg_line},{triangle_token})")
 
-                # --- GENERALIZED LOGIC: Add implied Z3 constraints ---
+                # For version 3, we might also want to set up the length relationship
 
-                # The conclusion IsMidsegmentOfTriangle(DE, ABC) implies:
+                if version == "3":
 
-                # 1. D is midpoint of one side (e.g., AB) -> AD = DB
+                    # Find the side of the triangle that is parallel to the midsegment
 
-                # 2. E is midpoint of another side (e.g., AC) -> AE = EC
+                    # This would typically be the side that doesn't share any vertices with the midsegment
 
-                # 3. DE is parallel to the third side (e.g., BC)
+                    midseg_endpoints = set(midseg_line)
 
-                # 4. Length(DE) = 1/2 * Length(third side)
+                    triangle_sides = [(triangle_token[i], triangle_token[(i + 1) % 3]) for i in range(3)]
 
-                # Identify vertices and midsegment endpoints
+                    # Find the side that doesn't share vertices with the midsegment
 
-                p1, p2 = midseg_line[0], midseg_line[1]
+                    parallel_side = None
 
-                v1, v2, v3 = triangle_token[0], triangle_token[1], triangle_token[2]
+                    for side in triangle_sides:
 
-                triangle_vertices = {v1, v2, v3}
+                        if not any(endpoint in side for endpoint in midseg_endpoints):
+                            parallel_side = ''.join(side)
 
-                midseg_endpoints_set = {p1, p2}
+                            break
 
-                midpoint1_info = None  # Will store {'midpoint': char, 'side': (char, char), 'collinear_fact': list}
+                    if parallel_side:
+                        # Create length variables
 
-                midpoint2_info = None
+                        side_var = self.add_length(parallel_side[0], parallel_side[1])
 
-                processed_midpoints = set()
+                        midseg_var = self.add_length(midseg_line[0], midseg_line[1])
 
-                # Find which sides p1 and p2 are midpoints of using COLLINEAR facts
+                        # Add the constraint: parallel_side = 2 * midsegment
 
-                # A collinear fact like Collinear(AXB) implies X could be midpoint of AB
+                        self.solver.add(side_var == 2 * midseg_var)
 
-                print(
-                    f"Attempting to find midpoint sides for {midseg_line} in {triangle_token} using collinear facts: {self.collinear_facts}")
+                        print(
+                            f"Added midsegment length constraint: LengthOfLine({parallel_side}) = 2 * LengthOfLine({midseg_line})")
 
-                for fact_points in self.collinear_facts:
-
-                    fact_set = set(fact_points)
-
-                    common_triangle_vertices = fact_set.intersection(triangle_vertices)
-
-                    common_midseg_endpoints = fact_set.intersection(midseg_endpoints_set)
-
-                    # A valid collinear fact for a side containing a midpoint should have:
-
-                    # - Exactly 2 triangle vertices (the side endpoints)
-
-                    # - Exactly 1 midsegment endpoint (the midpoint, which hasn't been processed yet)
-
-                    # - Exactly 3 points in total (endpoint1, midpoint, endpoint2)
-
-                    if len(fact_points) == 3 and len(common_triangle_vertices) == 2 and len(
-                            common_midseg_endpoints) == 1:
-
-                        midpoint = list(common_midseg_endpoints)[0]
-
-                        side_vertices = tuple(
-                            sorted(list(common_triangle_vertices)))  # Ensure consistent order (v1, v2)
-
-                        if midpoint == p1 and p1 not in processed_midpoints:
-
-                            midpoint1_info = {'midpoint': p1, 'side': side_vertices, 'collinear_fact': fact_points}
-
-                            processed_midpoints.add(p1)
-
-                            print(
-                                f"  Identified {p1} as potential midpoint of side {side_vertices} based on Collinear({fact_points})")
-
-                        elif midpoint == p2 and p2 not in processed_midpoints:
-
-                            midpoint2_info = {'midpoint': p2, 'side': side_vertices, 'collinear_fact': fact_points}
-
-                            processed_midpoints.add(p2)
-
-                            print(
-                                f"  Identified {p2} as potential midpoint of side {side_vertices} based on Collinear({fact_points})")
-
-                    # Stop if we've found both distinct midpoints
-
-                    if midpoint1_info and midpoint2_info:
-                        break
-
-                # Check if we successfully identified both midpoints and their sides
-
-                if not midpoint1_info or not midpoint2_info:
-                    print(
-                        f"WARNING: Could not reliably determine BOTH midpoint sides for midsegment {midseg_line} in {triangle_token} using collinear facts. Skipping implied constraints.")
-
-                    # Optionally return an error instead of just warning:
-
-                    # return GeometricError(
-
-                    #     tier=ErrorTier.TIER2_PREMISE_VIOLATION, # Or maybe TIER1 if conclusion implies this info MUST be derivable
-
-                    #     message=f"Cannot determine which sides {p1} and {p2} are midpoints of in {triangle_token}",
-
-                    #     details=f"Check collinear facts involving {p1}, {p2} and vertices {v1},{v2},{v3}. Found midpoints: {midpoint1_info}, {midpoint2_info}"
-
-                    # )
-
-                    return None  # Proceed without adding potentially incorrect constraints
-
-                # Extract identified info
-
-                mp1 = midpoint1_info['midpoint']
-
-                side1_v1, side1_v2 = midpoint1_info['side']
-
-                mp2 = midpoint2_info['midpoint']
-
-                side2_v1, side2_v2 = midpoint2_info['side']
-
-                # Verify the two sides identified are different
-
-                if set(midpoint1_info['side']) == set(midpoint2_info['side']):
-                    print(
-                        f"ERROR: Both identified midpoints {mp1} and {mp2} seem to belong to the same side {midpoint1_info['side']}. Skipping constraints.")
-
-                    return None  # Cannot proceed if both midpoints are on the same side
-
-                # Identify the third side (vertices not part of the two sides found)
-
-                involved_vertices = {side1_v1, side1_v2, side2_v1, side2_v2}  # Should contain 3 unique vertices
-
-                third_side_endpoints = tuple(sorted(list(triangle_vertices - involved_vertices)))
-
-                # The third side should consist of the two triangle vertices that are NOT endpoints of the midsegment sides' common vertex
-
-                # Example: Midpoints D on AB, E on AC. Involved = A,B,A,C -> {A,B,C}. Third side is BC.
-
-                # Example: Midpoints H on CF, D on CB. Involved = C,F,C,B -> {C,F,B}. Third side is FB.
-
-                common_vertex = list(set(midpoint1_info['side']).intersection(set(midpoint2_info['side'])))
-
-                if len(common_vertex) != 1:
-                    print(
-                        f"ERROR: Sides {midpoint1_info['side']} and {midpoint2_info['side']} do not share exactly one vertex. Cannot determine third side.")
-
-                    return None
-
-                third_side_endpoints = tuple(sorted(list(involved_vertices - set(common_vertex))))
-
-                if len(third_side_endpoints) != 2:
-                    print(
-                        f"ERROR: Could not determine third side for midsegment {midseg_line} in {triangle_token}. Involved vertices: {involved_vertices}, Common: {common_vertex}")
-
-                    return None
-
-                # --- Add Z3 Constraints ---
-
-                # 1. Midpoint Equality Constraints
-
-                len1a = self.add_length(side1_v1, mp1)
-
-                len1b = self.add_length(mp1, side1_v2)
-
-                self.solver.add(len1a == len1b)
-
-                print(f"Added midsegment midpoint constraint: Length({side1_v1}{mp1}) == Length({mp1}{side1_v2})")
-
-                len2a = self.add_length(side2_v1, mp2)
-
-                len2b = self.add_length(mp2, side2_v2)
-
-                self.solver.add(len2a == len2b)
-
-                print(f"Added midsegment midpoint constraint: Length({side2_v1}{mp2}) == Length({mp2}{side2_v2})")
-
-                # 2. Length Constraint (Midsegment = 1/2 * Third Side)
-
-                third_side_line = "".join(third_side_endpoints)
-
-                third_side_v1, third_side_v2 = third_side_endpoints
-
-                third_side_var = self.add_length(third_side_v1, third_side_v2)
-
-                midseg_var = self.add_length(p1, p2)
-
-                from fractions import Fraction
-
-                self.solver.add(midseg_var == third_side_var * Fraction(1, 2))
-
-                # self.solver.add(2 * midseg_var == third_side_var) # Alternative form
-
-                print(f"Added midsegment length constraint: Length({midseg_line}) == 1/2 * Length({third_side_line})")
-
-                # 3. Parallel Constraint
-
-                norm_midseg = self.normalize_line_name(midseg_line)
-
-                norm_third = self.normalize_line_name(third_side_line)
-
-                parallel_pair_normalized = tuple(sorted((norm_midseg, norm_third)))
-
-                is_already_parallel = False
-
-                for pair_str1, pair_str2 in self.parallel_pairs:
-
-                    norm_existing_pair = tuple(
-                        sorted((self.normalize_line_name(pair_str1), self.normalize_line_name(pair_str2))))
-
-                    if norm_existing_pair == parallel_pair_normalized:
-                        is_already_parallel = True
-
-                        break
-
-                if not is_already_parallel:
-                    # Add the normalized pair and its reverse to self.parallel_pairs
-
-                    self.parallel_pairs.add(parallel_pair_normalized)
-
-                    self.parallel_pairs.add((parallel_pair_normalized[1], parallel_pair_normalized[0]))
-
-                    # Also add the original string versions for potential lookup consistency
-
-                    self.parallel_pairs.add(tuple(sorted((midseg_line, third_side_line))))
-
-                    self.parallel_pairs.add(tuple(sorted((third_side_line, midseg_line))))
-
-                    print(f"Added midsegment parallel constraint: {midseg_line} || {third_side_line}")
-
-                # Ensure the midpoints are marked correctly in the midpoints dictionary if used elsewhere
-
-                if not hasattr(self, "midpoints"):
-                    self.midpoints = {}
-
-                self.midpoints[midpoint1_info['side']] = mp1
-
-                self.midpoints[tuple(reversed(midpoint1_info['side']))] = mp1
-
-                self.midpoints[midpoint2_info['side']] = mp2
-
-                self.midpoints[tuple(reversed(midpoint2_info['side']))] = mp2
-
-                print(
-                    f"Updated midpoints dictionary: {mp1} for {midpoint1_info['side']}, {mp2} for {midpoint2_info['side']}")
-
-                return None  # Success
-
+                return None
 
             else:
-
-                # If conclusion parsing fails
 
                 return GeometricError(
 
@@ -13993,7 +13436,7 @@ class GeometricTheorem:
 
                     message="Conclusion format error for midsegment_of_triangle_judgment_parallel",
 
-                    details=f"Expected format: IsMidsegmentOfTriangle({midseg_line},{triangle_token}) but got {conclusions[0]}"
+                    details=f"Expected format: IsMidsegmentOfTriangle({midseg_line},{triangle_token})"
 
                 )
 
@@ -15412,23 +14855,19 @@ class GeometricTheorem:
 
 
 
-
         elif theorem_name == "similar_triangle_property_line_ratio":
 
             version = args[0]
 
             if version == "1":
 
-                # Parse conclusion like: Equal(LengthOfLine(CA),Mul(LengthOfLine(BC),RatioOfSimilarTriangle(DCA,DBC)))
-
                 match = re.search(
 
-                    r'Equal\(LengthOfLine\((\w+)\),'  # Group 1: line1 (e.g., CA)
+                    r'Equal\(LengthOfLine\((\w+)\),'
 
-                    r'Mul\(LengthOfLine\((\w+)\),'  # Group 2: line2 (e.g., BC)
+                    r'Mul\(LengthOfLine\((\w+)\),'
 
                     r'RatioOfSimilarTriangle\((\w+),(\w+)\)\)\)',
-                    # Group 3: tri1 (e.g., DCA), Group 4: tri2 (e.g., DBC)
 
                     conclusions[0]
 
@@ -15438,180 +14877,167 @@ class GeometricTheorem:
 
                     line1, line2, tri1, tri2 = match.groups()
 
-                    print(
-                        f"Processing similar_triangle_property_line_ratio for {line1}, {line2} based on {tri1} ~ {tri2}")
-
-                    # Normalize triangle pair for ratio lookup
-
                     norm_tris = self.normalize_similar_triangles(tri1, tri2)
 
                     if not norm_tris:
-                        print(f"Error: Invalid triangle names '{tri1}', '{tri2}' for similarity.")
-
-                        # Return error or handle gracefully
-
                         return GeometricError(
 
                             tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
 
-                            message=f"Invalid triangle names in similarity conclusion: {tri1}, {tri2}"
+                            message=f"Invalid triangle names: {tri1}, {tri2}"
 
                         )
 
-                    # Look up or create the ratio variable for this similarity pair
+                    # Look up the ratio variable
 
                     if norm_tris not in self.triangle_ratios:
                         var_name = f"ratio_{norm_tris[0]}_{norm_tris[1]}"
 
                         self.triangle_ratios[norm_tris] = Real(var_name)
 
-                        # Add basic constraint: ratio > 0 (ratios are typically positive)
+                    ratio = self.triangle_ratios[norm_tris]
 
-                        self.solver.add(self.triangle_ratios[norm_tris] > 0)
+                    # Add the original constraint
 
-                        print(f"Created similarity ratio variable: {var_name}")
+                    line1_var = self.add_length(line1[0], line1[1])
 
-                    ratio = self.triangle_ratios[norm_tris]  # This is the Z3 Real variable for the ratio
-
-                    # Add the fundamental symbolic constraint from the theorem's conclusion
-
-                    try:
-
-                        line1_var = self.add_length(line1[0], line1[1])
-
-                        line2_var = self.add_length(line2[0], line2[1])
-
-                    except IndexError:
-
-                        print(f"Error: Invalid line name format '{line1}' or '{line2}'. Skipping constraint.")
-
-                        return GeometricError(
-
-                            tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                            message=f"Invalid line name format in similarity conclusion: {line1} or {line2}"
-
-                        )
+                    line2_var = self.add_length(line2[0], line2[1])
 
                     self.solver.add(line1_var == line2_var * ratio)
 
-                    print(
-                        f"Added symbolic similarity constraint: Length({line1}) == Length({line2}) * Ratio({tri1},{tri2})")
+                    # NEW CODE: Try to determine the ratio value if possible
 
-                    # --- Check for and apply known numeric ratio ---
+                    if self.solver.check() == sat:
 
-                    norm_line1 = self.normalize_line_name(line1)
+                        model = self.solver.model()
 
-                    norm_line2 = self.normalize_line_name(line2)
+                        # Check if line1 and line2 have uniquely determined values
 
-                    known_ratio_val = None
+                        try:
 
-                    if hasattr(self, 'numeric_length_ratios'):
+                            # Get current values
 
-                        # Check if ratio L1/L2 is known
+                            len1_val = float(model.eval(line1_var).as_decimal(10).rstrip('?'))
 
-                        if (norm_line1, norm_line2) in self.numeric_length_ratios:
+                            len2_val = float(model.eval(line2_var).as_decimal(10).rstrip('?'))
 
-                            known_ratio_val = self.numeric_length_ratios[(norm_line1, norm_line2)]
+                            # Create temporary solvers to check if these values are unique
 
-                            print(f"Found known numeric ratio {norm_line1}/{norm_line2} = {known_ratio_val}")
+                            temp_solver1 = Solver()
 
-                        # Check if ratio L2/L1 is known
+                            for c in self.solver.assertions():
+                                temp_solver1.add(c)
 
-                        elif (norm_line2, norm_line1) in self.numeric_length_ratios:
+                            epsilon = 1e-8
 
-                            known_ratio_inv = self.numeric_length_ratios[(norm_line2, norm_line1)]
+                            temp_solver1.add(Or(
 
-                            if abs(known_ratio_inv) > 1e-9:  # Avoid division by zero
+                                line1_var < len1_val - epsilon,
 
-                                known_ratio_val = 1.0 / known_ratio_inv
+                                line1_var > len1_val + epsilon
+
+                            ))
+
+                            temp_solver2 = Solver()
+
+                            for c in self.solver.assertions():
+                                temp_solver2.add(c)
+
+                            temp_solver2.add(Or(
+
+                                line2_var < len2_val - epsilon,
+
+                                line2_var > len2_val + epsilon
+
+                            ))
+
+                            # If both sides have unique values and second side is non-zero
+
+                            if temp_solver1.check() == unsat and temp_solver2.check() == unsat and len2_val > epsilon:
+
+                                computed_ratio = len1_val / len2_val
+
+                                # Check if this ratio makes sense
+
+                                temp_solver3 = Solver()
+
+                                for c in self.solver.assertions():
+                                    temp_solver3.add(c)
+
+                                # Add the computed ratio as a constraint
+
+                                temp_solver3.add(ratio == computed_ratio)
+
+                                if temp_solver3.check() == sat:
+                                    # This ratio is consistent with existing constraints
+
+                                    self.solver.add(ratio == computed_ratio)
+
+                                    print(f"Determined similarity ratio: {computed_ratio} from {line1}/{line2}")
+
+                        except Exception as e:
+
+                            # Just log and continue - don't disrupt functionality
+
+                            print(f"Note: Could not determine unique ratio: {str(e)}")
+
+                    # Also check if the ratio is constrained by other means
+
+                    if self.solver.check() == sat:
+
+                        model = self.solver.model()
+
+                        try:
+
+                            ratio_val = float(model.eval(ratio).as_decimal(10).rstrip('?'))
+
+                            # Check if the ratio is uniquely determined
+
+                            temp_solver = Solver()
+
+                            for c in self.solver.assertions():
+                                temp_solver.add(c)
+
+                            epsilon = 1e-8
+
+                            temp_solver.add(Or(
+
+                                ratio < ratio_val - epsilon,
+
+                                ratio > ratio_val + epsilon
+
+                            ))
+
+                            if temp_solver.check() == unsat:
+
+                                # The ratio is already uniquely determined
+
+                                print(f"Triangle similarity ratio is constrained to: {ratio_val}")
+
+                            else:
+
+                                # Find an alternative value to help with debugging
+
+                                alt_model = temp_solver.model()
+
+                                alt_ratio = float(alt_model.eval(ratio).as_decimal(10).rstrip('?'))
 
                                 print(
-                                    f"Found known numeric ratio {norm_line2}/{norm_line1} = {known_ratio_inv}, derived {norm_line1}/{norm_line2} = {known_ratio_val}")
+                                    f"Triangle similarity ratio not uniquely determined: could be {ratio_val} or {alt_ratio}")
 
-                    # If a numeric ratio was found, add an explicit constraint for the symbolic ratio variable
+                        except Exception as e:
 
-                    if known_ratio_val is not None:
+                            # Just log and continue
 
-                        # Optional: Check if ratio is already constrained to avoid redundancy
+                            print(f"Note: Error checking ratio uniqueness: {str(e)}")
 
-                        temp_solver = Solver()
+                    # Original print statement
 
-                        for c in self.solver.assertions(): temp_solver.add(c)
+                    print(f"Added ratio constraints for all corresponding sides of {tri1} and {tri2}.")
 
-                        epsilon = 1e-9  # Tolerance for float comparison
+            elif version == "2":
 
-                        temp_solver.add(Or(ratio < known_ratio_val - epsilon, ratio > known_ratio_val + epsilon))
-
-                        is_already_constrained = (temp_solver.check() == unsat)
-
-                        if is_already_constrained:
-
-                            print(
-                                f"Ratio variable Ratio({tri1},{tri2}) already uniquely constrained to {known_ratio_val}. No new constraint needed.")
-
-                        else:
-
-                            self.solver.add(ratio == known_ratio_val)
-
-                            print(
-                                f"Added *explicit* Z3 constraint based on known numeric ratio: Ratio({tri1},{tri2}) == {known_ratio_val}")
-
-                            # After explicitly setting the ratio, re-check satisfiability
-
-                            if self.solver.check() == unsat:
-                                print("ERROR: Adding explicit ratio constraint made the solver UNSATISFIABLE.")
-
-                                # Optionally return an error here
-
-                                # return GeometricError(...)
-
-                    else:
-
-                        print(
-                            f"No known numeric ratio found for {norm_line1}/{norm_line2} to explicitly set Ratio({tri1},{tri2}). Relying on symbolic constraint.")
-
-                    # --- End explicit ratio logic ---
-
-                    # Call the function to add constraints for ALL corresponding sides
-
-                    # This ensures consistency even if the conclusion only mentioned one pair
-
-                    self.add_all_side_ratios_for_similar_triangles(tri1, tri2)
-
-                    return None  # Indicate successful processing of this theorem step
-
-                else:
-
-                    # Handle case where the conclusion string doesn't match the expected pattern
-
-                    print(
-                        f"Error: Conclusion format incorrect for similar_triangle_property_line_ratio: {conclusions[0]}")
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                        message="Conclusion format error for similar_triangle_property_line_ratio",
-
-                        details=f"Expected format: Equal(LengthOfLine(L1),Mul(LengthOfLine(L2),RatioOfSimilarTriangle(T1,T2))) but got {conclusions[0]}"
-
-                    )
-
-
-            else:  # Handle other versions if necessary
-
-                print(f"Error: Unsupported version '{version}' for similar_triangle_property_line_ratio.")
-
-                return GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                    message=f"Unsupported version {version} for similar_triangle_property_line_ratio",
-
-                    details="Only version 1 is currently implemented with explicit ratio logic."
-
-                )
+                print("2")
 
 
 
@@ -16018,7 +15444,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_5835/question5835_gt",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_532/question532_gt",print_output=False)
 
     if not result:
         print(feedback)

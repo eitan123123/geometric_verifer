@@ -9472,177 +9472,33 @@ class GeometricTheorem:
                         if match:
                             line1, line2, expression = match.groups()
                             expression = expression.strip()
-                            print(f"Found division length expression in TEXT_CDL: Div({line1},{line2}) = {expression}")
-
-                            # Get Z3 variables for the lengths
-                            try:
-                                len1 = self.add_length(line1[0], line1[1])
-                                len2 = self.add_length(line2[0], line2[1])
-                            except IndexError:
-                                print(f"Error: Invalid line name format in '{line}'. Skipping.")
-                                continue  # Skip this line
-
-                            # Try to parse the expression on the right side
-                            div_val = None
-                            numeric_ratio_value = None
-                            try:
-                                # Try Fraction first for precision (e.g., "3/2")
-                                from fractions import Fraction
-                                numeric_ratio_value = float(Fraction(expression))
-                                div_val = numeric_ratio_value  # Use the numeric value for the constraint
-                                print(f"Parsed division value as fraction: {numeric_ratio_value}")
-                            except ValueError:
-                                try:
-                                    # Fallback: Try standard float conversion (e.g., "1.5")
-                                    numeric_ratio_value = float(expression)
-                                    div_val = numeric_ratio_value  # Use the numeric value
-                                    print(f"Parsed division value as float: {numeric_ratio_value}")
-                                except ValueError:
-                                    try:
-                                        # Fallback: Treat as algebraic expression (e.g., "x/2")
-                                        print(f"Could not parse '{expression}' as numeric, treating as algebraic.")
-                                        variables = self.extract_variables(expression)
-                                        for var in variables:
-                                            if var not in self.variables:
-                                                self.variables[var] = Real(var)
-                                        div_val = self.parse_algebraic_expression(expression)  # Z3 expression object
-                                    except Exception as e_parse:
-                                        print(
-                                            f"Error parsing division expression '{expression}': {str(e_parse)}. Skipping constraint.")
-                                        continue  # Skip adding this constraint
-
-                            # --- Store Numeric Ratio if Found ---
-                            if numeric_ratio_value is not None:
-                                if not hasattr(self, 'numeric_length_ratios'):
-                                    self.numeric_length_ratios = {}
-                                norm_line1 = self.normalize_line_name(line1)
-                                norm_line2 = self.normalize_line_name(line2)
-                                # Store ratio L1/L2
-                                self.numeric_length_ratios[(norm_line1, norm_line2)] = numeric_ratio_value
-                                # Store ratio L2/L1 if value is non-zero
-                                if abs(numeric_ratio_value) > 1e-9:
-                                    self.numeric_length_ratios[(norm_line2, norm_line1)] = 1.0 / numeric_ratio_value
-                                print(f"Stored known numeric ratio: {norm_line1}/{norm_line2} = {numeric_ratio_value}")
-                            # --- End Storing ---
-
-                            # Add the Z3 constraint
-                            if div_val is not None:
-                                # Use multiplication form: len1 == len2 * div_val
-                                # This handles both numeric div_val and Z3 expression div_val
-                                self.solver.add(len1 == len2 * div_val)
-                                print(f"Added Z3 constraint: Length({line1}) == Length({line2}) * ({expression})")
-                            else:
-                                print(f"Warning: Could not determine value for constraint: {line}")
-                    elif line.startswith('Equal(LengthOfLine(') and 'Mul(LengthOfLine(' in line:
-                        # Handle cases like Equal(LengthOfLine(L1), Mul(LengthOfLine(L2), Value))
-                        match = re.match(r'Equal\(LengthOfLine\((\w+)\),Mul\(LengthOfLine\((\w+)\),(.+)\)\)', line)
-                        if match:
-                            line1, line2, expression = match.groups()
-                            expression = expression.strip()
                             print(
-                                f"Found multiplication length expression: Length({line1}) = Length({line2}) * ({expression})")
+                                f"Found division length expression in TEXT_CDL: Div(LengthOfLine({line1}),LengthOfLine({line2})) = {expression}")
 
-                            # Get Z3 variables for the lengths
+                            # Get the two length variables
+                            len1 = self.add_length(line1[0], line1[1])
+                            len2 = self.add_length(line2[0], line2[1])
+
+                            # Try to parse the expression as a fraction first
                             try:
-                                len1 = self.add_length(line1[0], line1[1])
-                                len2 = self.add_length(line2[0], line2[1])
-                            except IndexError:
-                                print(f"Error: Invalid line name format in '{line}'. Skipping.")
-                                continue  # Skip this line
-
-                            # Try to evaluate expression numerically
-                            numeric_value = None
-                            parsed_expr = None
-                            try:
-                                # Try simple float/fraction first
-                                try:
-                                    from fractions import Fraction
-                                    numeric_value = float(Fraction(expression))
-                                except ValueError:
-                                    numeric_value = float(expression)
-                                print(f"Parsed multiplier as numeric: {numeric_value}")
-                                parsed_expr = numeric_value  # Use numeric value directly
-                            except ValueError:
-                                # Not a simple numeric value, treat as algebraic
-                                print(f"Could not parse multiplier '{expression}' as numeric, treating as algebraic.")
-                                try:
-                                    variables = self.extract_variables(expression)
-                                    for var in variables:
-                                        if var not in self.variables:
-                                            self.variables[var] = Real(var)
-                                    parsed_expr = self.parse_algebraic_expression(expression)  # Z3 expression object
-                                except Exception as e_parse:
-                                    print(
-                                        f"Error parsing multiplier expression '{expression}': {str(e_parse)}. Skipping constraint.")
-                                    continue  # Skip adding this constraint
-
-                            # --- Store Numeric Ratio if Found ---
-                            if numeric_value is not None:
-                                if not hasattr(self, 'numeric_length_ratios'):
-                                    self.numeric_length_ratios = {}
-                                norm_line1 = self.normalize_line_name(line1)
-                                norm_line2 = self.normalize_line_name(line2)
-                                # Store ratio L1/L2
-                                self.numeric_length_ratios[(norm_line1, norm_line2)] = numeric_value
-                                # Store ratio L2/L1 if value is non-zero
-                                if abs(numeric_value) > 1e-9:
-                                    self.numeric_length_ratios[(norm_line2, norm_line1)] = 1.0 / numeric_value
-                                print(f"Stored known numeric ratio: {norm_line1}/{norm_line2} = {numeric_value}")
-                            # --- End Storing ---
-
-                            # Add the Z3 constraint
-                            if parsed_expr is not None:
-                                self.solver.add(len1 == len2 * parsed_expr)
-                                print(f"Added Z3 constraint: Length({line1}) == Length({line2}) * ({expression})")
-                            else:
-                                print(f"Warning: Could not determine value for constraint: {line}")
-
-                        # ... (elif block for 'Equal(LengthOfLine(' without Mul - standard numeric/algebraic assignment) ...
-                        # This block should remain as you likely already have it, handling lines like:
-                        # Equal(LengthOfLine(AB), 5) or Equal(LengthOfLine(CD), x)
-                    elif line.startswith('Equal(LengthOfLine('):  # Assuming this is the fall-through case
-                        match = re.match(r'Equal\(LengthOfLine\((\w+)\),(.+)\)', line)
-                        if match:
-                            line_name, expression = match.groups()
-                            expression = expression.strip()
-                            print(f"Found length assignment expression: Length({line_name}) = {expression}")
-                            # Get (or create) the length variable
-                            try:
-                                length_var = self.add_length(line_name[0], line_name[1])
-                            except IndexError:
-                                print(f"Error: Invalid line name format '{line_name}' in '{line}'. Skipping.")
-                                continue
-
-                            # Parse and add constraint
-                            parsed_val = None
-                            try:
-                                # Try numeric first
                                 from fractions import Fraction
+                                div_val = float(Fraction(expression))
+                                print(f"Parsed division value as fraction: {div_val}")
+                            except Exception as e:
                                 try:
-                                    parsed_val = float(Fraction(expression))
-                                except ValueError:
-                                    parsed_val = float(expression)
-                                print(f"Parsed assignment value as numeric: {parsed_val}")
-                            except ValueError:
-                                # Treat as algebraic
-                                print(
-                                    f"Could not parse assignment value '{expression}' as numeric, treating as algebraic.")
-                                try:
-                                    variables = self.extract_variables(expression)
-                                    for var in variables:
-                                        if var not in self.variables:
-                                            self.variables[var] = Real(var)
-                                    parsed_val = self.parse_algebraic_expression(expression)
-                                except Exception as e_parse:
-                                    print(
-                                        f"Error parsing assignment expression '{expression}': {str(e_parse)}. Skipping constraint.")
+                                    # Fall back to safe evaluation with limited context
+                                    div_val = float(eval(expression, {"__builtins__": {}}, {"pi": 3.141592653589793}))
+                                    print(f"Parsed division value using eval: {div_val}")
+                                except Exception as e2:
+                                    print(f"Error parsing division value '{expression}': {str(e2)}")
                                     continue
 
-                            if parsed_val is not None:
-                                self.solver.add(length_var == parsed_val)
-                                print(f"Added Z3 constraint: Length({line_name}) == {expression}")
-                            else:
-                                print(f"Warning: Could not determine value for constraint: {line}")
+                            # Add the division constraint (rewritten to avoid potential division by zero)
+                            self.solver.add(len1 == len2 * div_val)  # Equivalent to len1/len2 == div_val
+                            print(
+                                f"Added division constraint: {line1} = {line2} * {div_val} (equivalent to {line1}/{line2} = {div_val})")
+                        else:
+                            print(f"Error: Could not parse division expression in line: {line}")
                     elif line.startswith("IsMedianOfTriangle("):
                         # Matches a fact like: IsMedianOfTriangle(AD,ABC)
                         match = re.match(r'IsMedianOfTriangle\((\w+),(\w{3})\)', line)
@@ -10048,7 +9904,7 @@ class GeometricTheorem:
                                                                       status="insufficient_info", error_message=error_msg)
 
                     triangle_area_var = self.triangle_areas[normalized_triangle]
-                    self.solver.add(triangle_area_var>0)
+
                     # Check if the value matches the expected answer
                     success, value, status = self.check_value_constraint(triangle_area_var, model_answer, epsilon=epsilon)
 
@@ -15412,23 +15268,19 @@ class GeometricTheorem:
 
 
 
-
         elif theorem_name == "similar_triangle_property_line_ratio":
 
             version = args[0]
 
             if version == "1":
 
-                # Parse conclusion like: Equal(LengthOfLine(CA),Mul(LengthOfLine(BC),RatioOfSimilarTriangle(DCA,DBC)))
-
                 match = re.search(
 
-                    r'Equal\(LengthOfLine\((\w+)\),'  # Group 1: line1 (e.g., CA)
+                    r'Equal\(LengthOfLine\((\w+)\),'
 
-                    r'Mul\(LengthOfLine\((\w+)\),'  # Group 2: line2 (e.g., BC)
+                    r'Mul\(LengthOfLine\((\w+)\),'
 
                     r'RatioOfSimilarTriangle\((\w+),(\w+)\)\)\)',
-                    # Group 3: tri1 (e.g., DCA), Group 4: tri2 (e.g., DBC)
 
                     conclusions[0]
 
@@ -15438,180 +15290,167 @@ class GeometricTheorem:
 
                     line1, line2, tri1, tri2 = match.groups()
 
-                    print(
-                        f"Processing similar_triangle_property_line_ratio for {line1}, {line2} based on {tri1} ~ {tri2}")
-
-                    # Normalize triangle pair for ratio lookup
-
                     norm_tris = self.normalize_similar_triangles(tri1, tri2)
 
                     if not norm_tris:
-                        print(f"Error: Invalid triangle names '{tri1}', '{tri2}' for similarity.")
-
-                        # Return error or handle gracefully
-
                         return GeometricError(
 
                             tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
 
-                            message=f"Invalid triangle names in similarity conclusion: {tri1}, {tri2}"
+                            message=f"Invalid triangle names: {tri1}, {tri2}"
 
                         )
 
-                    # Look up or create the ratio variable for this similarity pair
+                    # Look up the ratio variable
 
                     if norm_tris not in self.triangle_ratios:
                         var_name = f"ratio_{norm_tris[0]}_{norm_tris[1]}"
 
                         self.triangle_ratios[norm_tris] = Real(var_name)
 
-                        # Add basic constraint: ratio > 0 (ratios are typically positive)
+                    ratio = self.triangle_ratios[norm_tris]
 
-                        self.solver.add(self.triangle_ratios[norm_tris] > 0)
+                    # Add the original constraint
 
-                        print(f"Created similarity ratio variable: {var_name}")
+                    line1_var = self.add_length(line1[0], line1[1])
 
-                    ratio = self.triangle_ratios[norm_tris]  # This is the Z3 Real variable for the ratio
-
-                    # Add the fundamental symbolic constraint from the theorem's conclusion
-
-                    try:
-
-                        line1_var = self.add_length(line1[0], line1[1])
-
-                        line2_var = self.add_length(line2[0], line2[1])
-
-                    except IndexError:
-
-                        print(f"Error: Invalid line name format '{line1}' or '{line2}'. Skipping constraint.")
-
-                        return GeometricError(
-
-                            tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                            message=f"Invalid line name format in similarity conclusion: {line1} or {line2}"
-
-                        )
+                    line2_var = self.add_length(line2[0], line2[1])
 
                     self.solver.add(line1_var == line2_var * ratio)
 
-                    print(
-                        f"Added symbolic similarity constraint: Length({line1}) == Length({line2}) * Ratio({tri1},{tri2})")
+                    # NEW CODE: Try to determine the ratio value if possible
 
-                    # --- Check for and apply known numeric ratio ---
+                    if self.solver.check() == sat:
 
-                    norm_line1 = self.normalize_line_name(line1)
+                        model = self.solver.model()
 
-                    norm_line2 = self.normalize_line_name(line2)
+                        # Check if line1 and line2 have uniquely determined values
 
-                    known_ratio_val = None
+                        try:
 
-                    if hasattr(self, 'numeric_length_ratios'):
+                            # Get current values
 
-                        # Check if ratio L1/L2 is known
+                            len1_val = float(model.eval(line1_var).as_decimal(10).rstrip('?'))
 
-                        if (norm_line1, norm_line2) in self.numeric_length_ratios:
+                            len2_val = float(model.eval(line2_var).as_decimal(10).rstrip('?'))
 
-                            known_ratio_val = self.numeric_length_ratios[(norm_line1, norm_line2)]
+                            # Create temporary solvers to check if these values are unique
 
-                            print(f"Found known numeric ratio {norm_line1}/{norm_line2} = {known_ratio_val}")
+                            temp_solver1 = Solver()
 
-                        # Check if ratio L2/L1 is known
+                            for c in self.solver.assertions():
+                                temp_solver1.add(c)
 
-                        elif (norm_line2, norm_line1) in self.numeric_length_ratios:
+                            epsilon = 1e-8
 
-                            known_ratio_inv = self.numeric_length_ratios[(norm_line2, norm_line1)]
+                            temp_solver1.add(Or(
 
-                            if abs(known_ratio_inv) > 1e-9:  # Avoid division by zero
+                                line1_var < len1_val - epsilon,
 
-                                known_ratio_val = 1.0 / known_ratio_inv
+                                line1_var > len1_val + epsilon
+
+                            ))
+
+                            temp_solver2 = Solver()
+
+                            for c in self.solver.assertions():
+                                temp_solver2.add(c)
+
+                            temp_solver2.add(Or(
+
+                                line2_var < len2_val - epsilon,
+
+                                line2_var > len2_val + epsilon
+
+                            ))
+
+                            # If both sides have unique values and second side is non-zero
+
+                            if temp_solver1.check() == unsat and temp_solver2.check() == unsat and len2_val > epsilon:
+
+                                computed_ratio = len1_val / len2_val
+
+                                # Check if this ratio makes sense
+
+                                temp_solver3 = Solver()
+
+                                for c in self.solver.assertions():
+                                    temp_solver3.add(c)
+
+                                # Add the computed ratio as a constraint
+
+                                temp_solver3.add(ratio == computed_ratio)
+
+                                if temp_solver3.check() == sat:
+                                    # This ratio is consistent with existing constraints
+
+                                    self.solver.add(ratio == computed_ratio)
+
+                                    print(f"Determined similarity ratio: {computed_ratio} from {line1}/{line2}")
+
+                        except Exception as e:
+
+                            # Just log and continue - don't disrupt functionality
+
+                            print(f"Note: Could not determine unique ratio: {str(e)}")
+
+                    # Also check if the ratio is constrained by other means
+
+                    if self.solver.check() == sat:
+
+                        model = self.solver.model()
+
+                        try:
+
+                            ratio_val = float(model.eval(ratio).as_decimal(10).rstrip('?'))
+
+                            # Check if the ratio is uniquely determined
+
+                            temp_solver = Solver()
+
+                            for c in self.solver.assertions():
+                                temp_solver.add(c)
+
+                            epsilon = 1e-8
+
+                            temp_solver.add(Or(
+
+                                ratio < ratio_val - epsilon,
+
+                                ratio > ratio_val + epsilon
+
+                            ))
+
+                            if temp_solver.check() == unsat:
+
+                                # The ratio is already uniquely determined
+
+                                print(f"Triangle similarity ratio is constrained to: {ratio_val}")
+
+                            else:
+
+                                # Find an alternative value to help with debugging
+
+                                alt_model = temp_solver.model()
+
+                                alt_ratio = float(alt_model.eval(ratio).as_decimal(10).rstrip('?'))
 
                                 print(
-                                    f"Found known numeric ratio {norm_line2}/{norm_line1} = {known_ratio_inv}, derived {norm_line1}/{norm_line2} = {known_ratio_val}")
+                                    f"Triangle similarity ratio not uniquely determined: could be {ratio_val} or {alt_ratio}")
 
-                    # If a numeric ratio was found, add an explicit constraint for the symbolic ratio variable
+                        except Exception as e:
 
-                    if known_ratio_val is not None:
+                            # Just log and continue
 
-                        # Optional: Check if ratio is already constrained to avoid redundancy
+                            print(f"Note: Error checking ratio uniqueness: {str(e)}")
 
-                        temp_solver = Solver()
+                    # Original print statement
 
-                        for c in self.solver.assertions(): temp_solver.add(c)
+                    print(f"Added ratio constraints for all corresponding sides of {tri1} and {tri2}.")
 
-                        epsilon = 1e-9  # Tolerance for float comparison
+            elif version == "2":
 
-                        temp_solver.add(Or(ratio < known_ratio_val - epsilon, ratio > known_ratio_val + epsilon))
-
-                        is_already_constrained = (temp_solver.check() == unsat)
-
-                        if is_already_constrained:
-
-                            print(
-                                f"Ratio variable Ratio({tri1},{tri2}) already uniquely constrained to {known_ratio_val}. No new constraint needed.")
-
-                        else:
-
-                            self.solver.add(ratio == known_ratio_val)
-
-                            print(
-                                f"Added *explicit* Z3 constraint based on known numeric ratio: Ratio({tri1},{tri2}) == {known_ratio_val}")
-
-                            # After explicitly setting the ratio, re-check satisfiability
-
-                            if self.solver.check() == unsat:
-                                print("ERROR: Adding explicit ratio constraint made the solver UNSATISFIABLE.")
-
-                                # Optionally return an error here
-
-                                # return GeometricError(...)
-
-                    else:
-
-                        print(
-                            f"No known numeric ratio found for {norm_line1}/{norm_line2} to explicitly set Ratio({tri1},{tri2}). Relying on symbolic constraint.")
-
-                    # --- End explicit ratio logic ---
-
-                    # Call the function to add constraints for ALL corresponding sides
-
-                    # This ensures consistency even if the conclusion only mentioned one pair
-
-                    self.add_all_side_ratios_for_similar_triangles(tri1, tri2)
-
-                    return None  # Indicate successful processing of this theorem step
-
-                else:
-
-                    # Handle case where the conclusion string doesn't match the expected pattern
-
-                    print(
-                        f"Error: Conclusion format incorrect for similar_triangle_property_line_ratio: {conclusions[0]}")
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                        message="Conclusion format error for similar_triangle_property_line_ratio",
-
-                        details=f"Expected format: Equal(LengthOfLine(L1),Mul(LengthOfLine(L2),RatioOfSimilarTriangle(T1,T2))) but got {conclusions[0]}"
-
-                    )
-
-
-            else:  # Handle other versions if necessary
-
-                print(f"Error: Unsupported version '{version}' for similar_triangle_property_line_ratio.")
-
-                return GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                    message=f"Unsupported version {version} for similar_triangle_property_line_ratio",
-
-                    details="Only version 1 is currently implemented with explicit ratio logic."
-
-                )
+                print("2")
 
 
 
@@ -16018,7 +15857,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_5835/question5835_gt",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_6322/question6322_gt",print_output=False)
 
     if not result:
         print(feedback)

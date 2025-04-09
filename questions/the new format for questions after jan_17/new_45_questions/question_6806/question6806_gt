@@ -173,7 +173,6 @@ ANSWER:
 120
 THEOREM_SEQUENCE:
 1;equilateral_triangle_property_angle(1,ABC);EquilateralTriangle(ABC);["Equal(MeasureOfAngle(CAB),60)"]
-
 2;adjacent_complementary_angle(1,DAO,OAB);Collinear(DAB)&Angle(DAO)&Angle(OAB);["Equal(Add(MeasureOfAngle(DAO),MeasureOfAngle(OAB)),180)"]
 3;isosceles_triangle_judgment_line_equal(1,AOD);Polygon(AOD)&Equal(LengthOfLine(AO),LengthOfLine(AD));["IsoscelesTriangle(AOD)"]
 4;isosceles_triangle_property_angle_equal(1,AOD);IsoscelesTriangle(AOD);["Equal(MeasureOfAngle(AOD),MeasureOfAngle(ODA))"]
