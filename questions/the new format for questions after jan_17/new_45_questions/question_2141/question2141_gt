@@ -89,6 +89,5 @@ ANSWER:
 225
 THEOREM_SEQUENCE:
 1;round_angle(1,FBC,CBF);Angle(FBC)&Angle(CBF);["Equal(Add(MeasureOfAngle(FBC),MeasureOfAngle(CBF)),360)"]
-
 2;angle_addition(1,CBD,DBF);Angle(CBD)&Angle(DBF)&Angle(CBF);["Equal(MeasureOfAngle(CBF),Add(MeasureOfAngle(CBD),MeasureOfAngle(DBF)))"]
 ***MODEL_RESPONSE_END***
