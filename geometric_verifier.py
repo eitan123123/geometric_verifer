@@ -8753,6 +8753,17 @@ class GeometricTheorem:
 
             return True, None
 
+        else:
+            # Theorem name did not match any implemented validation checks
+            error_message = f"Theorem '{theorem_name}' premise validation is not implemented in the verifier."
+            error_details = f"Theorem '{theorem_name}' is not recognized or its premise validation is not supported by the current verifier version."
+            # Use return_error to set the flag and return correctly formatted error
+            return return_error(GeometricError(
+                tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                message=error_message,
+                details=error_details
+            ))
+
     def parse_and_verify_proof(self, content: str) -> bool:
         try:
 
@@ -16739,7 +16750,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_5431/question5431_gt",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/oren_random/1490_random",print_output=False)
 
     if not result:
         print(feedback)
