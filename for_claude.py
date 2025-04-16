@@ -462,6 +462,24 @@ class GeometricTheorem:
 
         return []  # If not unsatisfiable with the filtered set
 
+    # Add this method to the GeometricTheorem class
+    def contains_algebraic_variables(self, expr: str) -> bool:
+        """Check if an expression contains algebraic variables (letters that aren't part of math functions)."""
+        import re
+
+        # First remove all numbers from the expression
+        expr_without_nums = re.sub(r'\d+(\.\d+)?', '', expr)
+
+        # Remove operators and parentheses
+        expr_clean = re.sub(r'[+\-*/()^]', '', expr_without_nums)
+
+        # Remove known math constants and functions
+        math_terms = ['pi', 'sqrt', 'sin', 'cos', 'tan', 'log', 'ln', 'exp']
+        for term in math_terms:
+            expr_clean = expr_clean.lower().replace(term, '')
+
+        # If any letters remain, it contains algebraic variables
+        return bool(re.search(r'[a-zA-Z]', expr_clean))
 
 
     def canonicalize_congruent_triangle_pair(self, tri1: str, tri2: str) -> Tuple[str, str]:
@@ -4239,6 +4257,10 @@ class GeometricTheorem:
                 answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
                 if answer_str is None:
                     return False, "No answer provided in ANSWER section."
+
+                # Check for algebraic variables before trying to parse
+                if self.contains_algebraic_variables(answer_str):
+                    return False, "The final answer should be a numeric answer, you gave an expression with algebraic variable. Please fix your proof."
 
                 try:
                     model_answer = parse_special_answer(answer_str)

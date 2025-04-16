@@ -2545,6 +2545,170 @@ class GeometricTheorem:
                     details="these is no such version for the theorem perpendicular_judgment_angle"
                 ))
 
+        elif theorem_name == "circle_property_angle_of_osculation":
+            version = args[0]
+            if version in {"1", "2"}:
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for circle_property_angle_of_osculation",
+                        details=f"Expected: circle_property_angle_of_osculation({version}, arc, point)"
+                    ))
+
+                arc = args[1].strip()  # e.g., "OAB"
+                tangent_point = args[2].strip()  # e.g., "P"
+
+                # Check that the arc exists in premise
+                arc_match = re.search(r'Arc\(' + re.escape(arc) + r'\)', premise)
+                if not arc_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Arc({arc}) in premise",
+                        details="circle_property_angle_of_osculation requires arc to be defined"
+                    ))
+
+                # Extract circle and points
+                circle = arc[0]  # e.g., "O"
+                point_a = arc[1]  # e.g., "A"
+                point_b = arc[2]  # e.g., "B"
+
+                # Determine which point is the tangent point based on version
+                tangent_to_point = point_a if version == "1" else point_b
+
+                # Check for angle in premise
+                expected_angle = ""
+                if version == "1":
+                    expected_angle = point_b + point_a + tangent_point  # "BAP"
+                else:  # version == "2"
+                    expected_angle = tangent_point + point_b + point_a  # "PBA"
+
+
+
+                # Check for tangent relationship
+                expected_tangent = tangent_point + tangent_to_point  # e.g., "PA" or "PB"
+                tangent_match = re.search(
+                    r'IsTangentOfCircle\(' + re.escape(expected_tangent) + r',' + re.escape(circle) + r'\)', premise)
+                if not tangent_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing IsTangentOfCircle({expected_tangent},{circle}) in premise",
+                        details=f"Version {version} requires line from {tangent_point} to be tangent at point {tangent_to_point}"
+                    ))
+
+                # Verify tangent fact exists in system
+                if not hasattr(self, "tangent_facts") or (expected_tangent, circle) not in self.tangent_facts:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Tangent fact IsTangentOfCircle({expected_tangent},{circle}) not established",
+                        details="Tangent relationship must be proven before using this theorem"
+                    ))
+
+                # Verify arc exists in system
+                normalized_arc = self.normalize_arc(arc)
+                arc_var_name = f"arc_{normalized_arc}"
+                if arc_var_name not in self.arcs:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Arc {arc} not established in the system",
+                        details="Arc must be defined before using this theorem"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem circle_property_angle_of_osculation"
+                ))
+
+        elif theorem_name == "bisector_of_angle_judgment_angle_equal":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for bisector_of_angle_judgment_angle_equal",
+                        details="Expected: bisector_of_angle_judgment_angle_equal(1, bisector, angle)"
+                    ))
+
+                bisector = args[1].strip()  # e.g., "BD"
+                angle_name = args[2].strip()  # e.g., "ABC"
+
+                # Verify bisector is a ray from the angle's vertex
+                if len(bisector) != 2 or len(angle_name) != 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Invalid format for bisector or angle",
+                        details="Bisector should be a 2-letter ray and angle should be a 3-letter angle"
+                    ))
+
+                vertex = angle_name[1]  # Middle letter is the vertex
+                if bisector[0] != vertex:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Bisector {bisector} does not start from angle vertex {vertex}",
+                        details="Angle bisector must start from the angle's vertex"
+                    ))
+
+                # Extract the two sub-angles created by the bisector
+                left_arm = angle_name[0]  # First letter of the original angle
+                right_arm = angle_name[2]  # Last letter of the original angle
+                bisector_point = bisector[1]  # Second letter of the bisector
+
+                # Construct the two sub-angles
+                left_subangle = left_arm + vertex + bisector_point  # e.g., "ABD"
+                right_subangle = bisector_point + vertex + right_arm  # e.g., "DBC"
+
+                # Check if the angles are defined in the premise
+                left_angle_match = re.search(r'Angle\(' + re.escape(left_subangle) + r'\)', premise)
+                right_angle_match = re.search(r'Angle\(' + re.escape(right_subangle) + r'\)', premise)
+
+
+
+                # Check for angle equality in the premise
+                equality_pattern = r'Equal\(MeasureOfAngle\(' + re.escape(
+                    left_subangle) + r'\),MeasureOfAngle\(' + re.escape(right_subangle) + r'\)\)'
+                alt_equality_pattern = r'Equal\(MeasureOfAngle\(' + re.escape(
+                    right_subangle) + r'\),MeasureOfAngle\(' + re.escape(left_subangle) + r'\)\)'
+
+                if not (re.search(equality_pattern, premise) or re.search(alt_equality_pattern, premise)):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing angle equality in premise",
+                        details=f"Need Equal(MeasureOfAngle({left_subangle}),MeasureOfAngle({right_subangle})) in premise"
+                    ))
+
+                # Check if the angles are actually equal in the solver
+                left_angle_var = self.add_angle(left_subangle[0], left_subangle[1], left_subangle[2])
+                right_angle_var = self.add_angle(right_subangle[0], right_subangle[1], right_subangle[2])
+
+                # Create temporary solver with current constraints
+                temp_solver = Solver()
+                for c in self.solver.assertions():
+                    temp_solver.add(c)
+
+                # Add the inequality constraint
+                temp_solver.add(left_angle_var != right_angle_var)
+
+                # If the system becomes unsatisfiable, the angles must be equal
+                if temp_solver.check() == unsat:
+                    # Angles are already constrained to be equal
+                    pass
+                else:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Angles {left_subangle} and {right_subangle} not proven equal",
+                        details="The solver's constraints do not force these angles to be equal"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem bisector_of_angle_judgment_angle_equal"
+                ))
+
         elif theorem_name == "tangent_of_circle_property_length_equal":
             version = args[0]
             if version == "1":
@@ -2609,6 +2773,86 @@ class GeometricTheorem:
                     message="these is no such version for the theorem",
                     details="these is no such version for the theorem tangent_of_circle_property_length_equal"
                 ))
+
+        elif theorem_name == "rectangle_judgment_right_angle":
+            version = args[0]
+            if version == "1":
+                if len(args) < 2:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Missing quadrilateral argument for rectangle_judgment_right_angle",
+                        details="Expected: rectangle_judgment_right_angle(1, quadrilateral)"
+                    ))
+
+                quad = args[1].strip()  # e.g., "ABCD"
+
+                # Check if the quadrilateral is defined as a parallelogram in the premise
+                parallelogram_match = re.search(r'Parallelogram\(' + re.escape(quad) + r'\)', premise)
+                if not parallelogram_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Quadrilateral {quad} not established as a parallelogram in premise",
+                        details="rectangle_judgment_right_angle requires Parallelogram(...) in premise"
+                    ))
+
+                # Check if the quadrilateral is defined as a parallelogram in the system
+                if not hasattr(self, "parallelograms"):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="No parallelograms defined in the system",
+                        details="rectangle_judgment_right_angle requires quadrilateral to be a parallelogram"
+                    ))
+
+                # Check for any cyclic variation of the quadrilateral in parallelograms
+                quad_variations = get_cyclic_variations(quad)
+                if not any(var in self.parallelograms for var in quad_variations):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Quadrilateral {quad} not proven to be a parallelogram",
+                        details=f"Known parallelograms: {self.parallelograms}"
+                    ))
+
+                # Check for right angle in the premise
+                right_angle_match = re.search(r'Equal\(MeasureOfAngle\((\w{3})\),90\)', premise)
+                if not right_angle_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing right angle in premise",
+                        details="rectangle_judgment_right_angle requires one angle to be 90 degrees"
+                    ))
+
+                # Check that the angle is from the quadrilateral
+                angle_name = right_angle_match.group(1)
+                if not all(point in quad for point in angle_name):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Angle {angle_name} does not belong to quadrilateral {quad}",
+                        details="The right angle must be an angle of the quadrilateral"
+                    ))
+
+                # Verify the angle is actually 90 degrees in the solver
+                angle_var = self.add_angle(angle_name[0], angle_name[1], angle_name[2])
+                temp_solver = Solver()
+                for c in self.solver.assertions():
+                    temp_solver.add(c)
+
+                # Check if the angle must be 90 degrees
+                temp_solver.add(angle_var != 90)
+                if temp_solver.check() != unsat:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Angle {angle_name} is not constrained to be 90°",
+                        details="The right angle constraint must be enforced by the solver"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version for rectangle_judgment_right_angle",
+                    details="Unsupported version for rectangle_judgment_right_angle"
+                ))
+
 
         elif theorem_name == "round_arc":
             version = args[0]
@@ -8581,6 +8825,38 @@ class GeometricTheorem:
                             sections[THEOREM_SEQUENCE] = model_sections[THEOREM_SEQUENCE]
 
                         print("Successfully extracted content from between model response markers")
+                    else:
+                        # --- ADDED ELSE BLOCK for missing END marker ---
+                        # Start marker found, but end marker was NOT found after it
+                        error_message = f"Found '{start_marker}' but could not find the '{end_marker}' marker afterwards."
+                        print(f"Error: {error_message}")
+                        # Create a TIER1 error object (optional, but good practice)
+                        error = GeometricError(
+                            tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                            message=error_message,
+                            details="The proof structure is incorrect. Ensure both markers exist and are in the correct order."
+                        )
+                        # Return False with the formatted TIER1 error message
+                        # Prioritize details if available, otherwise use message
+                        error_content = error.details if error.details else error.message
+                        return False, f"Error in {error.tier.name}: {error_content}"
+                        # --- END OF ADDED ELSE BLOCK ---
+                else:
+                    # --- ADDED ELSE BLOCK for missing START marker ---
+                    # Start marker was NOT found
+                    error_message = f"Could not find the '{start_marker}' marker."
+                    print(f"Error: {error_message}")
+                    # Create a TIER1 error object
+                    error = GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message=error_message,
+                        details="The proof structure is incorrect. The required starting marker is missing."
+                    )
+                    # Return False with the formatted TIER1 error message
+                    # Prioritize details if available, otherwise use message
+                    error_content = error.details if error.details else error.message
+                    return False, f"Error in {error.tier.name}: {error_content}"
+
 
             # adding all the points from the CONSTRUCTION_CDL_EXTENDED for the collinear
             if CONSTRUCTION_CDL_EXTENDED in sections:
@@ -10010,11 +10286,14 @@ class GeometricTheorem:
                                 print(f"\nError in {error.tier.name}:")
                                 # --- MODIFICATION START ---
                                 if error.tier == ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION:
-                                    # For TIER1, print details first if available, then message as fallback
-                                    if error.details:
-                                        print(f"Details: {error.details}")
-                                    else:
-                                        print(f"Message: {error.message}")  # Fallback if no details
+                                    # For TIER1, prioritize details for the feedback message
+                                    error_content = error.details if error.details else error.message
+                                    # Print details to console as well for clarity
+                                    print(f"Details: {error_content}")
+                                    # Construct the feedback string using the prioritized content
+                                    feedback_message = f"Error in {error.tier.name}: {error_content}"
+                                    # Return the specific feedback for TIER1
+                                    return False, feedback_message
                                 else:
                                     # For TIER2/TIER3, print message first, then details if available
                                     print(f"Message: {error.message}")
@@ -10037,11 +10316,14 @@ class GeometricTheorem:
                                 print(f"\nError in {error.tier.name}:")
                                 # --- MODIFICATION START ---
                                 if error.tier == ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION:
-                                    # For TIER1, print details first if available, then message as fallback
-                                    if error.details:
-                                        print(f"Details: {error.details}")
-                                    else:
-                                        print(f"Message: {error.message}")  # Fallback if no details
+                                    # For TIER1, prioritize details for the feedback message
+                                    error_content = error.details if error.details else error.message
+                                    # Print details to console as well for clarity
+                                    print(f"Details: {error_content}")
+                                    # Construct the feedback string using the prioritized content
+                                    feedback_message = f"Error in {error.tier.name}: {error_content}"
+                                    # Return the specific feedback for TIER1
+                                    return False, feedback_message
                                 else:
                                     # For TIER2/TIER3, print message first, then details if available
                                     print(f"Message: {error.message}")
@@ -10134,6 +10416,10 @@ class GeometricTheorem:
                 answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
                 if answer_str is None:
                     return False, "No answer provided in ANSWER section."
+
+                # Check for algebraic variables before trying to parse
+                if self.contains_algebraic_variables(answer_str):
+                    return False, "The final answer should be a numeric answer, you gave an expression with algebraic variable. Please fix your proof."
 
                 try:
                     model_answer = parse_special_answer(answer_str)
@@ -11043,6 +11329,25 @@ class GeometricTheorem:
         # Flag that we have now added the ratio constraints for this triangle pair.
         self.added_ratio_constraints.add(norm_tris)
 
+    def contains_algebraic_variables(self, expr: str) -> bool:
+        """Check if an expression contains algebraic variables (letters that aren't part of math functions)."""
+        import re
+
+        # First remove all numbers from the expression
+        expr_without_nums = re.sub(r'\d+(\.\d+)?', '', expr)
+
+        # Remove operators and parentheses
+        expr_clean = re.sub(r'[+\-*/()^]', '', expr_without_nums)
+
+        # Remove known math constants and functions
+        math_terms = ['pi', 'sqrt', 'sin', 'cos', 'tan', 'log', 'ln', 'exp']
+        for term in math_terms:
+            expr_clean = expr_clean.lower().replace(term, '')
+
+        # If any letters remain, it contains algebraic variables
+        return bool(re.search(r'[a-zA-Z]', expr_clean))
+
+
     def add_algebraic_length(self, line_name: str, expression: str):
         """
         Add a length constraint given an algebraic expression.
@@ -11318,7 +11623,10 @@ class GeometricTheorem:
             "congruent_arc_property_measure_equal",
             "equilateral_triangle_property_angle",
             "round_arc",
-            "perpendicular_judgment_angle"
+            "perpendicular_judgment_angle",
+            "rectangle_judgment_right_angle",
+            "circle_property_angle_of_osculation",
+            "bisector_of_angle_judgment_angle_equal"
         ]
 
         if theorem_name not in valid_theorems:
@@ -11340,6 +11648,161 @@ class GeometricTheorem:
                     angle2_var = self.add_angle(angle2[0], angle2[1], angle2[2])
                     self.solver.add(angle1_var == angle2_var)
                     print(f"Added parallelogram opposite angle equality: {angle1} = {angle2}")
+
+        elif theorem_name == "bisector_of_angle_judgment_angle_equal":
+            version = args[0]
+            if version == "1":
+                # Parse the conclusion to get the bisector and angle
+                match = re.search(r'IsBisectorOfAngle\((\w+),(\w+)\)', conclusions[0])
+                if not match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for bisector_of_angle_judgment_angle_equal",
+                        details=f"Expected IsBisectorOfAngle(...) pattern but got {conclusions[0]}"
+                    )
+
+                bisector, angle_name = match.groups()  # e.g., "BD", "ABC"
+
+                # Initialize angle_bisectors if it doesn't exist
+                if not hasattr(self, "angle_bisectors"):
+                    self.angle_bisectors = []
+
+                # Add the angle bisector information
+                self.angle_bisectors.append((bisector, angle_name))
+
+                # Extract the key points
+                vertex = angle_name[1]  # Middle letter is the vertex
+                left_arm = angle_name[0]  # First letter of the original angle
+                right_arm = angle_name[2]  # Last letter of the original angle
+                bisector_point = bisector[1]  # Second letter of the bisector
+
+                # Define the two sub-angles
+                left_subangle = left_arm + vertex + bisector_point  # e.g., "ABD"
+                right_subangle = bisector_point + vertex + right_arm  # e.g., "DBC"
+
+                # Create angle variables for both sub-angles
+                left_angle_var = self.add_angle(left_subangle[0], left_subangle[1], left_subangle[2])
+                right_angle_var = self.add_angle(right_subangle[0], right_subangle[1], right_subangle[2])
+
+                # Add the constraint that both angles are equal (definition of angle bisector)
+                self.solver.add(left_angle_var == right_angle_var)
+
+                print(f"Added angle bisector: {bisector} is a bisector of angle {angle_name}")
+                print(f"Added constraint: angle {left_subangle} = angle {right_subangle}")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for bisector_of_angle_judgment_angle_equal",
+                    details="Only version 1 is supported"
+                )
+        elif theorem_name == "circle_property_angle_of_osculation":
+            version = args[0]
+            if version in {"1", "2"}:
+                # Parse the conclusion to extract the angle and arc
+                match = re.search(
+                    r'Equal\(MeasureOfAngle\((\w{3})\),Mul\(MeasureOfArc\((\w+)\),([\d/\.]+)\)\)',
+                    conclusions[0]
+                )
+
+                if not match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for circle_property_angle_of_osculation",
+                        details=f"Expected Equal(MeasureOfAngle(...),Mul(MeasureOfArc(...),factor)) pattern but got {conclusions[0]}"
+                    )
+
+                angle_str, arc_str, factor_str = match.groups()
+
+                # Verify angle matches the expected angle based on version
+                if version == "1":
+                    arc = args[1].strip()  # "OAB"
+                    point = args[2].strip()  # "P"
+                    expected_angle = arc[2] + arc[1] + point  # "BAP"
+
+                    if angle_str != expected_angle:
+                        return GeometricError(
+                            tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                            message=f"Angle in conclusion ({angle_str}) doesn't match expected angle ({expected_angle})",
+                            details="The angle must match the theorem version's expected pattern"
+                        )
+                else:  # version == "2"
+                    arc = args[1].strip()  # "OAB"
+                    point = args[2].strip()  # "P"
+                    expected_angle = point + arc[2] + arc[1]  # "PBA"
+
+                    if angle_str != expected_angle:
+                        return GeometricError(
+                            tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                            message=f"Angle in conclusion ({angle_str}) doesn't match expected angle ({expected_angle})",
+                            details="The angle must match the theorem version's expected pattern"
+                        )
+
+                # Get angle variable
+                angle_var = self.add_angle(angle_str[0], angle_str[1], angle_str[2])
+
+                # Get arc variable
+                arc_var = self.add_arc(arc_str)
+
+                # Parse the factor (should be 1/2)
+                try:
+                    from fractions import Fraction
+                    factor_val = float(Fraction(factor_str))
+                except Exception as e:
+                    print(f"Error parsing factor {factor_str}: {e}, defaulting to 0.5")
+                    factor_val = 0.5
+
+                # Add the constraint: angle = factor * arc
+                self.solver.add(angle_var == factor_val * arc_var)
+
+                print(
+                    f"Added angle of osculation constraint: MeasureOfAngle({angle_str}) = {factor_val} * MeasureOfArc({arc_str})")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for circle_property_angle_of_osculation",
+                    details="Supported versions are 1 and 2"
+                )
+
+
+        elif theorem_name == "rectangle_judgment_right_angle":
+            version = args[0]
+            if version == "1":
+                # Parse the conclusion to extract the rectangle name
+                rectangle_match = re.search(r'Rectangle\((\w+)\)', conclusions[0])
+                if not rectangle_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for rectangle_judgment_right_angle",
+                        details=f"Expected Rectangle(...) pattern but got {conclusions[0]}"
+                    )
+
+                quad = rectangle_match.group(1)  # e.g., "ABCD"
+
+                # Create or get the rectangles collection
+                if not hasattr(self, "rectangles"):
+                    self.rectangles = set()
+
+                # Add all cyclic variations of the quadrilateral to the rectangles set
+                quad_variations = get_cyclic_variations(quad)
+                self.rectangles.update(quad_variations)
+
+                # Since a rectangle has all right angles, add constraints for all four angles
+                for i in range(4):
+                    angle_name = quad[i] + quad[(i + 1) % 4] + quad[(i + 2) % 4]  # e.g., "ABC"
+                    angle_var = self.add_angle(angle_name[0], angle_name[1], angle_name[2])
+                    self.solver.add(angle_var == 90)
+                    print(f"Added right angle constraint: angle {angle_name} = 90°")
+
+                print(f"Added rectangle: {quad}")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for rectangle_judgment_right_angle",
+                    details="Only version 1 is supported"
+                )
 
         elif theorem_name == "perpendicular_judgment_angle":
             version = args[0]
@@ -14573,7 +15036,7 @@ class GeometricTheorem:
 
                         message="Conclusion format error for arc_property_center_angle",
 
-                        details=f"Expected pattern Equal(MeasureOfArc({arc_name}),MeasureOfAngle(XXX)) but got {conclusions[0]}"
+                        details=f"Error 1. not the expected pattern of the conclution for this theorem"
 
                     )
 
@@ -16276,7 +16739,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_5835/question5835_gt",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_5431/question5431_gt",print_output=False)
 
     if not result:
         print(feedback)
