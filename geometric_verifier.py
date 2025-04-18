@@ -1271,7 +1271,7 @@ class GeometricTheorem:
         elif goal_type == "perimeter":
             var_names.append(f"perimeter_{goal_token}")
         elif goal_type == "quad_area":
-            var_names.append(f"areaQuadr_{goal_token}")
+            var_names.append(f"AreaOfQuadrilateral_{goal_token}")
 
         # Use a set to track unique constraints
         unique_constraints = set()
@@ -10362,12 +10362,13 @@ class GeometricTheorem:
 
                     # Handle √ symbol format: 6(√6-1)
                     if '√' in answer_str:
-                        # Handle pattern like "3√2" (coefficient times square root without parentheses)
-                        pattern = r'^(\d+)√(\d+)$'
-                        match = re.match(pattern, answer_str)
-                        if match:
-                            coef, rad = match.groups()
-                            return float(coef) * math.sqrt(float(rad))
+                        # Add this new pattern to handle (45√3)/2 format
+                        pattern_fraction = r'\((\d+)√(\d+)\)/(\d+)'
+                        match_fraction = re.match(pattern_fraction, answer_str)
+                        if match_fraction:
+                            a, b, c = match_fraction.groups()
+                            a, b, c = float(a), float(b), float(c)
+                            return (a * math.sqrt(b)) / c
 
                         # Handle pattern like "6(√6-1)"
                         pattern = r'(\d+)\(√(\d+)(-|\+)(\d+)\)'
@@ -10380,49 +10381,22 @@ class GeometricTheorem:
                             else:  # op == '+'
                                 return a * (math.sqrt(b) + c)
 
-                        # Handle pattern like "√2" (just the square root)
-                        pattern = r'^√(\d+)$'
-                        match = re.match(pattern, answer_str)
-                        if match:
-                            rad = match.group(1)
-                            return math.sqrt(float(rad))
-
-                        # General approach: Replace all √ with math.sqrt and evaluate
-                        # First handle square roots of expressions: √(...)
-                        modified_str = re.sub(r'√\(([^)]+)\)', r'math.sqrt(\1)', answer_str)
-                        # Then handle square roots of simple numbers: √2
-                        modified_str = re.sub(r'√(\d+)', r'math.sqrt(\1)', modified_str)
+                        # General replacement of √ symbol
+                        modified_str = re.sub(r'√(\d+)', r'math.sqrt(\1)', answer_str)
                         # Handle implicit multiplication
                         modified_str = re.sub(r'(\d+)\(', r'\1*(', modified_str)
-
                         try:
                             return float(eval(modified_str, {"math": math}))
-                        except Exception as e:
-                            print(f"Error during eval of √ expression: {e}")
+                        except Exception:
                             pass
 
                     # Standard eval with math functions
                     try:
                         return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
-                    except Exception as e:
-                        print(f"Error during standard eval: {e}")
+                    except Exception:
                         # Fall back to Fraction
-                        try:
-                            from fractions import Fraction
-                            return float(Fraction(answer_str))
-                        except Exception as e:
-                            print(f"Error during Fraction conversion: {e}")
-                            # Try handling symbolic math expressions
-                            if '*sqrt' in answer_str:
-                                parts = answer_str.split('*sqrt')
-                                if len(parts) == 2 and parts[1].startswith('(') and parts[1].endswith(')'):
-                                    try:
-                                        coef = float(parts[0])
-                                        rad = float(parts[1][1:-1])  # Remove parentheses
-                                        return coef * math.sqrt(rad)
-                                    except Exception:
-                                        pass
-                            raise
+                        from fractions import Fraction
+                        return float(Fraction(answer_str))
 
                 answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
                 if answer_str is None:
@@ -10892,7 +10866,7 @@ class GeometricTheorem:
                     if quad_name in self.quad_areas:
                         quad_area_var = self.quad_areas[quad_name]
                     else:
-                        quad_area_var = Real(f"areaQuadr_{quad_name}")
+                        quad_area_var = Real(f"AreaOfQuadrilateral_{quad_name}")
                         self.quad_areas[quad_name] = quad_area_var
 
                     success, value, status = self.check_value_constraint(quad_area_var, model_answer)
@@ -12309,7 +12283,7 @@ class GeometricTheorem:
                     quad_name, side1, side2, angle_name = mm.groups()
                     # Ensure an area variable exists for the quadrilateral.
                     if quad_name not in self.quad_areas:
-                        self.quad_areas[quad_name] = Real(f"areaQuadr_{quad_name}")
+                        self.quad_areas[quad_name] = Real(f"AreaOfQuadrilateral_{quad_name}")
                         self.solver.add(self.quad_areas[quad_name] >= 0)
                     area_var = self.quad_areas[quad_name]
                     # Get the side length variables.
@@ -14028,7 +14002,7 @@ class GeometricTheorem:
                 # Get or create area variable
 
                 if quad not in self.quad_areas:
-                    self.quad_areas[quad] = Real(f"areaQuadr_{quad}")
+                    self.quad_areas[quad] = Real(f"AreaOfQuadrilateral_{quad}")
 
                     self.solver.add(self.quad_areas[quad] >= 0)
 

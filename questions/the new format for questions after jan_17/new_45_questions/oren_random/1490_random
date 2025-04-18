@@ -1,231 +1,79 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, AB=3*y-8, AD=13, CB=2*x+7, CD=10, ∠ADF=59°, ∠BFC=49°, ∠FBA=20°, DA and CB are opposite sides of the ▱ ADCB. Find the measure of ∠AFB.
+As shown in the diagram, AC=5, AD=9, ∠DAC=60°, AD and CB are opposite sides of the ▱ DACB, AC⊥DC. Find the area of DACB.
 CONSTRUCTION_CDL:
-Shape(AD,DF,FA)
-Shape(FD,DC,CF)
-Shape(BF,FC,CB)
-Shape(AF,FB,BA)
-Collinear(AFC)
-Collinear(BFD)
+Shape(DA,AC,CD)
+Shape(DC,CB,BD)
 TEXT_CDL:
-Equal(LengthOfLine(AB),3*y-8)
-Equal(LengthOfLine(AD),13)
-Equal(LengthOfLine(CB),2*x+7)
-Equal(LengthOfLine(CD),10)
-Equal(MeasureOfAngle(ADF),59)
-Equal(MeasureOfAngle(BFC),49)
-Equal(MeasureOfAngle(FBA),20)
-Parallelogram(ADCB)
+Equal(LengthOfLine(AC),5)
+Equal(LengthOfLine(AD),9)
+Equal(MeasureOfAngle(DAC),60)
+Parallelogram(DACB)
+PerpendicularBetweenLine(AC,DC)
 GOAL_CDL:
-Value(MeasureOfAngle(AFB))
+Value(AreaOfQuadrilateral(DACB))
 CONSTRUCTION_CDL_EXTENDED:
-Shape(DF,FA,AD)
-Shape(FA,AD,DF)
-Shape(DC,CF,FD)
-Shape(CF,FD,DC)
-Shape(FC,CB,BF)
-Shape(CB,BF,FC)
-Shape(FB,BA,AF)
-Shape(BA,AF,FB)
-Shape(AD,DF,FB,BA)
-Shape(DF,FB,BA,AD)
-Shape(FB,BA,AD,DF)
-Shape(BA,AD,DF,FB)
-Shape(FA,AD,DC,CF)
-Shape(AD,DC,CF,FA)
-Shape(DC,CF,FA,AD)
-Shape(CF,FA,AD,DC)
-Shape(FD,DC,CB,BF)
-Shape(DC,CB,BF,FD)
-Shape(CB,BF,FD,DC)
-Shape(BF,FD,DC,CB)
-Shape(FC,CB,BA,AF)
-Shape(CB,BA,AF,FC)
-Shape(BA,AF,FC,CB)
-Shape(AF,FC,CB,BA)
-Shape(AD,DF,FC,CB,BA)
-Shape(DF,FC,CB,BA,AD)
-Shape(FC,CB,BA,AD,DF)
-Shape(CB,BA,AD,DF,FC)
-Shape(BA,AD,DF,FC,CB)
-Shape(FA,AD,DC,CB,BF)
-Shape(AD,DC,CB,BF,FA)
-Shape(DC,CB,BF,FA,AD)
-Shape(CB,BF,FA,AD,DC)
-Shape(BF,FA,AD,DC,CB)
-Shape(DC,CF,FB,BA,AD)
-Shape(CF,FB,BA,AD,DC)
-Shape(FB,BA,AD,DC,CF)
-Shape(BA,AD,DC,CF,FB)
-Shape(AD,DC,CF,FB,BA)
-Shape(FD,DC,CB,BA,AF)
-Shape(DC,CB,BA,AF,FD)
-Shape(CB,BA,AF,FD,DC)
-Shape(BA,AF,FD,DC,CB)
-Shape(AF,FD,DC,CB,BA)
-Shape(AD,DC,CB,BA)
-Shape(DC,CB,BA,AD)
-Shape(CB,BA,AD,DC)
-Shape(BA,AD,DC,CB)
-Collinear(CFA)
-Collinear(DFB)
+Shape(AC,CD,DA)
+Shape(CD,DA,AC)
+Shape(CB,BD,DC)
+Shape(BD,DC,CB)
+Shape(DA,AC,CB,BD)
+Shape(AC,CB,BD,DA)
+Shape(CB,BD,DA,AC)
+Shape(BD,DA,AC,CB)
+Point(D)
 Point(A)
 Point(C)
-Point(F)
 Point(B)
-Point(D)
+Line(DA)
+Line(AD)
 Line(AC)
 Line(CA)
-Line(AF)
-Line(FA)
-Line(FC)
-Line(CF)
-Line(BD)
-Line(DB)
-Line(BF)
-Line(FB)
-Line(FD)
-Line(DF)
-Line(AD)
-Line(DA)
-Line(DC)
 Line(CD)
+Line(DC)
 Line(CB)
 Line(BC)
-Line(BA)
-Line(AB)
-Angle(AFC)
-Angle(CFA)
-Angle(BFD)
-Angle(DFB)
-Angle(ADF)
-Angle(DFA)
-Angle(FAD)
-Angle(FDC)
-Angle(DCF)
-Angle(CFD)
-Angle(BFC)
-Angle(FCB)
-Angle(CBF)
-Angle(AFB)
-Angle(FBA)
-Angle(BAF)
-Angle(DBA)
-Angle(BAD)
-Angle(ADC)
-Angle(DCB)
-Angle(CBA)
-Angle(DFC)
-Angle(BFA)
-Angle(CFB)
-Angle(AFD)
-Angle(ADB)
-Angle(CAD)
-Angle(BDC)
-Angle(DCA)
-Angle(ACB)
-Angle(CBD)
-Angle(BAC)
-Angle(FDA)
-Angle(DAF)
-Angle(CDF)
-Angle(FCD)
-Angle(BCF)
-Angle(FBC)
-Angle(ABF)
-Angle(FAB)
-Angle(ABD)
-Angle(DAB)
-Angle(CDA)
-Angle(BCD)
-Angle(ABC)
-Angle(BDA)
+Line(BD)
+Line(DB)
 Angle(DAC)
-Angle(CDB)
 Angle(ACD)
-Angle(BCA)
+Angle(CDA)
+Angle(DCB)
+Angle(CBD)
+Angle(BDC)
+Angle(ACB)
+Angle(BDA)
+Angle(CAD)
+Angle(DCA)
+Angle(ADC)
+Angle(BCD)
 Angle(DBC)
-Angle(CAB)
-Polygon(ADF)
-Polygon(AFD)
-Polygon(DAF)
-Polygon(DFA)
-Polygon(FAD)
-Polygon(FDA)
-Polygon(FDC)
-Polygon(FCD)
-Polygon(DFC)
-Polygon(DCF)
-Polygon(CFD)
-Polygon(CDF)
-Polygon(BFC)
-Polygon(BCF)
-Polygon(FBC)
-Polygon(FCB)
-Polygon(CBF)
-Polygon(CFB)
-Polygon(AFB)
-Polygon(ABF)
-Polygon(FAB)
-Polygon(FBA)
-Polygon(BAF)
-Polygon(BFA)
-Polygon(ADB)
-Polygon(ABD)
-Polygon(DAB)
-Polygon(DBA)
-Polygon(BAD)
-Polygon(BDA)
-Polygon(ADC)
-Polygon(ACD)
+Angle(CDB)
+Angle(BCA)
+Angle(ADB)
 Polygon(DAC)
 Polygon(DCA)
-Polygon(CAD)
+Polygon(ADC)
+Polygon(ACD)
 Polygon(CDA)
+Polygon(CAD)
 Polygon(DCB)
 Polygon(DBC)
 Polygon(CDB)
 Polygon(CBD)
 Polygon(BDC)
 Polygon(BCD)
-Polygon(CBA)
-Polygon(CAB)
-Polygon(BCA)
-Polygon(BAC)
-Polygon(ACB)
-Polygon(ABC)
-Polygon(ADFCB)
-Polygon(DFCBA)
-Polygon(FCBAD)
-Polygon(CBADF)
-Polygon(BADFC)
-Polygon(FADCB)
-Polygon(ADCBF)
-Polygon(DCBFA)
-Polygon(CBFAD)
-Polygon(BFADC)
-Polygon(DCFBA)
-Polygon(CFBAD)
-Polygon(FBADC)
-Polygon(BADCF)
-Polygon(ADCFB)
-Polygon(FDCBA)
-Polygon(DCBAF)
-Polygon(CBAFD)
-Polygon(BAFDC)
-Polygon(AFDCB)
-Polygon(ADCB)
-Polygon(DCBA)
-Polygon(CBAD)
-Polygon(BADC)
-Parallelogram(DCBA)
-Parallelogram(CBAD)
-Parallelogram(BADC)
-ParallelBetweenLine(AB,DC)
-ParallelBetweenLine(CD,BA)
-ParallelBetweenLine(DA,CB)
-ParallelBetweenLine(BC,AD)
+Polygon(DACB)
+Polygon(ACBD)
+Polygon(CBDA)
+Polygon(BDAC)
+Parallelogram(ACBD)
+Parallelogram(CBDA)
+Parallelogram(BDAC)
+ParallelBetweenLine(DB,AC)
+ParallelBetweenLine(CA,BD)
+ParallelBetweenLine(AD,CB)
+ParallelBetweenLine(BC,DA)
 SYMBOLS_AND_VALUES:
 MeasureOfAngle(ABC);ma_obc;50
 MeasureOfAngle(EBC);ma_obc;50
@@ -238,71 +86,81 @@ Outputs for Problem B:
 
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-3y-8-ll_ab
-ll_ad-13
-2x+7-ll_cb
-ll_cd-10
-ma_adf-59
-ma_bfc-49
-ma_fba-20
+LengthOfLine(AC)-5
+LengthOfLine(AD)-9
+MeasureOfAngle(DAC)-60
 
 GOAL_SYMBOL:
-ma_afb
+AreaOfQuadrilateral(DACB)
 
 ANSWER:
-131
+(45√3)/2
 
 THEOREM_SEQUENCE:
-1; vertaical_angle(1,BFC,DFA); Collinear(BFD)&Collinear(CFA)&Angle(BFC)&Angle(DFA); ["Equal(MeasureOfAngle(BFC),MeasureOfAngle(DFA))"]
-2; triangle_property_angle_sum(1,ADF); Polygon(ADF); ["Equal(Add(MeasureOfAngle(ADF),MeasureOfAngle(DFA),MeasureOfAngle(FAD)),180)"]
-3; triangle_property_angle_sum(1,ADB); Polygon(ADB); ["Equal(Add(MeasureOfAngle(ADB),MeasureOfAngle(DBA),MeasureOfAngle(BAD)),180)"]
-4; angle_addition(ABC,CBD); Angle(DAF)&Angle(FAB)&Angle(DAB); ["Equal(MeasureOfAngle(DAB),Add(MeasureOfAngle(DAF),MeasureOfAngle(FAB)))"]
-5; triangle_property_angle_sum(1,AFB); Polygon(AFB); ["Equal(Add(MeasureOfAngle(AFB),MeasureOfAngle(FBA),MeasureOfAngle(BAF)),180)"]
+1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
 #run: 0; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Verification failed.
-Theorem: vertical_angle(1,BFC,DFA)
-The language model outputs the following premises: Collinear(BFD)&Collinear(AFC)&Angle(BFC)&Angle(DFA)
-The correct premises for the theorem: Collinear(BFD)&Collinear(CFA)&Angle(BFC)&Angle(DFA)
-
+Failure: Theorem <parallelogram_area_formula_sine> branch error. Expected dict_keys(['1']) but got None. Please rewrite your response, you should change only the call to theorem <parallelogram_area_formula_sine> by adding the branch number from the dict_keys as the first argument
 Model Answer:
 RETRY_ANSWER:
-131
+(45√3)/2
 RETRY_THEOREM_SEQUENCE:
-1; vertical_angle(1,BFC,DFA); Collinear(BFD)&Collinear(AFC)&Angle(BFC)&Angle(DFA); ["Equal(MeasureOfAngle(BFC),MeasureOfAngle(DFA))"]
-2; triangle_property_angle_sum(1,ADF); Polygon(ADF); ["Equal(Add(MeasureOfAngle(ADF),MeasureOfAngle(DFA),MeasureOfAngle(FAD)),180)"]
-3; triangle_property_angle_sum(1,ADB); Polygon(ADB); ["Equal(Add(MeasureOfAngle(ADB),MeasureOfAngle(DBA),MeasureOfAngle(BAD)),180)"]
-4; angle_addition(ABC,CBD); Angle(DAF)&Angle(FAB)&Angle(DAB); ["Equal(MeasureOfAngle(DAB),Add(MeasureOfAngle(DAF),MeasureOfAngle(FAB)))"]
-5; triangle_property_angle_sum(1,AFB); Polygon(AFB); ["Equal(Add(MeasureOfAngle(AFB),MeasureOfAngle(FBA),MeasureOfAngle(BAF)),180)"]
+1; parallelogram_area_formula_sine(DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
 #run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Verification failed. Theorem <angle_addition> branch error. Expected dict_keys(['1']) but got None. Please rewrite your response, you should change only the call to theorem <angle_addition> by adding the branch number from the dict_keys as the first argument
+Error parsing answer '(45√3)/2': Invalid literal for Fraction: '(45√3)/2'
 Model Answer:
 RETRY_ANSWER:
-131
+
 RETRY_THEOREM_SEQUENCE:
-1; vertical_angle(1,BFC,DFA); Collinear(BFD)&Collinear(CFA)&Angle(BFC)&Angle(DFA); ["Equal(MeasureOfAngle(BFC),MeasureOfAngle(DFA))"]
-2; triangle_property_angle_sum(1,ADF); Polygon(ADF); ["Equal(Add(MeasureOfAngle(ADF),MeasureOfAngle(DFA),MeasureOfAngle(FAD)),180)"]
-3; triangle_property_angle_sum(1,ADB); Polygon(ADB); ["Equal(Add(MeasureOfAngle(ADB),MeasureOfAngle(DBA),MeasureOfAngle(BAD)),180)"]
-4; angle_addition(ABC,CBD); Angle(DAF)&Angle(FAB)&Angle(DAB); ["Equal(MeasureOfAngle(DAB),Add(MeasureOfAngle(DAF),MeasureOfAngle(FAB)))"]
-5; triangle_property_angle_sum(1,AFB); Polygon(AFB); ["Equal(Add(MeasureOfAngle(AFB),MeasureOfAngle(FBA),MeasureOfAngle(BAF)),180)"]
+1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
+#run: 0; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+The final answer should be a numeric answer, you gave an expression with algebraic variable. Please fix your proof.
+Model Answer:
+RETRY_ANSWER:
+Mul(45,sqrt(3),1/2)
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
+#run: 0; #retry: 4; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+verification failed.
+
+- Goal: area of quadrilateral DACB
+- Model answer: 38.97
+- Verifier expected answer: 38.9711431702
+- Error: From your proof, the verifier determines the quad_area of DACB to be 38.9711431702, not 38.97 as you stated in your solution. Check your theorem applications and your answer.
+- Available premises:
+  Parallel Lines: AC ∥ BD, AD ∥ BC
+  Perpendicular Lines: AC ⊥ CD
+  Polygons: ACBD, ACD, ADC, BCD, BDAC, BDC, CBDA, DACB
+- Theorems related to the goal:
+  Step 1 - parallelogram_area_formula_sine(1, DACB): Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))
+- Solver constraints directly related to this goal:
+  areaQuadr_DACB ==
+|AD|*|AC|*4330127018922193/5000000000000000
+  areaQuadr_DACB >= 0
+
+Please fix the proof.
+Model Answer:
+RETRY_ANSWER:
+38.97
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
 #RETRIES:
-2
+4
 #RUNS:
 0
 
 
 GT_EQUATIONS:
-ll_ab-3*y+8
-ll_ad-13
-ll_cb-2*x-7
-ll_cd-10
-ma_adf-59
-ma_bfc-49
-ma_fba-20
+ll_ac-5
+ll_ad-9
+ma_dac-60
+ma_acd-90
 GT_GOAL_SYMBOL:
-ma_afb
+aq_dacb
 GT_ANSWER:
-131
+45*sqrt(3)/2
 GT_THEOREM_SEQUENCE:
-1;adjacent_complementary_angle(1,AFB,BFC);Collinear(AFC)&Angle(AFB)&Angle(BFC);["Equal(Add(MeasureOfAngle(AFB),MeasureOfAngle(BFC)),180)"]
+1;sine_theorem(1,DAC);Polygon(DAC);["Equal(Mul(LengthOfLine(DA),Sin(MeasureOfAngle(DAC))),Mul(LengthOfLine(DC),Sin(MeasureOfAngle(ACD))))"]
+2;altitude_of_quadrilateral_judgment_diagonal(1,DACB);(Parallelogram(DACB)|Trapezoid(DACB))&Line(DC)&Equal(MeasureOfAngle(ACD),90);["IsAltitudeOfQuadrilateral(DC,DACB)"]
+3;parallelogram_area_formula_common(1,DACB);Parallelogram(DACB);["Equal(AreaOfQuadrilateral(DACB),Mul(HeightOfQuadrilateral(DACB),LengthOfLine(AC)))"]
