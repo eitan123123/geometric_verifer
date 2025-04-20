@@ -247,7 +247,7 @@ ma_bca-90
 GOAL_SYMBOL:
 ll_ob
 ANSWER:
-2*sqrt(13)
+2√13
 THEOREM_SEQUENCE:
 1;line_addition(1,AO,OC);Collinear(AOC);["Equal(LengthOfLine(AC),Add(LengthOfLine(AO),LengthOfLine(OC)))"]
 

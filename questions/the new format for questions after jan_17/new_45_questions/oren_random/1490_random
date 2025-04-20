@@ -1,166 +1,362 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, AC=5, AD=9, ∠DAC=60°, AD and CB are opposite sides of the ▱ DACB, AC⊥DC. Find the area of DACB.
+As shown in the diagram, AB=10, AD=6, ∠BCA=90°, AD and BC are opposite sides of the ▱ ABCD. Find the length of line OB.
 CONSTRUCTION_CDL:
-Shape(DA,AC,CD)
-Shape(DC,CB,BD)
+Shape(AB,BO,OA)
+Shape(AO,OD,DA)
+Shape(OB,BC,CO)
+Shape(DO,OC,CD)
+Collinear(AOC)
+Collinear(BOD)
 TEXT_CDL:
-Equal(LengthOfLine(AC),5)
-Equal(LengthOfLine(AD),9)
-Equal(MeasureOfAngle(DAC),60)
-Parallelogram(DACB)
-PerpendicularBetweenLine(AC,DC)
+Equal(LengthOfLine(AB),10)
+Equal(LengthOfLine(AD),6)
+Equal(MeasureOfAngle(BCA),90)
+Parallelogram(ABCD)
 GOAL_CDL:
-Value(AreaOfQuadrilateral(DACB))
+Value(LengthOfLine(OB))
 CONSTRUCTION_CDL_EXTENDED:
-Shape(AC,CD,DA)
-Shape(CD,DA,AC)
-Shape(CB,BD,DC)
-Shape(BD,DC,CB)
-Shape(DA,AC,CB,BD)
-Shape(AC,CB,BD,DA)
-Shape(CB,BD,DA,AC)
-Shape(BD,DA,AC,CB)
-Point(D)
+Shape(BO,OA,AB)
+Shape(OA,AB,BO)
+Shape(OD,DA,AO)
+Shape(DA,AO,OD)
+Shape(BC,CO,OB)
+Shape(CO,OB,BC)
+Shape(OC,CD,DO)
+Shape(CD,DO,OC)
+Shape(AB,BO,OD,DA)
+Shape(BO,OD,DA,AB)
+Shape(OD,DA,AB,BO)
+Shape(DA,AB,BO,OD)
+Shape(OA,AB,BC,CO)
+Shape(AB,BC,CO,OA)
+Shape(BC,CO,OA,AB)
+Shape(CO,OA,AB,BC)
+Shape(DA,AO,OC,CD)
+Shape(AO,OC,CD,DA)
+Shape(OC,CD,DA,AO)
+Shape(CD,DA,AO,OC)
+Shape(OB,BC,CD,DO)
+Shape(BC,CD,DO,OB)
+Shape(CD,DO,OB,BC)
+Shape(DO,OB,BC,CD)
+Shape(AB,BO,OC,CD,DA)
+Shape(BO,OC,CD,DA,AB)
+Shape(OC,CD,DA,AB,BO)
+Shape(CD,DA,AB,BO,OC)
+Shape(DA,AB,BO,OC,CD)
+Shape(OA,AB,BC,CD,DO)
+Shape(AB,BC,CD,DO,OA)
+Shape(BC,CD,DO,OA,AB)
+Shape(CD,DO,OA,AB,BC)
+Shape(DO,OA,AB,BC,CD)
+Shape(OD,DA,AB,BC,CO)
+Shape(DA,AB,BC,CO,OD)
+Shape(AB,BC,CO,OD,DA)
+Shape(BC,CO,OD,DA,AB)
+Shape(CO,OD,DA,AB,BC)
+Shape(DA,AO,OB,BC,CD)
+Shape(AO,OB,BC,CD,DA)
+Shape(OB,BC,CD,DA,AO)
+Shape(BC,CD,DA,AO,OB)
+Shape(CD,DA,AO,OB,BC)
+Shape(AB,BC,CD,DA)
+Shape(BC,CD,DA,AB)
+Shape(CD,DA,AB,BC)
+Shape(DA,AB,BC,CD)
+Collinear(COA)
+Collinear(DOB)
 Point(A)
 Point(C)
+Point(O)
 Point(B)
-Line(DA)
-Line(AD)
+Point(D)
 Line(AC)
 Line(CA)
-Line(CD)
-Line(DC)
-Line(CB)
-Line(BC)
+Line(AO)
+Line(OA)
+Line(OC)
+Line(CO)
 Line(BD)
 Line(DB)
-Angle(DAC)
+Line(BO)
+Line(OB)
+Line(OD)
+Line(DO)
+Line(AB)
+Line(BA)
+Line(DA)
+Line(AD)
+Line(BC)
+Line(CB)
+Line(CD)
+Line(DC)
+Angle(AOC)
+Angle(COA)
+Angle(BOD)
+Angle(DOB)
+Angle(ABO)
+Angle(BOA)
+Angle(OAB)
+Angle(AOD)
+Angle(ODA)
+Angle(DAO)
+Angle(OBC)
+Angle(BCO)
+Angle(COB)
+Angle(DOC)
+Angle(OCD)
+Angle(CDO)
+Angle(BDA)
+Angle(DAB)
+Angle(ABC)
 Angle(ACD)
 Angle(CDA)
-Angle(DCB)
-Angle(CBD)
-Angle(BDC)
-Angle(ACB)
-Angle(BDA)
-Angle(CAD)
+Angle(BCD)
+Angle(BOC)
+Angle(DOA)
+Angle(COD)
+Angle(AOB)
+Angle(ABD)
+Angle(CAB)
+Angle(DAC)
+Angle(DBC)
+Angle(BCA)
+Angle(CDB)
+Angle(OBA)
+Angle(BAO)
+Angle(ADO)
+Angle(OAD)
+Angle(CBO)
+Angle(OCB)
+Angle(DCO)
+Angle(ODC)
+Angle(ADB)
+Angle(BAD)
+Angle(CBA)
 Angle(DCA)
 Angle(ADC)
-Angle(BCD)
-Angle(DBC)
-Angle(CDB)
-Angle(BCA)
-Angle(ADB)
+Angle(DCB)
+Angle(DBA)
+Angle(BAC)
+Angle(CAD)
+Angle(CBD)
+Angle(ACB)
+Angle(BDC)
+Polygon(ABO)
+Polygon(AOB)
+Polygon(BAO)
+Polygon(BOA)
+Polygon(OAB)
+Polygon(OBA)
+Polygon(AOD)
+Polygon(ADO)
+Polygon(OAD)
+Polygon(ODA)
+Polygon(DAO)
+Polygon(DOA)
+Polygon(OBC)
+Polygon(OCB)
+Polygon(BOC)
+Polygon(BCO)
+Polygon(COB)
+Polygon(CBO)
+Polygon(DOC)
+Polygon(DCO)
+Polygon(ODC)
+Polygon(OCD)
+Polygon(CDO)
+Polygon(COD)
+Polygon(ABD)
+Polygon(ADB)
+Polygon(BAD)
+Polygon(BDA)
+Polygon(DAB)
+Polygon(DBA)
+Polygon(ABC)
+Polygon(ACB)
+Polygon(BAC)
+Polygon(BCA)
+Polygon(CAB)
+Polygon(CBA)
 Polygon(DAC)
 Polygon(DCA)
 Polygon(ADC)
 Polygon(ACD)
 Polygon(CDA)
 Polygon(CAD)
-Polygon(DCB)
-Polygon(DBC)
-Polygon(CDB)
-Polygon(CBD)
-Polygon(BDC)
 Polygon(BCD)
-Polygon(DACB)
-Polygon(ACBD)
-Polygon(CBDA)
-Polygon(BDAC)
-Parallelogram(ACBD)
-Parallelogram(CBDA)
-Parallelogram(BDAC)
-ParallelBetweenLine(DB,AC)
-ParallelBetweenLine(CA,BD)
-ParallelBetweenLine(AD,CB)
-ParallelBetweenLine(BC,DA)
+Polygon(BDC)
+Polygon(CBD)
+Polygon(CDB)
+Polygon(DBC)
+Polygon(DCB)
+Polygon(ABOCD)
+Polygon(BOCDA)
+Polygon(OCDAB)
+Polygon(CDABO)
+Polygon(DABOC)
+Polygon(OABCD)
+Polygon(ABCDO)
+Polygon(BCDOA)
+Polygon(CDOAB)
+Polygon(DOABC)
+Polygon(ODABC)
+Polygon(DABCO)
+Polygon(ABCOD)
+Polygon(BCODA)
+Polygon(CODAB)
+Polygon(DAOBC)
+Polygon(AOBCD)
+Polygon(OBCDA)
+Polygon(BCDAO)
+Polygon(CDAOB)
+Polygon(ABCD)
+Polygon(BCDA)
+Polygon(CDAB)
+Polygon(DABC)
+Parallelogram(BCDA)
+Parallelogram(CDAB)
+Parallelogram(DABC)
+ParallelBetweenLine(AD,BC)
+ParallelBetweenLine(CB,DA)
+ParallelBetweenLine(BA,CD)
+ParallelBetweenLine(DC,AB)
 SYMBOLS_AND_VALUES:
-MeasureOfAngle(ABC);ma_obc;50
-MeasureOfAngle(EBC);ma_obc;50
-MeasureOfAngle(OBC);ma_obc;50
-MeasureOfAngle(CDB);ma_edb;None
-MeasureOfAngle(EDB);ma_edb;None
+LengthOfLine(AE);ll_ae;4
+LengthOfLine(EA);ll_ae;4
+LengthOfLine(BE);ll_be;3
+LengthOfLine(EB);ll_be;3
+LengthOfLine(BA);ll_ba;None
+LengthOfLine(AB);ll_ba;None
+LengthOfLine(BC);ll_bc;None
+LengthOfLine(CB);ll_bc;None
+LengthOfLine(DA);ll_da;None
+LengthOfLine(AD);ll_da;None
+LengthOfLine(DC);ll_dc;None
+LengthOfLine(CD);ll_dc;None
 
 Outputs:
 Outputs for Problem B:
 
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-LengthOfLine(AC)-5
-LengthOfLine(AD)-9
-MeasureOfAngle(DAC)-60
+ll_ab-10
+ll_ad-6
+ma_bca-90
 
 GOAL_SYMBOL:
-AreaOfQuadrilateral(DACB)
+ll_ob
 
 ANSWER:
-(45√3)/2
+2*sqrt(13)
 
 THEOREM_SEQUENCE:
-1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
+1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
+2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
+3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
+5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC); ["IsMidpointOfLine(O,DB)"]
+6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
 #run: 0; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Failure: Theorem <parallelogram_area_formula_sine> branch error. Expected dict_keys(['1']) but got None. Please rewrite your response, you should change only the call to theorem <parallelogram_area_formula_sine> by adding the branch number from the dict_keys as the first argument
-Model Answer:
-RETRY_ANSWER:
-(45√3)/2
-RETRY_THEOREM_SEQUENCE:
-1; parallelogram_area_formula_sine(DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
-#run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error parsing answer '(45√3)/2': Invalid literal for Fraction: '(45√3)/2'
-Model Answer:
-RETRY_ANSWER:
+Theorem: parallelogram_property_opposite_line_equal(1,ABCD)
+You output the following conclusions: Equal(LengthOfLine(BC),LengthOfLine(AD))
+But the correct conclusions: Equal(LengthOfLine(BA),LengthOfLine(CD))
 
-RETRY_THEOREM_SEQUENCE:
-1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
-#run: 0; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-The final answer should be a numeric answer, you gave an expression with algebraic variable. Please fix your proof.
 Model Answer:
 RETRY_ANSWER:
-Mul(45,sqrt(3),1/2)
+2√13
 RETRY_THEOREM_SEQUENCE:
-1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
+1; parallelogram_property_opposite_line_equal(1,ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(BC),LengthOfLine(AD))"]
+2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
+3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
+5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(BOD)&Collinear(AOC); ["IsMidpointOfLine(O,BD)"]
+6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
+#run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: parallelogram_property_diagonal_bisection(1,DABC,O)
+You output the following premises: Parallelogram(DABC)&Collinear(AOC)&Collinear(BOD)
+But the correct premises: Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC)
+You output the following conclusions: IsMidpointOfLine(O,BD)
+But the correct conclusions: IsMidpointOfLine(O,DB)
+
+Model Answer:
+RETRY_ANSWER:
+2√13
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
+2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
+3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
+5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,BD)"]
+6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
+#run: 0; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Error parsing answer '2√13': Invalid literal for Fraction: '2√13'
+Model Answer:
+RETRY_ANSWER:
+2√13
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
+2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
+3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
+5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC); ["IsMidpointOfLine(O,DB)"]
+6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
 #run: 0; #retry: 4; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
 verification failed.
 
-- Goal: area of quadrilateral DACB
-- Model answer: 38.97
-- Verifier expected answer: 38.9711431702
-- Error: From your proof, the verifier determines the quad_area of DACB to be 38.9711431702, not 38.97 as you stated in your solution. Check your theorem applications and your answer.
+- Goal: length of line OB
+- Model answer: 7.2111025509
+- Error: Your proof doesn't uniquely determine the value. You need to use additional theorems to constrain the value.
 - Available premises:
-  Parallel Lines: AC ∥ BD, AD ∥ BC
-  Perpendicular Lines: AC ⊥ CD
-  Polygons: ACBD, ACD, ADC, BCD, BDAC, BDC, CBDA, DACB
+  Parallel Lines: AB ∥ CD, AD ∥ BC
+  Collinear Points: AOC, BOD
+  Right Triangles: ABC
+  Polygons: ABC, ABCD, ABCDO, ABCOD, ABD, ABO, ABOCD, ACB, ACD, ADB, ADC, ADO, AOB, AOBCD, AOD, BCD, BCDA, BCDAO, BCDOA, BCO, BCODA, BDC, BOC, BOCDA, CDAB, CDABO, CDAOB, CDO, CDOAB, COD, CODAB, DABC, DABCO, DABOC, DAOBC, DOABC, OABCD, OBCDA, OCDAB, ODABC
 - Theorems related to the goal:
-  Step 1 - parallelogram_area_formula_sine(1, DACB): Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))
+  Step 5 - parallelogram_property_diagonal_bisection(1, DABC, O): IsMidpointOfLine(O,DB)
 - Solver constraints directly related to this goal:
-  areaQuadr_DACB ==
-|AD|*|AC|*4330127018922193/5000000000000000
-  areaQuadr_DACB >= 0
+  |BD| = |BO| + |DO|
+  |BO| > 0
+  |DO| = |BO|
 
 Please fix the proof.
 Model Answer:
 RETRY_ANSWER:
-38.97
+7.2111025509
 RETRY_THEOREM_SEQUENCE:
-1; parallelogram_area_formula_sine(1,DACB); Parallelogram(DACB); ["Equal(AreaOfQuadrilateral(DACB),Mul(LengthOfLine(DA),LengthOfLine(AC),Sin(MeasureOfAngle(DAC))))"]
+1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
+2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
+3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
+5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC); ["IsMidpointOfLine(O,DB)"]
+6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
+#run: 0; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Failure: Theorem <> not defined in current GDL. Please rewrite the proof sequence, you are allowed to use only theorems from the GDL.
+Model Answer:
+RETRY_ANSWER:
+NO_SOLUTION
+RETRY_THEOREM_SEQUENCE:
+(No valid proof can be constructed from the given GDL theorems to uniquely determine OB.)
 #RETRIES:
-4
+5
 #RUNS:
 0
 
 
 GT_EQUATIONS:
-ll_ac-5
-ll_ad-9
-ma_dac-60
-ma_acd-90
+ll_ab-10
+ll_ad-6
+ma_bca-90
 GT_GOAL_SYMBOL:
-aq_dacb
+ll_ob
 GT_ANSWER:
-45*sqrt(3)/2
+2*sqrt(13)
 GT_THEOREM_SEQUENCE:
-1;sine_theorem(1,DAC);Polygon(DAC);["Equal(Mul(LengthOfLine(DA),Sin(MeasureOfAngle(DAC))),Mul(LengthOfLine(DC),Sin(MeasureOfAngle(ACD))))"]
-2;altitude_of_quadrilateral_judgment_diagonal(1,DACB);(Parallelogram(DACB)|Trapezoid(DACB))&Line(DC)&Equal(MeasureOfAngle(ACD),90);["IsAltitudeOfQuadrilateral(DC,DACB)"]
-3;parallelogram_area_formula_common(1,DACB);Parallelogram(DACB);["Equal(AreaOfQuadrilateral(DACB),Mul(HeightOfQuadrilateral(DACB),LengthOfLine(AC)))"]
+1;line_addition(1,AO,OC);Collinear(AOC);["Equal(LengthOfLine(AC),Add(LengthOfLine(AO),LengthOfLine(OC)))"]
+2;parallelogram_property_diagonal_bisection(1,ABCD,O);Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD);["IsMidpointOfLine(O,AC)"]
+3;parallelogram_property_opposite_line_equal(1,BCDA);Parallelogram(BCDA);["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
+4;cosine_theorem(1,CAB);Polygon(CAB);["Equal(Add(Pow(LengthOfLine(AB),2),Mul(2,LengthOfLine(CA),LengthOfLine(CB),Cos(MeasureOfAngle(BCA)))),Add(Pow(LengthOfLine(CA),2),Pow(LengthOfLine(CB),2)))"]
+5;cosine_theorem(1,COB);Polygon(COB);["Equal(Add(Pow(LengthOfLine(OB),2),Mul(2,LengthOfLine(CO),LengthOfLine(CB),Cos(MeasureOfAngle(BCO)))),Add(Pow(LengthOfLine(CO),2),Pow(LengthOfLine(CB),2)))"]

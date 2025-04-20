@@ -10356,19 +10356,36 @@ class GeometricTheorem:
                     """Parse answer strings including those with square root symbol."""
                     import math
                     import re
+                    import unicodedata
 
-                    # Remove whitespace
+                    # Remove whitespace and normalize Unicode characters
                     answer_str = answer_str.strip()
+                    # Normalize Unicode to ensure consistent handling of special characters
+                    answer_str = unicodedata.normalize('NFKC', answer_str)
 
-                    # Handle √ symbol format: 6(√6-1)
-                    if '√' in answer_str:
-                        # Add this new pattern to handle (45√3)/2 format
-                        pattern_fraction = r'\((\d+)√(\d+)\)/(\d+)'
-                        match_fraction = re.match(pattern_fraction, answer_str)
-                        if match_fraction:
-                            a, b, c = match_fraction.groups()
-                            a, b, c = float(a), float(b), float(c)
-                            return (a * math.sqrt(b)) / c
+                    print(f"Parsing answer: '{answer_str}'")
+
+                    # Check for √ symbol (handle different Unicode variations)
+                    sqrt_symbols = ['√', '\u221A', '\u221a']  # Different possible encodings
+                    has_sqrt = any(sym in answer_str for sym in sqrt_symbols)
+
+                    if has_sqrt:
+                        print("Found square root symbol, trying patterns")
+
+                        # Normalize to use a single √ representation
+                        for sym in sqrt_symbols:
+                            if sym in answer_str:
+                                answer_str = answer_str.replace(sym, '√')
+
+                        # Handle pattern like "3√2" or "2√13" (coefficient times square root without parentheses)
+                        pattern = r'^(\d+)√(\d+)$'
+                        match = re.match(pattern, answer_str)
+                        if match:
+                            coef, rad = match.groups()
+                            print(f"Matched coefficient√radicand pattern: {coef}√{rad}")
+                            result = float(coef) * math.sqrt(float(rad))
+                            print(f"Evaluated to: {result}")
+                            return result
 
                         # Handle pattern like "6(√6-1)"
                         pattern = r'(\d+)\(√(\d+)(-|\+)(\d+)\)'
@@ -10377,26 +10394,84 @@ class GeometricTheorem:
                             a, b, op, c = match.groups()
                             a, b, c = float(a), float(b), float(c)
                             if op == '-':
-                                return a * (math.sqrt(b) - c)
+                                result = a * (math.sqrt(b) - c)
                             else:  # op == '+'
-                                return a * (math.sqrt(b) + c)
+                                result = a * (math.sqrt(b) + c)
+                            print(f"Matched complex √ pattern, evaluated to: {result}")
+                            return result
 
-                        # General replacement of √ symbol
-                        modified_str = re.sub(r'√(\d+)', r'math.sqrt(\1)', answer_str)
-                        # Handle implicit multiplication
-                        modified_str = re.sub(r'(\d+)\(', r'\1*(', modified_str)
+                        # Handle pattern like "√2" (just the square root)
+                        pattern = r'^√(\d+)$'
+                        match = re.match(pattern, answer_str)
+                        if match:
+                            rad = match.group(1)
+                            result = math.sqrt(float(rad))
+                            print(f"Matched simple √ pattern: √{rad} = {result}")
+                            return result
+
+                        # General approach: Replace all √ with math.sqrt and evaluate
                         try:
-                            return float(eval(modified_str, {"math": math}))
-                        except Exception:
-                            pass
+                            # First handle square roots of expressions: √(...)
+                            modified_str = re.sub(r'√\(([^)]+)\)', r'math.sqrt(\1)', answer_str)
+                            # Then handle square roots of simple numbers: √2
+                            modified_str = re.sub(r'√(\d+)', r'math.sqrt(\1)', modified_str)
+                            # Handle implicit multiplication
+                            modified_str = re.sub(r'(\d+)\(', r'\1*(', modified_str)
+                            # Handle implicit multiplication with √
+                            modified_str = re.sub(r'(\d+)math\.sqrt', r'\1*math.sqrt', modified_str)
+
+                            print(f"Trying general evaluation of: {modified_str}")
+                            result = float(eval(modified_str, {"math": math, "__builtins__": {"math": math}}))
+                            print(f"General evaluation succeeded: {result}")
+                            return result
+                        except Exception as e:
+                            print(f"Error during eval of √ expression: {e}")
 
                     # Standard eval with math functions
                     try:
-                        return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
-                    except Exception:
-                        # Fall back to Fraction
+                        result = float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt, "math": math}))
+                        print(f"Standard eval succeeded: {result}")
+                        return result
+                    except Exception as e:
+                        print(f"Error during standard eval: {e}")
+
+                    # Fall back to Fraction
+                    try:
                         from fractions import Fraction
-                        return float(Fraction(answer_str))
+                        result = float(Fraction(answer_str))
+                        print(f"Fraction conversion succeeded: {result}")
+                        return result
+                    except Exception as e:
+                        print(f"Error during Fraction conversion: {e}")
+
+                    # Final fallback: handle as symbolic Python expression format
+                    if '*sqrt' in answer_str:
+                        try:
+                            # Handle expressions like "3*sqrt(2)"
+                            safe_env = {"sqrt": math.sqrt, "math": math}
+                            result = float(eval(answer_str, {"__builtins__": {}}, safe_env))
+                            print(f"Symbolic expression evaluation succeeded: {result}")
+                            return result
+                        except Exception as e:
+                            print(f"Error during symbolic expression evaluation: {e}")
+
+                            # Try more specific format parsing
+                            parts = answer_str.split('*sqrt')
+                            if len(parts) == 2 and parts[1].startswith('(') and parts[1].endswith(')'):
+                                try:
+                                    coef = float(parts[0])
+                                    rad = float(parts[1][1:-1])  # Remove parentheses
+                                    result = coef * math.sqrt(rad)
+                                    print(f"Manual symbolic parsing succeeded: {result}")
+                                    return result
+                                except Exception as e2:
+                                    print(f"Error during manual symbolic parsing: {e2}")
+
+                    # If all parsing attempts failed
+                    print(f"All parsing attempts failed for: {answer_str}")
+                    # Instead of raising an error, return a special value that will be detectable
+                    # This gives the application a chance to handle the error more gracefully
+                    return float('nan')  # Not a Number - can be checked with math.isnan()
 
                 answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
                 if answer_str is None:
