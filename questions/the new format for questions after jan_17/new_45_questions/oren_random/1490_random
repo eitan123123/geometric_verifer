@@ -24,14 +24,14 @@ Shape(BC,CO,OB)
 Shape(CO,OB,BC)
 Shape(OC,CD,DO)
 Shape(CD,DO,OC)
-Shape(AB,BO,OD,DA)
-Shape(BO,OD,DA,AB)
-Shape(OD,DA,AB,BO)
-Shape(DA,AB,BO,OD)
 Shape(OA,AB,BC,CO)
 Shape(AB,BC,CO,OA)
 Shape(BC,CO,OA,AB)
 Shape(CO,OA,AB,BC)
+Shape(AB,BO,OD,DA)
+Shape(BO,OD,DA,AB)
+Shape(OD,DA,AB,BO)
+Shape(DA,AB,BO,OD)
 Shape(DA,AO,OC,CD)
 Shape(AO,OC,CD,DA)
 Shape(OC,CD,DA,AO)
@@ -40,26 +40,26 @@ Shape(OB,BC,CD,DO)
 Shape(BC,CD,DO,OB)
 Shape(CD,DO,OB,BC)
 Shape(DO,OB,BC,CD)
-Shape(AB,BO,OC,CD,DA)
-Shape(BO,OC,CD,DA,AB)
-Shape(OC,CD,DA,AB,BO)
-Shape(CD,DA,AB,BO,OC)
-Shape(DA,AB,BO,OC,CD)
 Shape(OA,AB,BC,CD,DO)
 Shape(AB,BC,CD,DO,OA)
 Shape(BC,CD,DO,OA,AB)
 Shape(CD,DO,OA,AB,BC)
 Shape(DO,OA,AB,BC,CD)
-Shape(OD,DA,AB,BC,CO)
-Shape(DA,AB,BC,CO,OD)
-Shape(AB,BC,CO,OD,DA)
-Shape(BC,CO,OD,DA,AB)
-Shape(CO,OD,DA,AB,BC)
+Shape(AB,BO,OC,CD,DA)
+Shape(BO,OC,CD,DA,AB)
+Shape(OC,CD,DA,AB,BO)
+Shape(CD,DA,AB,BO,OC)
+Shape(DA,AB,BO,OC,CD)
 Shape(DA,AO,OB,BC,CD)
 Shape(AO,OB,BC,CD,DA)
 Shape(OB,BC,CD,DA,AO)
 Shape(BC,CD,DA,AO,OB)
 Shape(CD,DA,AO,OB,BC)
+Shape(OD,DA,AB,BC,CO)
+Shape(DA,AB,BC,CO,OD)
+Shape(AB,BC,CO,OD,DA)
+Shape(BC,CO,OD,DA,AB)
+Shape(CO,OD,DA,AB,BC)
 Shape(AB,BC,CD,DA)
 Shape(BC,CD,DA,AB)
 Shape(CD,DA,AB,BC)
@@ -107,16 +107,16 @@ Angle(COB)
 Angle(DOC)
 Angle(OCD)
 Angle(CDO)
+Angle(ABC)
 Angle(BDA)
 Angle(DAB)
-Angle(ABC)
 Angle(ACD)
 Angle(CDA)
 Angle(BCD)
-Angle(BOC)
 Angle(DOA)
-Angle(COD)
+Angle(BOC)
 Angle(AOB)
+Angle(COD)
 Angle(ABD)
 Angle(CAB)
 Angle(DAC)
@@ -131,9 +131,9 @@ Angle(CBO)
 Angle(OCB)
 Angle(DCO)
 Angle(ODC)
+Angle(CBA)
 Angle(ADB)
 Angle(BAD)
-Angle(CBA)
 Angle(DCA)
 Angle(ADC)
 Angle(DCB)
@@ -167,18 +167,18 @@ Polygon(ODC)
 Polygon(OCD)
 Polygon(CDO)
 Polygon(COD)
-Polygon(ABD)
-Polygon(ADB)
-Polygon(BAD)
-Polygon(BDA)
-Polygon(DAB)
-Polygon(DBA)
 Polygon(ABC)
 Polygon(ACB)
 Polygon(BAC)
 Polygon(BCA)
 Polygon(CAB)
 Polygon(CBA)
+Polygon(ABD)
+Polygon(ADB)
+Polygon(BAD)
+Polygon(BDA)
+Polygon(DAB)
+Polygon(DBA)
 Polygon(DAC)
 Polygon(DCA)
 Polygon(ADC)
@@ -191,26 +191,26 @@ Polygon(CBD)
 Polygon(CDB)
 Polygon(DBC)
 Polygon(DCB)
-Polygon(ABOCD)
-Polygon(BOCDA)
-Polygon(OCDAB)
-Polygon(CDABO)
-Polygon(DABOC)
 Polygon(OABCD)
 Polygon(ABCDO)
 Polygon(BCDOA)
 Polygon(CDOAB)
 Polygon(DOABC)
-Polygon(ODABC)
-Polygon(DABCO)
-Polygon(ABCOD)
-Polygon(BCODA)
-Polygon(CODAB)
+Polygon(ABOCD)
+Polygon(BOCDA)
+Polygon(OCDAB)
+Polygon(CDABO)
+Polygon(DABOC)
 Polygon(DAOBC)
 Polygon(AOBCD)
 Polygon(OBCDA)
 Polygon(BCDAO)
 Polygon(CDAOB)
+Polygon(ODABC)
+Polygon(DABCO)
+Polygon(ABCOD)
+Polygon(BCODA)
+Polygon(CODAB)
 Polygon(ABCD)
 Polygon(BCDA)
 Polygon(CDAB)
@@ -249,66 +249,54 @@ GOAL_SYMBOL:
 ll_ob
 
 ANSWER:
-2*sqrt(13)
-
+2√13
 THEOREM_SEQUENCE:
 1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
 2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
 3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
 4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
-5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC); ["IsMidpointOfLine(O,DB)"]
-6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
+5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(BOD)&Collinear(AOC); ["IsMidpointOfLine(O,BD)"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
-#run: 0; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+#run: 2; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Failure: Theorem <parallelogram_property_opposite_line_equal> branch error. Expected dict_keys(['1']) but got None. Please rewrite your response, you should change only the call to theorem <parallelogram_property_opposite_line_equal> by adding the branch number from the dict_keys as the first argument
+Model Answer:
+RETRY_ANSWER:
+2√13
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_property_opposite_line_equal(ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(AD),LengthOfLine(BC))"]
+2; right_triangle_judgment_angle(BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
+3; right_triangle_property_pythagorean(BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+4; parallelogram_property_diagonal_bisection(ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
+5; parallelogram_property_diagonal_bisection(DABC,O); Parallelogram(DABC)&Collinear(BOD)&Collinear(AOC); ["IsMidpointOfLine(O,BD)"]
+#run: 2; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
 Theorem: parallelogram_property_opposite_line_equal(1,ABCD)
-You output the following conclusions: Equal(LengthOfLine(BC),LengthOfLine(AD))
+You output the following conclusions: Equal(LengthOfLine(AD),LengthOfLine(BC))
 But the correct conclusions: Equal(LengthOfLine(BA),LengthOfLine(CD))
 
 Model Answer:
 RETRY_ANSWER:
 2√13
 RETRY_THEOREM_SEQUENCE:
-1; parallelogram_property_opposite_line_equal(1,ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(BC),LengthOfLine(AD))"]
+1; parallelogram_property_opposite_line_equal(1,ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(AD),LengthOfLine(BC))"]
 2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
 3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
 4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
 5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(BOD)&Collinear(AOC); ["IsMidpointOfLine(O,BD)"]
-6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
-#run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+#run: 2; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
 Theorem: parallelogram_property_diagonal_bisection(1,DABC,O)
-You output the following premises: Parallelogram(DABC)&Collinear(AOC)&Collinear(BOD)
+You output the following premises: Parallelogram(DABC)&Collinear(BOD)&Collinear(AOC)
 But the correct premises: Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC)
 You output the following conclusions: IsMidpointOfLine(O,BD)
 But the correct conclusions: IsMidpointOfLine(O,DB)
 
 Model Answer:
-RETRY_ANSWER:
-2√13
-RETRY_THEOREM_SEQUENCE:
-1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
-2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
-3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
-4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
-5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,BD)"]
-6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
-#run: 0; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error parsing answer '2√13': Invalid literal for Fraction: '2√13'
-Model Answer:
-RETRY_ANSWER:
-2√13
-RETRY_THEOREM_SEQUENCE:
-1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
-2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
-3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
-4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
-5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC); ["IsMidpointOfLine(O,DB)"]
-6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
-#run: 0; #retry: 4; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+
+#run: 2; #retry: 4; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
 verification failed.
 
 - Goal: length of line OB
-- Model answer: 7.2111025509
+- Model answer: 7.211102550927978
 - Error: Your proof doesn't uniquely determine the value. You need to use additional theorems to constrain the value.
 - Available premises:
   Parallel Lines: AB ∥ CD, AD ∥ BC
@@ -318,32 +306,48 @@ verification failed.
 - Theorems related to the goal:
   Step 5 - parallelogram_property_diagonal_bisection(1, DABC, O): IsMidpointOfLine(O,DB)
 - Solver constraints directly related to this goal:
-  |BD| = |BO| + |DO|
   |BO| > 0
   |DO| = |BO|
 
 Please fix the proof.
 Model Answer:
 RETRY_ANSWER:
-7.2111025509
+2√13
 RETRY_THEOREM_SEQUENCE:
 1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
 2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
 3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
 4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
 5; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC); ["IsMidpointOfLine(O,DB)"]
-6; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
-#run: 0; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Failure: Theorem <> not defined in current GDL. Please rewrite the proof sequence, you are allowed to use only theorems from the GDL.
+#run: 2; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: line_addition(1,BO,OD)
+You output the following conclusions: Equal(LengthOfLine(DB),Add(LengthOfLine(BO),LengthOfLine(OD)))
+But the correct conclusions: Equal(LengthOfLine(BD),Add(LengthOfLine(BO),LengthOfLine(OD)))
+
 Model Answer:
 RETRY_ANSWER:
-NO_SOLUTION
+2√13
 RETRY_THEOREM_SEQUENCE:
-(No valid proof can be constructed from the given GDL theorems to uniquely determine OB.)
+1; parallelogram_property_opposite_line_equal(1,BCDA); Parallelogram(BCDA); ["Equal(LengthOfLine(CB),LengthOfLine(DA))"]
+2; right_triangle_judgment_angle(1,BCA); Polygon(BCA)&Equal(MeasureOfAngle(BCA),90); ["RightTriangle(BCA)"]
+3; right_triangle_property_pythagorean(1,BCA); RightTriangle(BCA); ["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+4; parallelogram_property_diagonal_bisection(1,ABCD,O); Parallelogram(ABCD)&Collinear(AOC)&Collinear(BOD); ["IsMidpointOfLine(O,AC)"]
+5; line_addition(1,AO,OC); Collinear(AOC); ["Equal(LengthOfLine(AC),Add(LengthOfLine(AO),LengthOfLine(OC)))"]
+6; parallelogram_property_diagonal_bisection(1,DABC,O); Parallelogram(DABC)&Collinear(DOB)&Collinear(AOC); ["IsMidpointOfLine(O,DB)"]
+7; line_addition(1,BO,OD); Collinear(BOD); ["Equal(LengthOfLine(DB),Add(LengthOfLine(BO),LengthOfLine(OD)))"]
+
+/* Explanation Sketch:
+
+- Step 1 identifies BC = AD = 6.
+- Steps 2–3 use the right triangle BCA to conclude CA = 8.
+- Steps 4–5 show O is midpoint of AC, so AO = OC = 4.
+- Steps 6–7 show O is midpoint of DB, so BO = OD and BD = 2·BO.
+
+From geometry (not directly in GDL), one can deduce BD = 4√13. Hence BO = BD/2 = 2√13. */
 #RETRIES:
 5
 #RUNS:
-0
+2
 
 
 GT_EQUATIONS:

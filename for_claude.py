@@ -4221,6 +4221,9 @@ class GeometricTheorem:
                     import math
                     import re
 
+                    # Store original symbolic form
+                    original_symbolic = answer_str.strip()
+
                     # Remove whitespace
                     answer_str = answer_str.strip()
 
@@ -4233,26 +4236,26 @@ class GeometricTheorem:
                             a, b, op, c = match.groups()
                             a, b, c = float(a), float(b), float(c)
                             if op == '-':
-                                return a * (math.sqrt(b) - c)
+                                return a * (math.sqrt(b) - c), original_symbolic
                             else:  # op == '+'
-                                return a * (math.sqrt(b) + c)
+                                return a * (math.sqrt(b) + c), original_symbolic
 
                         # General replacement of √ symbol
                         modified_str = re.sub(r'√(\d+)', r'math.sqrt(\1)', answer_str)
                         # Handle implicit multiplication
                         modified_str = re.sub(r'(\d+)\(', r'\1*(', modified_str)
                         try:
-                            return float(eval(modified_str, {"math": math}))
+                            return float(eval(modified_str, {"math": math})), original_symbolic
                         except Exception:
                             pass
 
                     # Standard eval with math functions
                     try:
-                        return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt}))
+                        return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt})), original_symbolic
                     except Exception:
                         # Fall back to Fraction
                         from fractions import Fraction
-                        return float(Fraction(answer_str))
+                        return float(Fraction(answer_str)), original_symbolic
 
                 answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
                 if answer_str is None:
