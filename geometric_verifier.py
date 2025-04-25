@@ -10501,8 +10501,10 @@ class GeometricTheorem:
                         # Known areas for debugging:
                         known_areas = list(getattr(self, 'triangle_areas', {}).keys())
                         print(f"Known triangle areas: {known_areas}")
-                        return False, self.generate_detailed_feedback("triangle_area", triangle_name, model_answer_symbolic,
-                                                                      status="insufficient_info", error_message=error_msg)
+                        return False, self.generate_detailed_feedback("triangle_area", triangle_name,
+                                                                      model_answer_symbolic,
+                                                                      status="insufficient_info",
+                                                                      additional_info=error_msg)
 
                     triangle_area_var = self.triangle_areas[normalized_triangle]
                     self.solver.add(triangle_area_var>0)
@@ -15751,13 +15753,13 @@ class GeometricTheorem:
                 tri_name, side1, side2, angle_name, factor_str = mm.groups()
 
                 # Ensure an area variable exists for the triangle.
+                normalized_tri_name = ''.join(sorted(tri_name))
+                # Then use normalized_tri_name instead of tri_name
+                if normalized_tri_name not in self.triangle_areas:
+                    self.triangle_areas[normalized_tri_name] = Real(f"areaTriangle_{normalized_tri_name}")
+                    self.solver.add(self.triangle_areas[normalized_tri_name] >= 0)
 
-                if tri_name not in self.triangle_areas:
-                    self.triangle_areas[tri_name] = Real(f"areaTriangle_{tri_name}")
-
-                    self.solver.add(self.triangle_areas[tri_name] >= 0)
-
-                area_var = self.triangle_areas[tri_name]
+                area_var = self.triangle_areas[normalized_tri_name]
 
                 # Get the side length variables.
 
@@ -16716,7 +16718,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/oren_random/1490_random",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_5835/question5835_gt",print_output=False)
 
     if not result:
         print(feedback)
