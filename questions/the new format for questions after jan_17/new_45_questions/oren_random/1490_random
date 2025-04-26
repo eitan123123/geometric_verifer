@@ -1,118 +1,162 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, YZ=11, ZY=RadiusOfCircle(Y), ∠XYZ=55°, the center of circle Y is Y. Find the area of the sector YXZ.
+As shown in the diagram, AC=18, BC=15, ∠CAB=x°, BC⊥AC. Find the value of x.
 CONSTRUCTION_CDL:
-Shape(XY,YZ,YZX)
-Shape(YX,YXZ,ZY)
-Cocircular(Y,XZ)
+Shape(AB,BC,CA)
 TEXT_CDL:
-Equal(LengthOfLine(YZ),11)
-Equal(LengthOfLine(ZY),RadiusOfCircle(Y))
-Equal(MeasureOfAngle(XYZ),55)
-IsCentreOfCircle(Y,Y)
+Equal(LengthOfLine(AC),18)
+Equal(LengthOfLine(BC),15)
+Equal(MeasureOfAngle(CAB),x)
+PerpendicularBetweenLine(BC,AC)
 GOAL_CDL:
-Value(AreaOfSector(YXZ))
+Value(x)
 CONSTRUCTION_CDL_EXTENDED:
-Shape(YZ,YZX,XY)
-Shape(YZX,XY,YZ)
-Shape(YXZ,ZY,YX)
-Shape(ZY,YX,YXZ)
-Shape(YZX,YXZ)
-Shape(YXZ,YZX)
-Cocircular(Y,X)
-Cocircular(Y,Z)
-Cocircular(Y,ZX)
-Point(X)
-Point(Y)
-Point(Z)
-Line(XY)
-Line(YX)
-Line(YZ)
-Line(ZY)
-Arc(YXZ)
-Arc(YZX)
-Angle(XYZ)
-Angle(ZYX)
-Circle(Y)
+Shape(BC,CA,AB)
+Shape(CA,AB,BC)
+Point(A)
+Point(B)
+Point(C)
+Line(AB)
+Line(BA)
+Line(BC)
+Line(CB)
+Line(CA)
+Line(AC)
+Angle(ABC)
+Angle(BCA)
+Angle(CAB)
+Angle(CBA)
+Angle(ACB)
+Angle(BAC)
+Polygon(ABC)
+Polygon(ACB)
+Polygon(BAC)
+Polygon(BCA)
+Polygon(CAB)
+Polygon(CBA)
 SYMBOLS_AND_VALUES:
-LengthOfLine(KJ);ll_kj;4
-LengthOfLine(JK);ll_kj;4
-MeasureOfArc(KJL);mar_kjl;53
-AreaOfSector(KJL);as_kjl;None
+LengthOfLine(BX);ll_bx;13
+LengthOfLine(XB);ll_bx;13
+LengthOfLine(XA);ll_xa;5
+LengthOfLine(AX);ll_xa;5
+MeasureOfAngle(XAB);ma_xab;90
+MeasureOfAngle(BXA);ma_bxa;None
 
 Outputs:
 Outputs for Problem B:
 
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-ll_yz-11
-ma_xyz-55
+ll_ac-18
+ll_bc-15
+ma_cab-x
+ma_acb-90
 
 GOAL_SYMBOL:
-as_yxz
+x
 
-ANSWER:
-1331*pi/72
-
-THEOREM_SEQUENCE:
-1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
-2; circle_area_formula(1,Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
-3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
+GT_ANSWER:
+180
+GT_THEOREM_SEQUENCE:
+1;right_triangle_judgment_angle(1,BCA);Polygon(BCA)&Equal(MeasureOfAngle(BCA),90);["RightTriangle(BCA)"]
+2;right_triangle_property_pythagorean(1,BCA);RightTriangle(BCA);["Equal(Add(Pow(LengthOfLine(BC),2),Pow(LengthOfLine(CA),2)),Pow(LengthOfLine(BA),2))"]
+3;cosine_theorem(1,ABC);Polygon(ABC);["Equal(Add(Pow(LengthOfLine(BC),2),Mul(2,LengthOfLine(AB),LengthOfLine(AC),Cos(MeasureOfAngle(CAB)))),Add(Pow(LengthOfLine(AB),2),Pow(LengthOfLine(AC),2)))"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
 #run: 0; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Theorem: arc_property_center_angle(1,YXZ,Y)
-You output the following premises: Arc(YXZ)&Angle(XYZ)&IsCentreOfCircle(Y,Y)
-But the correct premises: Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y)
-You output the following conclusions: Equal(MeasureOfArc(YXZ),MeasureOfAngle(XYZ))
-But the correct conclusions: Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))
+Theorem: cosine_theorem(1,ACB)
+You output the following conclusions: Equal(Add(Pow(LengthOfLine(CB),2),Mul(2,LengthOfLine(AC),LengthOfLine(AB),Cos(MeasureOfAngle(CAB)))),Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(AB),2)))
+But the correct conclusions: Equal(Add(Pow(LengthOfLine(CB),2),Mul(2,LengthOfLine(AC),LengthOfLine(AB),Cos(MeasureOfAngle(BAC)))),Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(AB),2)))
 
 Model Answer:
 RETRY_ANSWER:
-1331*pi/72
+180*asin(5/sqrt(61))/pi
 RETRY_THEOREM_SEQUENCE:
-1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
-2; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(XYZ)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(XYZ))"]
-3; sector_area_formula(1,YXZ); Arc(YXZ); ["Equal(AreaOfSector(YXZ),Mul(MeasureOfArc(YXZ),1/360*pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+3; cosine_theorem(1,ACB); Polygon(ACB); ["Equal(Add(Pow(LengthOfLine(CB),2),Mul(2,LengthOfLine(AC),LengthOfLine(AB),Cos(MeasureOfAngle(CAB)))),Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(AB),2)))"]
 #run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error in TIER1_THEOREM_CALL_SYNTAX_VIOLATION: Theorem 'sector_area_formula' is not recognized or its premise validation is not supported by the current verifier version.
+The final answer should be a numeric answer, you gave an expression with algebraic variable. Please fix your proof.
 Model Answer:
 RETRY_ANSWER:
-1331*pi/72
+180*asin(5/sqrt(61))/pi
 RETRY_THEOREM_SEQUENCE:
-1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
-2; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
-3; sector_area_formula(1,YXZ); Arc(YXZ); ["Equal(AreaOfSector(YXZ),Mul(MeasureOfArc(YXZ),1/360*pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
-#run: 0; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Failure: Theorem <circle_area_formula> variation id is not supplied. Expected dict_keys(['1']) but got None.
-Your call: circle_area_formula(Y)
-Please rewrite your response by adding the variation id as the first argument. For example: For variation 1: circle_area_formula(1,Y)
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+3; cosine_theorem(1,ACB); Polygon(ACB); ["Equal(Add(Pow(LengthOfLine(CB),2),Mul(2,LengthOfLine(AC),LengthOfLine(AB),Cos(MeasureOfAngle(BAC)))),Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(AB),2)))"]
+#run: 0; #retry: 3; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+verification failed.
 
+- Goal: value of x
+- Model answer: 39.81
+- Error: Your proof doesn't uniquely determine the value. You need to use additional theorems to constrain the value.
+- Available premises:
+  Perpendicular Lines: AC ⊥ BC
+  Right Triangles: ACB
+  Polygons: ABC, ACB
+- Theorems related to the goal:
+  None found that constrain this goal
+- Solver constraints directly related to this goal:
+  None found
+
+Variable x is not uniquely determined
+Please fix the proof.
 Model Answer:
 RETRY_ANSWER:
-1331*pi/72
+39.81
 RETRY_THEOREM_SEQUENCE:
-1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
-2; circle_area_formula(Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
-3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
-#run: 0; #retry: 4; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error evaluating general goal expression: name 'AreaOfSector' is not defined
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+3; cosine_theorem(1,ACB); Polygon(ACB); ["Equal(Add(Pow(LengthOfLine(CB),2),Mul(2,LengthOfLine(AC),LengthOfLine(AB),Cos(MeasureOfAngle(BAC)))),Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(AB),2)))"]
+#run: 0; #retry: 4; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+verification failed.
+
+- Goal: value of x
+- Model answer: 39.81
+- Error: Your proof doesn't uniquely determine the value. You need to use additional theorems to constrain the value.
+- Available premises:
+  Perpendicular Lines: AC ⊥ BC
+  Right Triangles: ACB
+  Polygons: ABC, ACB
+- Theorems related to the goal:
+  None found that constrain this goal
+- Solver constraints directly related to this goal:
+  None found
+
+Variable x is not uniquely determined
+Please fix the proof.
 Model Answer:
 RETRY_ANSWER:
-1331*pi/72
+39.81
 RETRY_THEOREM_SEQUENCE:
-1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
-2; circle_area_formula(1,Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
-3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
-#run: 0; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error evaluating general goal expression: name 'AreaOfSector' is not defined
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
+3; triangle_property_angle_sum(1,ABC); Polygon(ABC); ["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCA),MeasureOfAngle(CAB)),180)"]
+4; sine_theorem(1,ABC); Polygon(ABC); ["Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))"]
+#run: 0; #retry: 5; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+verification failed.
+
+- Goal: value of x
+- Model answer: 39.81
+- Error: Your proof doesn't uniquely determine the value. You need to use additional theorems to constrain the value.
+- Available premises:
+  Perpendicular Lines: AC ⊥ BC
+  Right Triangles: ACB
+  Polygons: ABC, ACB
+- Theorems related to the goal:
+  None found that constrain this goal
+- Solver constraints directly related to this goal:
+  None found
+
+Variable x is not uniquely determined
+Please fix the proof.
 Model Answer:
 RETRY_ANSWER:
-1331*pi/72
+39.81
 RETRY_THEOREM_SEQUENCE:
-1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
-2; circle_area_formula(1,Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
-3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
+1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
+2; triangle_property_angle_sum(1,ABC); Polygon(ABC); ["Equal(Add(MeasureOfAngle(ABC),MeasureOfAngle(BCA),MeasureOfAngle(CAB)),180)"]
+3; sine_theorem(1,ABC); Polygon(ABC); ["Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))"]
 #RETRIES:
 5
 #RUNS:
@@ -120,15 +164,9 @@ RETRY_THEOREM_SEQUENCE:
 
 
 GT_EQUATIONS:
-ll_yz-11
-ll_yz-rc_y
-ma_xyz-55
-rc_y-11
+ll_ac-18
+ll_bc-15
+ma_cab-x
+ma_bca-90
 GT_GOAL_SYMBOL:
-as_yxz
-GT_ANSWER:
-7381*pi/72
-GT_THEOREM_SEQUENCE:
-1;round_angle(1,XYZ,ZYX);Angle(XYZ)&Angle(ZYX);["Equal(Add(MeasureOfAngle(XYZ),MeasureOfAngle(ZYX)),360)"]
-2;arc_property_center_angle(1,YXZ,Y);Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y);["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
-3;sector_area_formula(1,YXZ);Arc(YXZ);["Equal(AreaOfSector(YXZ),Mul(MeasureOfArc(YXZ),1/360*pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
+x

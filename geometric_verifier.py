@@ -2472,7 +2472,95 @@ class GeometricTheorem:
                     message="these is no such version for the theorem",
                     details="these is no such version for the theorem adjacent_complementary_angle"
                 ))
+        elif theorem_name == "bisector_of_angle_property_line_ratio":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for bisector_of_angle_property_line_ratio",
+                        details="Expected: bisector_of_angle_property_line_ratio(1, bisector, angle)"
+                    ))
 
+                bisector = args[1].strip()  # e.g., "BD"
+                angle = args[2].strip()  # e.g., "ABC"
+
+                # Check for angle bisector fact in premise
+                bisector_match = re.search(
+                    r'IsBisectorOfAngle\(' + re.escape(bisector) + r',' + re.escape(angle) + r'\)', premise)
+                if not bisector_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing IsBisectorOfAngle({bisector},{angle}) in premise",
+                        details="bisector_of_angle_property_line_ratio requires angle bisector fact"
+                    ))
+
+                # Check if angle bisector is stored in the system
+                if hasattr(self, "angle_bisectors") and (bisector, angle) not in self.angle_bisectors:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Angle bisector {bisector} for angle {angle} not established",
+                        details=f"Known angle bisectors: {self.angle_bisectors}"
+                    ))
+
+                # Check for collinearity fact in premise
+                collinear_match = re.search(r'Collinear\((\w+)\)', premise)
+                if not collinear_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing Collinear(...) fact in premise",
+                        details="bisector_of_angle_property_line_ratio requires collinearity relationship"
+                    ))
+
+                collinear_points = collinear_match.group(1)
+
+                # Check if this collinearity is stored in the system
+                collinear_normalized = self.normalize_collinear_points(collinear_points)
+                collinear_found = False
+                for fact in self.collinear_facts:
+                    fact_normalized = self.normalize_collinear_points(''.join(fact))
+                    if fact_normalized == collinear_normalized:
+                        collinear_found = True
+                        break
+
+                if not collinear_found:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Collinearity {collinear_points} not established",
+                        details=f"Known collinear facts: {[''.join(fact) for fact in self.collinear_facts]}"
+                    ))
+
+                # Verify that the geometric setup is correct for the theorem
+                # The bisector must connect a vertex of the angle to a point on the opposite side
+                # The collinear points must include the endpoint of the bisector and the other two points
+
+                # The angle vertex is the middle letter of the angle
+                vertex = angle[1]
+
+                # The bisector should start at the vertex
+                if bisector[0] != vertex:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Bisector {bisector} doesn't start at angle vertex {vertex}",
+                        details="The angle bisector must start at the angle's vertex"
+                    ))
+
+                # The collinear points should include the endpoint of the bisector
+                # and the other two points of the triangle
+                if bisector[1] not in collinear_points:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Collinear points {collinear_points} don't include bisector endpoint {bisector[1]}",
+                        details="The collinear points must include the endpoint of the bisector"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem bisector_of_angle_property_line_ratio"
+                ))
         elif theorem_name == "perpendicular_judgment_angle":
             version = args[0]
             if version == "1":
@@ -11666,7 +11754,8 @@ class GeometricTheorem:
             "perpendicular_judgment_angle",
             "rectangle_judgment_right_angle",
             "circle_property_angle_of_osculation",
-            "bisector_of_angle_judgment_angle_equal"
+            "bisector_of_angle_judgment_angle_equal",
+            "bisector_of_angle_property_line_ratio"
         ]
 
         if theorem_name not in valid_theorems:
@@ -11805,6 +11894,41 @@ class GeometricTheorem:
                     details="Supported versions are 1 and 2"
                 )
 
+        elif theorem_name == "bisector_of_angle_property_line_ratio":
+            version = args[0]
+            if version == "1":
+                # Parse the conclusion: Equal(Mul(LengthOfLine(CD),LengthOfLine(BA)),Mul(LengthOfLine(DA),LengthOfLine(BC)))
+                ratio_match = re.search(
+                    r'Equal\(Mul\(LengthOfLine\((\w{2})\),LengthOfLine\((\w{2})\)\),Mul\(LengthOfLine\((\w{2})\),LengthOfLine\((\w{2})\)\)\)',
+                    conclusions[0]
+                )
+
+                if not ratio_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for bisector_of_angle_property_line_ratio",
+                        details=f"Expected length ratio pattern not found in: {conclusions[0]}"
+                    )
+
+                segment1, segment2, segment3, segment4 = ratio_match.groups()
+
+                # Create length variables for all segments
+                len1 = self.add_length(segment1[0], segment1[1])
+                len2 = self.add_length(segment2[0], segment2[1])
+                len3 = self.add_length(segment3[0], segment3[1])
+                len4 = self.add_length(segment4[0], segment4[1])
+
+                # Add the constraint: len1 * len2 = len3 * len4
+                self.solver.add(len1 * len2 == len3 * len4)
+
+                print(f"Added angle bisector ratio constraint: {segment1} * {segment2} = {segment3} * {segment4}")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for bisector_of_angle_property_line_ratio",
+                    details="Only version 1 is supported"
+                )
 
         elif theorem_name == "rectangle_judgment_right_angle":
             version = args[0]
