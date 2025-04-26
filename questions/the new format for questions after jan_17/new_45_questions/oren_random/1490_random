@@ -57,11 +57,9 @@ ma_bca-90
 GOAL_SYMBOL:
 at_abc
 
-GOAL_SYMBOL:
-at_abc
-ANSWER:
+GT_ANSWER:
 54
-THEOREM_SEQUENCE:
+GT_THEOREM_SEQUENCE:
 1;triangle_area_formula_sine(1,CAB);Polygon(CAB);["Equal(AreaOfTriangle(CAB),Mul(LengthOfLine(CA),LengthOfLine(CB),Sin(MeasureOfAngle(BCA)),1/2))"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
@@ -71,16 +69,11 @@ You output the following conclusions: Equal(AreaOfTriangle(BCA),Mul(LengthOfLine
 But the correct conclusions: Equal(AreaOfTriangle(BCA),Mul(LengthOfLine(BC),LengthOfLine(BA),Sin(MeasureOfAngle(ABC)),1/2))
 
 Model Answer:
-RETRY_ANSWER:
-54
-RETRY_THEOREM_SEQUENCE:
+
 #run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
 Error during proof verification: GeometricTheorem.generate_detailed_feedback() got an unexpected keyword argument 'error_message'
 Model Answer:
-RETRY_ANSWER:
-54
-RETRY_THEOREM_SEQUENCE:
-1; triangle_area_formula_sine(1,BCA); Polygon(BCA); ["Equal(AreaOfTriangle(BCA),Mul(LengthOfLine(BC),LengthOfLine(BA),Sin(MeasureOfAngle(ABC)),1/2))"]
+
 #run: 0; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
 Error during proof verification: GeometricTheorem.generate_detailed_feedback() got an unexpected keyword argument 'error_message'
 Model Answer:
@@ -127,3 +120,5 @@ ll_ab-15
 ll_ac-9
 ll_bc-12
 ma_bca-90
+GT_GOAL_SYMBOL:
+at_abc

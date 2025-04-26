@@ -8795,6 +8795,7 @@ class GeometricTheorem:
             print("\nAvailable sections:", list(sections.keys()))
 
             # Extract content between MODEL_RESPONSE_BEGIN and MODEL_RESPONSE_END if present
+            # Extract content between MODEL_RESPONSE_BEGIN and MODEL_RESPONSE_END if present
             model_response_content = None
             if len(content) > 0:
                 start_marker = "***MODEL_RESPONSE_BEGIN***"
@@ -8817,10 +8818,12 @@ class GeometricTheorem:
                             if not line:
                                 continue
 
-                            if line == "ANSWER:":
+                            # Match any string ending with "ANSWER:" including "RETRY_ANSWER:"
+                            if line.endswith("ANSWER:") or "_ANSWER:" in line:
                                 current_model_section = ANSWER
                                 model_sections[current_model_section] = []
-                            elif line == "THEOREM_SEQUENCE:":
+                            # Match any string ending with "THEOREM_SEQUENCE:" including "RETRY_THEOREM_SEQUENCE:"
+                            elif line.endswith("THEOREM_SEQUENCE:")or "_THEOREM_SEQUENCE:" in line:
                                 current_model_section = THEOREM_SEQUENCE
                                 model_sections[current_model_section] = []
                             elif current_model_section and line.endswith(':'):
@@ -8834,8 +8837,6 @@ class GeometricTheorem:
                             sections[ANSWER] = model_sections[ANSWER]
                         if THEOREM_SEQUENCE in model_sections:
                             sections[THEOREM_SEQUENCE] = model_sections[THEOREM_SEQUENCE]
-
-                        print("Successfully extracted content from between model response markers")
                     else:
                         # --- ADDED ELSE BLOCK for missing END marker ---
                         # Start marker found, but end marker was NOT found after it
@@ -16718,7 +16719,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_5835/question5835_gt",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/oren_random/1490_random",print_output=False)
 
     if not result:
         print(feedback)
