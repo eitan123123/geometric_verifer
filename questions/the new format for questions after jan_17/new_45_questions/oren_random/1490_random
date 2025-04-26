@@ -1,114 +1,118 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, AB=15, AC=9, BC=12, BC is perpendicular to AC. Find the area of △ABC.
+As shown in the diagram, YZ=11, ZY=RadiusOfCircle(Y), ∠XYZ=55°, the center of circle Y is Y. Find the area of the sector YXZ.
 CONSTRUCTION_CDL:
-Shape(AB,BC,CA)
+Shape(XY,YZ,YZX)
+Shape(YX,YXZ,ZY)
+Cocircular(Y,XZ)
 TEXT_CDL:
-Equal(LengthOfLine(AB),15)
-Equal(LengthOfLine(AC),9)
-Equal(LengthOfLine(BC),12)
-PerpendicularBetweenLine(BC,AC)
+Equal(LengthOfLine(YZ),11)
+Equal(LengthOfLine(ZY),RadiusOfCircle(Y))
+Equal(MeasureOfAngle(XYZ),55)
+IsCentreOfCircle(Y,Y)
 GOAL_CDL:
-Value(AreaOfTriangle(ABC))
+Value(AreaOfSector(YXZ))
 CONSTRUCTION_CDL_EXTENDED:
-Shape(BC,CA,AB)
-Shape(CA,AB,BC)
-Point(A)
-Point(B)
-Point(C)
-Line(AB)
-Line(BA)
-Line(BC)
-Line(CB)
-Line(CA)
-Line(AC)
-Angle(ABC)
-Angle(BCA)
-Angle(CAB)
-Angle(CBA)
-Angle(ACB)
-Angle(BAC)
-Polygon(ABC)
-Polygon(ACB)
-Polygon(BAC)
-Polygon(BCA)
-Polygon(CAB)
-Polygon(CBA)
+Shape(YZ,YZX,XY)
+Shape(YZX,XY,YZ)
+Shape(YXZ,ZY,YX)
+Shape(ZY,YX,YXZ)
+Shape(YZX,YXZ)
+Shape(YXZ,YZX)
+Cocircular(Y,X)
+Cocircular(Y,Z)
+Cocircular(Y,ZX)
+Point(X)
+Point(Y)
+Point(Z)
+Line(XY)
+Line(YX)
+Line(YZ)
+Line(ZY)
+Arc(YXZ)
+Arc(YZX)
+Angle(XYZ)
+Angle(ZYX)
+Circle(Y)
 SYMBOLS_AND_VALUES:
-LengthOfLine(JK);ll_jk;5
-LengthOfLine(KJ);ll_jk;5
-LengthOfLine(LK);ll_lk;12
-LengthOfLine(KL);ll_lk;12
-Free(x);x;5/12
-LengthOfLine(LJ);ll_lj;13
-LengthOfLine(JL);ll_lj;13
-MeasureOfAngle(LKJ);ma_lkj;90
+LengthOfLine(KJ);ll_kj;4
+LengthOfLine(JK);ll_kj;4
+MeasureOfArc(KJL);mar_kjl;53
+AreaOfSector(KJL);as_kjl;None
 
 Outputs:
 Outputs for Problem B:
 
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-ll_ab-15
-ll_ac-9
-ll_bc-12
-ma_bca-90
+ll_yz-11
+ma_xyz-55
 
 GOAL_SYMBOL:
-at_abc
+as_yxz
 
-GT_ANSWER:
-54
-GT_THEOREM_SEQUENCE:
-1;triangle_area_formula_sine(1,CAB);Polygon(CAB);["Equal(AreaOfTriangle(CAB),Mul(LengthOfLine(CA),LengthOfLine(CB),Sin(MeasureOfAngle(BCA)),1/2))"]
+ANSWER:
+1331*pi/72
+
+THEOREM_SEQUENCE:
+1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
+2; circle_area_formula(1,Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
+3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
 #run: 0; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Theorem: triangle_area_formula_sine(1,BCA)
-You output the following conclusions: Equal(AreaOfTriangle(BCA),Mul(LengthOfLine(BC),LengthOfLine(CA),Sin(MeasureOfAngle(BCA)),1/2))
-But the correct conclusions: Equal(AreaOfTriangle(BCA),Mul(LengthOfLine(BC),LengthOfLine(BA),Sin(MeasureOfAngle(ABC)),1/2))
+Theorem: arc_property_center_angle(1,YXZ,Y)
+You output the following premises: Arc(YXZ)&Angle(XYZ)&IsCentreOfCircle(Y,Y)
+But the correct premises: Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y)
+You output the following conclusions: Equal(MeasureOfArc(YXZ),MeasureOfAngle(XYZ))
+But the correct conclusions: Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))
 
 Model Answer:
-
+RETRY_ANSWER:
+1331*pi/72
+RETRY_THEOREM_SEQUENCE:
+1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
+2; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(XYZ)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(XYZ))"]
+3; sector_area_formula(1,YXZ); Arc(YXZ); ["Equal(AreaOfSector(YXZ),Mul(MeasureOfArc(YXZ),1/360*pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
 #run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error during proof verification: GeometricTheorem.generate_detailed_feedback() got an unexpected keyword argument 'error_message'
+Error in TIER1_THEOREM_CALL_SYNTAX_VIOLATION: Theorem 'sector_area_formula' is not recognized or its premise validation is not supported by the current verifier version.
 Model Answer:
-
+RETRY_ANSWER:
+1331*pi/72
+RETRY_THEOREM_SEQUENCE:
+1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
+2; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
+3; sector_area_formula(1,YXZ); Arc(YXZ); ["Equal(AreaOfSector(YXZ),Mul(MeasureOfArc(YXZ),1/360*pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
 #run: 0; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error during proof verification: GeometricTheorem.generate_detailed_feedback() got an unexpected keyword argument 'error_message'
+Failure: Theorem <circle_area_formula> variation id is not supplied. Expected dict_keys(['1']) but got None.
+Your call: circle_area_formula(Y)
+Please rewrite your response by adding the variation id as the first argument. For example: For variation 1: circle_area_formula(1,Y)
+
 Model Answer:
 RETRY_ANSWER:
-54
+1331*pi/72
 RETRY_THEOREM_SEQUENCE:
-1; triangle_area_formula_sine(1,CAB); Polygon(CAB); ["Equal(AreaOfTriangle(CAB),Mul(LengthOfLine(CA),LengthOfLine(CB),Sin(MeasureOfAngle(BCA)),1/2))"]
-#run: 0; #retry: 4; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
-verification failed.
-
-- Goal: triangle_area ABC
-- Model answer: 54
-- Verifier expected answer: 1.178037432
-- Error: From your proof, the verifier determines the triangle_area of ABC to be 1.178037432, not 54 as you stated in your solution. Check your theorem applications and your answer.
-- Available premises:
-  Perpendicular Lines: AC ⊥ BC
-  Polygons: ABC, ACB
-- Theorems related to the goal:
-  Step 1 - triangle_area_formula_sine(1, ABC): Equal(AreaOfTriangle(ABC),Mul(LengthOfLine(AB),LengthOfLine(AC),Sin(MeasureOfAngle(CAB)),1/2))
-- Solver constraints directly related to this goal:
-  None found
-
-Please fix the proof.
+1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
+2; circle_area_formula(Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
+3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
+#run: 0; #retry: 4; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Error evaluating general goal expression: name 'AreaOfSector' is not defined
 Model Answer:
 RETRY_ANSWER:
-54
+1331*pi/72
 RETRY_THEOREM_SEQUENCE:
-1; triangle_area_formula_sine(1,ABC); Polygon(ABC); ["Equal(AreaOfTriangle(ABC),Mul(LengthOfLine(AB),LengthOfLine(AC),Sin(MeasureOfAngle(CAB)),1/2))"]
+1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
+2; circle_area_formula(1,Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
+3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
 #run: 0; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error during proof verification: GeometricTheorem.generate_detailed_feedback() got an unexpected keyword argument 'error_message'
+Error evaluating general goal expression: name 'AreaOfSector' is not defined
 Model Answer:
 RETRY_ANSWER:
-54
+1331*pi/72
 RETRY_THEOREM_SEQUENCE:
-1; triangle_area_formula_sine(1,CAB); Polygon(CAB); ["Equal(AreaOfTriangle(CAB),Mul(LengthOfLine(CA),LengthOfLine(CB),Sin(MeasureOfAngle(BCA)),1/2))"]
+1; radius_of_circle_property_length_equal(1,YZ,Y); Cocircular(Y,Z)&Line(YZ)&IsCentreOfCircle(Y,Y); ["Equal(LengthOfLine(YZ),RadiusOfCircle(Y))"]
+2; circle_area_formula(1,Y); Circle(Y); ["Equal(AreaOfCircle(Y),Mul(pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]
+3; arc_property_center_angle(1,YXZ,Y); Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y); ["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
 #RETRIES:
 5
 #RUNS:
@@ -116,9 +120,15 @@ RETRY_THEOREM_SEQUENCE:
 
 
 GT_EQUATIONS:
-ll_ab-15
-ll_ac-9
-ll_bc-12
-ma_bca-90
+ll_yz-11
+ll_yz-rc_y
+ma_xyz-55
+rc_y-11
 GT_GOAL_SYMBOL:
-at_abc
+as_yxz
+GT_ANSWER:
+7381*pi/72
+GT_THEOREM_SEQUENCE:
+1;round_angle(1,XYZ,ZYX);Angle(XYZ)&Angle(ZYX);["Equal(Add(MeasureOfAngle(XYZ),MeasureOfAngle(ZYX)),360)"]
+2;arc_property_center_angle(1,YXZ,Y);Arc(YXZ)&Angle(ZYX)&IsCentreOfCircle(Y,Y);["Equal(MeasureOfArc(YXZ),MeasureOfAngle(ZYX))"]
+3;sector_area_formula(1,YXZ);Arc(YXZ);["Equal(AreaOfSector(YXZ),Mul(MeasureOfArc(YXZ),1/360*pi,RadiusOfCircle(Y),RadiusOfCircle(Y)))"]

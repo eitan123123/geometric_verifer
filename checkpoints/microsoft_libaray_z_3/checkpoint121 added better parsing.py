@@ -9234,49 +9234,6 @@ class GeometricTheorem:
 
                             print(
                                 f"Added equilateral triangle: {triangle} with all sides equal and all angles = 60°")
-                    elif line.startswith('IsoscelesTriangle('):
-                        match = re.match(r'IsoscelesTriangle\((\w+)\)', line)
-                        if match:
-                            triangle = match.group(1)
-                            print(f"Found isosceles triangle in TEXT_CDL: {triangle}")
-
-                            # Initialize isosceles_triangles if needed
-                            if not hasattr(self, 'isosceles_triangles'):
-                                self.isosceles_triangles = set()
-
-                            # Add all rotations to handle different triangle representations
-                            for i in range(len(triangle)):
-                                rotation = triangle[i:] + triangle[:i]
-                                self.isosceles_triangles.add(rotation)
-
-                            # For a triangle ABC, assuming the pattern is:
-                            # - Equal angles at B and C (second and third vertices)
-                            # - Equal sides AB and AC (connecting first vertex to others)
-
-                            # Add angle equality constraint
-                            # For LNK, this would be angles LNK and NKL
-                            angle1 = self.add_angle(triangle[0], triangle[1], triangle[2])  # LNK
-                            angle2 = self.add_angle(triangle[1], triangle[2], triangle[0])  # NKL
-                            self.solver.add(angle1 == angle2)
-                            print(
-                                f"Added isosceles triangle angle constraint: ∠{triangle[0]}{triangle[1]}{triangle[2]} = ∠{triangle[1]}{triangle[2]}{triangle[0]}")
-
-                            # Add side equality constraint
-                            # For LNK, this would be sides LN and LK
-                            side1 = self.add_length(triangle[0], triangle[1])  # LN
-                            side2 = self.add_length(triangle[0], triangle[2])  # LK
-                            self.solver.add(side1 == side2)
-                            print(
-                                f"Added isosceles triangle side constraint: {triangle[0]}{triangle[1]} = {triangle[0]}{triangle[2]}")
-
-                            # Store the theorem conclusion that would be generated
-                            conclusion = f"Equal(MeasureOfAngle({triangle[0]}{triangle[1]}{triangle[2]}),MeasureOfAngle({triangle[1]}{triangle[2]}{triangle[0]}))"
-                            if not hasattr(self, 'isosceles_conclusions'):
-                                self.isosceles_conclusions = {}
-                            self.isosceles_conclusions[triangle] = [conclusion]
-                            print(f"Stored isosceles triangle conclusion: {conclusion}")
-                        else:
-                            print(f"Warning: Could not parse IsoscelesTriangle line: {line}")
                     elif line.startswith('MirrorCongruentBetweenTriangle('):
                         match = re.match(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', line)
                         if match:
@@ -9604,23 +9561,6 @@ class GeometricTheorem:
                             # Store the altitude fact if needed
                             if not hasattr(self, 'triangle_altitudes'): self.triangle_altitudes = []
                             self.triangle_altitudes.append((altitude_line, triangle))
-                            if not hasattr(self, 'triangle_heights'):
-                                self.triangle_heights = {}
-
-                            # Get the length of the altitude line
-                            altitude_length_var = self.add_length(altitude_line[0], altitude_line[1])
-
-                            # Store this length as the height of the triangle
-                            self.triangle_heights[triangle] = altitude_length_var
-                            print(f"Connected altitude {altitude_line} as the height of triangle {triangle}")
-
-                            # Also store for possible permutations of the triangle name
-                            normalized_triangle = self.normalize_triangle(triangle)
-                            for i in range(3):
-                                variant = normalized_triangle[i:] + normalized_triangle[:i]
-                                if variant != triangle:
-                                    self.triangle_heights[variant] = altitude_length_var
-                                    print(f"Also connected height to triangle variant {variant}")
                     elif line.startswith("IsPerpendicularBisectorOfLine("):
                         # Match a statement like: IsPerpendicularBisectorOfLine(EF,AC)
                         match = re.match(r'IsPerpendicularBisectorOfLine\((\w+),(\w+)\)', line)
