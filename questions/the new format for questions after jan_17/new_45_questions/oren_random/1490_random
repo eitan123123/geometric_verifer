@@ -1,196 +1,288 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, AB=100, BC=60, AC⊥BC. Find the value of sin(CB).
+As shown in the diagram, AB=1, ABCD is a rhombus. Find the value of 1/AM+1/AN.
 CONSTRUCTION_CDL:
-Shape(BA,AC,CB)
+Shape(ND,DC,CN)
+Shape(DA,AB,BC,CD)
+Shape(CB,BM,MC)
+Collinear(ADN)
+Collinear(MCN)
+Collinear(ABM)
 TEXT_CDL:
-Equal(LengthOfLine(AB),100)
-Equal(LengthOfLine(BC),60)
-PerpendicularBetweenLine(AC,BC)
+Equal(LengthOfLine(AB),1)
+Rhombus(ABCD)
 GOAL_CDL:
-Value(Sin(MeasureOfAngle(CBA)))
+Value(Add(Div(1,LengthOfLine(AM)),Div(1,LengthOfLine(AN))))
 CONSTRUCTION_CDL_EXTENDED:
-Shape(AC,CB,BA)
-Shape(CB,BA,AC)
-Point(B)
+Shape(DC,CN,ND)
+Shape(CN,ND,DC)
+Shape(AB,BC,CD,DA)
+Shape(BC,CD,DA,AB)
+Shape(CD,DA,AB,BC)
+Shape(BM,MC,CB)
+Shape(MC,CB,BM)
+Shape(CN,ND,DA,AB,BC)
+Shape(ND,DA,AB,BC,CN)
+Shape(DA,AB,BC,CN,ND)
+Shape(AB,BC,CN,ND,DA)
+Shape(BC,CN,ND,DA,AB)
+Shape(CD,DA,AB,BM,MC)
+Shape(DA,AB,BM,MC,CD)
+Shape(AB,BM,MC,CD,DA)
+Shape(BM,MC,CD,DA,AB)
+Shape(MC,CD,DA,AB,BM)
+Shape(CN,ND,DA,AB,BM,MC)
+Shape(ND,DA,AB,BM,MC,CN)
+Shape(DA,AB,BM,MC,CN,ND)
+Shape(AB,BM,MC,CN,ND,DA)
+Shape(BM,MC,CN,ND,DA,AB)
+Shape(MC,CN,ND,DA,AB,BM)
+Collinear(NDA)
+Collinear(NCM)
+Collinear(MBA)
 Point(A)
+Point(N)
+Point(D)
+Point(M)
 Point(C)
-Line(BA)
+Point(B)
+Line(AN)
+Line(NA)
+Line(AD)
+Line(DA)
+Line(DN)
+Line(ND)
+Line(MN)
+Line(NM)
+Line(MC)
+Line(CM)
+Line(CN)
+Line(NC)
+Line(AM)
+Line(MA)
 Line(AB)
-Line(AC)
-Line(CA)
-Line(CB)
+Line(BA)
+Line(BM)
+Line(MB)
+Line(DC)
+Line(CD)
 Line(BC)
-Angle(BAC)
-Angle(ACB)
-Angle(CBA)
-Angle(CAB)
-Angle(BCA)
+Line(CB)
+Angle(ADN)
+Angle(NDA)
+Angle(MCN)
+Angle(NCM)
+Angle(ABM)
+Angle(MBA)
+Angle(NDC)
+Angle(DCN)
+Angle(CND)
+Angle(DAB)
 Angle(ABC)
-Polygon(BAC)
-Polygon(BCA)
-Polygon(ABC)
-Polygon(ACB)
-Polygon(CBA)
-Polygon(CAB)
+Angle(BCD)
+Angle(CDA)
+Angle(CBM)
+Angle(BMC)
+Angle(MCB)
+Angle(NAB)
+Angle(BCN)
+Angle(AMC)
+Angle(MCD)
+Angle(ADC)
+Angle(NCB)
+Angle(DCM)
+Angle(CBA)
+Angle(DCB)
+Angle(MNA)
+Angle(MND)
+Angle(CNA)
+Angle(DAM)
+Angle(NAM)
+Angle(AMN)
+Angle(BMN)
+Angle(CDN)
+Angle(NCD)
+Angle(DNC)
+Angle(BAD)
+Angle(MBC)
+Angle(CMB)
+Angle(BCM)
+Angle(BAN)
+Angle(CMA)
+Angle(ANM)
+Angle(DNM)
+Angle(ANC)
+Angle(MAD)
+Angle(MAN)
+Angle(NMA)
+Angle(NMB)
+Polygon(NDC)
+Polygon(NCD)
+Polygon(DNC)
+Polygon(DCN)
+Polygon(CND)
+Polygon(CDN)
+Polygon(DABC)
+Polygon(ABCD)
+Polygon(BCDA)
+Polygon(CDAB)
+Polygon(CBM)
+Polygon(CMB)
+Polygon(BCM)
+Polygon(BMC)
+Polygon(MCB)
+Polygon(MBC)
+Polygon(CNAB)
+Polygon(NABC)
+Polygon(ABCN)
+Polygon(BCNA)
+Polygon(CDAM)
+Polygon(DAMC)
+Polygon(AMCD)
+Polygon(MCDA)
+Polygon(NAM)
+Polygon(NMA)
+Polygon(ANM)
+Polygon(AMN)
+Polygon(MNA)
+Polygon(MAN)
+Kite(ABCD)
+Kite(CDAB)
+Kite(BCDA)
+Kite(DABC)
+Parallelogram(ABCD)
+Parallelogram(BCDA)
+Parallelogram(CDAB)
+Parallelogram(DABC)
+Rhombus(BCDA)
+Rhombus(CDAB)
+Rhombus(DABC)
+ParallelBetweenLine(AD,BC)
+ParallelBetweenLine(CB,DA)
+ParallelBetweenLine(BA,CD)
+ParallelBetweenLine(DC,AB)
 SYMBOLS_AND_VALUES:
-LengthOfLine(XZ);ll_xz;14
-LengthOfLine(ZX);ll_xz;14
-LengthOfLine(ZY);ll_zy;10
-LengthOfLine(YZ);ll_zy;10
-MeasureOfAngle(XYZ);ma_xyz;90
-MeasureOfAngle(YZX);ma_yzx;None
+LengthOfLine(AB);ll_ab;6
+LengthOfLine(BA);ll_ab;6
+LengthOfLine(AF);ll_af;8
+LengthOfLine(FA);ll_af;8
+LengthOfLine(BC);ll_bc;None
+LengthOfLine(CB);ll_bc;None
+Free(x);x;None
+LengthOfLine(CD);ll_cd;None
+LengthOfLine(DC);ll_cd;None
+Free(y);y;None
+LengthOfLine(DE);ll_de;None
+LengthOfLine(ED);ll_de;None
+LengthOfLine(FE);ll_fe;None
+LengthOfLine(EF);ll_fe;None
 
 Outputs:
 Outputs for Problem B:
 
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-ll_ab-100
-ll_bc-60
-ma_acb-90
-ll_ac-80
+ll_ab-1
 
 GOAL_SYMBOL:
-Sin(MeasureOfAngle(CBA))
+Add(Div(1,LengthOfLine(AM)),Div(1,LengthOfLine(AN)))
 
 ANSWER:
-0.8
+NoUniqueSolution
 
 THEOREM_SEQUENCE:
-GT_THEOREM_SEQUENCE:
-1;right_triangle_judgment_angle(1,ACB);Polygon(ACB)&Equal(MeasureOfAngle(ACB),90);["RightTriangle(ACB)"]
-2;right_triangle_property_pythagorean(1,ACB);RightTriangle(ACB);["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
-3;cosine_theorem(1,BAC);Polygon(BAC);["Equal(Add(Pow(LengthOfLine(AC),2),Mul(2,LengthOfLine(BA),LengthOfLine(BC),Cos(MeasureOfAngle(CBA)))),Add(Pow(LengthOfLine(BA),2),Pow(LengthOfLine(BC),2)))"]
+(No valid sequence of theorems can uniquely determine 1/AM + 1/AN under the given constraints)
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
-#run: 0; #retry: 1; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+#run: 2; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Failure: Theorem <parallelogram_judgment_parallel_and_parallel> variation id is not supplied. Expected dict_keys(['1']) but got None.
+Your call: parallelogram_judgment_parallel_and_parallel(A,B,C,D)
+Please rewrite your response by adding the variation id as the first argument. For example: For variation 1: parallelogram_judgment_parallel_and_parallel(1,A,B,C,D)
+
+Model Answer:
+RETRY_ANSWER:
+2
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_judgment_parallel_and_parallel(ABCD); Polygon(ABCD)&ParallelBetweenLine(AD,BC)&ParallelBetweenLine(BA,CD); ["Parallelogram(ABCD)"]
+2; parallelogram_property_opposite_line_equal(ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(AB),LengthOfLine(CD))","Equal(LengthOfLine(BC),LengthOfLine(DA))"]
+#run: 2; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Failure: Theorem <parallelogram_property_opposite_line_equal> variation id is not supplied. Expected dict_keys(['1']) but got None.
+Your call: parallelogram_property_opposite_line_equal(A,B,C,D)
+Please rewrite your response by adding the variation id as the first argument. For example: For variation 1: parallelogram_property_opposite_line_equal(1,A,B,C,D)
+
+Model Answer:
+RETRY_ANSWER:
+2
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_judgment_parallel_and_parallel(1,ABCD); Polygon(ABCD)&ParallelBetweenLine(AD,BC)&ParallelBetweenLine(BA,CD); ["Parallelogram(ABCD)"]
+2; parallelogram_property_opposite_line_equal(ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(AB),LengthOfLine(CD))","Equal(LengthOfLine(BC),LengthOfLine(DA))"]
+#run: 2; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: parallelogram_property_opposite_line_equal(1,ABCD)
+You output the following conclusions: Equal(LengthOfLine(AB),LengthOfLine(CD))
+But the correct conclusions: Equal(LengthOfLine(BA),LengthOfLine(CD))
+
+Model Answer:
+RETRY_ANSWER:
+2
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_judgment_parallel_and_parallel(1,ABCD); Polygon(ABCD)&ParallelBetweenLine(AD,BC)&ParallelBetweenLine(BA,CD); ["Parallelogram(ABCD)"]
+2; parallelogram_property_opposite_line_equal(1,ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(AB),LengthOfLine(CD))","Equal(LengthOfLine(BC),LengthOfLine(DA))"]
+#run: 2; #retry: 4; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
 verification failed.
 
-- Goal: sine of angle CBA
-- Model answer: 0.8
-- Error: Your proof doesn't provide enough information to determine this value. You need to add theorems that specifically constrain sine CBA.
+- Goal: value of 1/AM+1/AN
+- Model answer: 2
+- Error: Your proof doesn't uniquely determine the value. You need to use additional theorems to constrain the value.
 - Available premises:
-  Perpendicular Lines: AC ⊥ BC
-  Right Triangles: ACB
-  Polygons: ABC, ACB
+  Parallel Lines: AB ∥ CD, AD ∥ BC
+  Collinear Points: ABM, ADN, MCN
+  Rhombi: BCDA, CDAB, DABC
+  Kites: ABCD, BCDA, CDAB, DABC
+  Polygons: ABCD, ABCN, AMCD, AMN, ANM, BCDA, BCM, BCNA, BMC, CDAB, CDAM, CDN, CNAB, CND, DABC, DAMC, MCDA, NABC
 - Theorems related to the goal:
   None found that constrain this goal
 - Solver constraints directly related to this goal:
-  sin_CBA <= 1
-  sin_CBA >= -1
-  ∠ABC <= 180
-  ∠ABC > 0
+  None found
 
+Your proof doesn't uniquely determine the value. Alternative values:
+  When AM = 0.499999995 and AN = 1.500000005, the sum is 2.666666684444445.
+  When AM = 1.0 and AN = 1.0, the sum is 2.0.
 Please fix the proof.
 Model Answer:
 RETRY_ANSWER:
-0.8
+2
 RETRY_THEOREM_SEQUENCE:
-1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
-2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
-3; sine_theorem(1,ABC); Polygon(ABC); ["Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))"]
-#run: 0; #retry: 2; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
-verification failed.
-
-- Goal: sine of angle CBA
-- Model answer: 0.8
-- Error: Your proof doesn't provide enough information to determine this value. You need to add theorems that specifically constrain sine CBA.
-- Available premises:
-  Perpendicular Lines: AC ⊥ BC
-  Right Triangles: ACB
-  Polygons: ABC, ACB
-- Theorems related to the goal:
-  None found that constrain this goal
-- Solver constraints directly related to this goal:
-  sin_CBA <= 1
-  sin_CBA >= -1
-  ∠ABC <= 180
-  ∠ABC > 0
-
-Please fix the proof.
+1; parallelogram_judgment_parallel_and_parallel(1,ABCD); Polygon(ABCD)&ParallelBetweenLine(AD,BC)&ParallelBetweenLine(BA,CD); ["Parallelogram(ABCD)"]
+2; parallelogram_property_opposite_line_equal(1,ABCD); Parallelogram(ABCD); ["Equal(LengthOfLine(BA),LengthOfLine(CD))"]
+#run: 2; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Failure: Theorem <> not defined in current GDL. Please rewrite the proof sequence, you are allowed to use only theorems from the GDL.
 Model Answer:
 RETRY_ANSWER:
-0.8
+NoUniqueSolution
 RETRY_THEOREM_SEQUENCE:
-1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
-2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
-3; sine_theorem(1,ABC); Polygon(ABC); ["Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))"]
-#run: 0; #retry: 3; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
-verification failed.
-
-- Goal: sine of angle CBA
-- Model answer: 0.8
-- Error: Your proof doesn't provide enough information to determine this value. You need to add theorems that specifically constrain sine CBA.
-- Available premises:
-  Perpendicular Lines: AC ⊥ BC
-  Right Triangles: ACB
-  Polygons: ABC, ACB
-- Theorems related to the goal:
-  None found that constrain this goal
-- Solver constraints directly related to this goal:
-  sin_CBA <= 1
-  sin_CBA >= -1
-  ∠ABC <= 180
-  ∠ABC > 0
-
-Please fix the proof.
-Model Answer:
-RETRY_ANSWER:
-0.8
-RETRY_THEOREM_SEQUENCE:
-1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
-2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
-3; sine_theorem(1,ABC); Polygon(ABC); ["Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))"]
-#run: 0; #retry: 4; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Theorem: right_triangle_property_pythagorean(1,ACB)
-You output the following conclusions: Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(BC),2)),Pow(LengthOfLine(AB),2))
-But the correct conclusions: Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))
-
-Model Answer:
-RETRY_ANSWER:
-0.8
-RETRY_THEOREM_SEQUENCE:
-1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
-2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(BC),2)),Pow(LengthOfLine(AB),2))"]
-3; sine_theorem(1,ABC); Polygon(ABC); ["Equal(Mul(LengthOfLine(AB),Sin(MeasureOfAngle(ABC))),Mul(LengthOfLine(AC),Sin(MeasureOfAngle(BCA))))"]
-#run: 0; #retry: 5; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
-verification failed.
-
-- Goal: sine of angle CBA
-- Model answer: 0.8
-- Error: Your proof doesn't provide enough information to determine this value. You need to add theorems that specifically constrain sine CBA.
-- Available premises:
-  Perpendicular Lines: AC ⊥ BC
-  Right Triangles: ACB
-  Polygons: ABC, ACB
-- Theorems related to the goal:
-  Step 3 - sine_theorem(1, ACB): Equal(Mul(LengthOfLine(AC),Sin(MeasureOfAngle(ACB))),Mul(LengthOfLine(AB),Sin(MeasureOfAngle(CBA))))
-- Solver constraints directly related to this goal:
-  sin_CBA <= 1
-  sin_CBA >= -1
-  ∠ABC <= 180
-  ∠ABC > 0
-
-Please fix the proof.
-Model Answer:
-RETRY_ANSWER:
-0.8
-RETRY_THEOREM_SEQUENCE:
-1; right_triangle_judgment_angle(1,ACB); Polygon(ACB)&Equal(MeasureOfAngle(ACB),90); ["RightTriangle(ACB)"]
-2; right_triangle_property_pythagorean(1,ACB); RightTriangle(ACB); ["Equal(Add(Pow(LengthOfLine(AC),2),Pow(LengthOfLine(CB),2)),Pow(LengthOfLine(AB),2))"]
-3; sine_theorem(1,ACB); Polygon(ACB); ["Equal(Mul(LengthOfLine(AC),Sin(MeasureOfAngle(ACB))),Mul(LengthOfLine(AB),Sin(MeasureOfAngle(CBA))))"]
+(No valid sequence of theorems can uniquely determine 1/AM + 1/AN under the given constraints)
 #RETRIES:
 5
 #RUNS:
-0
+2
 
 
 GT_EQUATIONS:
-ll_ab-100
-ll_bc-60
-ma_acb-90
+ll_ab-1
+ll_ab-ll_ad
+ll_cb-ll_cd
+-ll_ab+ll_cb
+-ll_ad+ll_cd
+ll_ad-1
+ll_cb-1
+ll_cd-1
 GT_GOAL_SYMBOL:
-sin(pi*ma_cba/180)
+1/ll_an+1/ll_am
 GT_ANSWER:
-4/5
+1
+GT_THEOREM_SEQUENCE:
+1;parallel_property_corresponding_angle(2,AD,BC,M);ParallelBetweenLine(AD,BC)&Collinear(ABM);["Equal(MeasureOfAngle(DAB),MeasureOfAngle(CBM))"]
+2;line_addition(1,AB,BM);Collinear(ABM);["Equal(LengthOfLine(AM),Add(LengthOfLine(AB),LengthOfLine(BM)))"]
+3;similar_triangle_judgment_aa(1,NAM,CBM);Polygon(NAM)&Polygon(CBM)&Equal(MeasureOfAngle(NAM),MeasureOfAngle(CBM))&Equal(MeasureOfAngle(AMN),MeasureOfAngle(BMC));["SimilarBetweenTriangle(NAM,CBM)"]
+4;similar_triangle_property_line_ratio(1,NAM,CBM);SimilarBetweenTriangle(NAM,CBM);["Equal(LengthOfLine(AM),Mul(LengthOfLine(BM),RatioOfSimilarTriangle(NAM,CBM)))"]
+5;similar_triangle_property_line_ratio(1,MNA,MCB);SimilarBetweenTriangle(MNA,MCB);["Equal(LengthOfLine(NA),Mul(LengthOfLine(CB),RatioOfSimilarTriangle(MNA,MCB)))"]
