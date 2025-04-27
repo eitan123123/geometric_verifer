@@ -5180,7 +5180,7 @@ class GeometricTheorem:
                 # For simplicity, we'll skip this check for now
 
                 return True, None
-            elif version == "2":
+            else:
                 return return_error(GeometricError(
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
                     message="these is no such version for the theorem",
@@ -10868,7 +10868,7 @@ class GeometricTheorem:
                                             model_answer=model_answer_symbolic,
                                             verifier_expected_answer=None,
                                             status="multiple_values",
-                                            additional_info=f"Your proof doesn't uniquely determine the value. Alternative values:\n"
+                                            additional_info=f"Your proof doesn't uniquely determine the value.\n"
                                         )
                                         return False, detailed_feedback
 
