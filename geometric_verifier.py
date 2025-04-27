@@ -3903,6 +3903,13 @@ class GeometricTheorem:
                     message="these is no such version for the theorem",
                     details="these is no such version for the theorem diameter_of_circle_judgment_pass_centre"
                 ))
+            else:
+
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem diameter_of_circle_judgment_pass_centre"
+                ))
 
 
         elif theorem_name == "congruent_arc_judgment_chord_equal":
@@ -4846,7 +4853,12 @@ class GeometricTheorem:
                     ))
 
                 return True, None
-
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem median_of_triangle_judgment"
+                ))
 
 
         elif theorem_name == "incenter_of_triangle_judgment_intersection":
@@ -6376,7 +6388,14 @@ class GeometricTheorem:
 
 
         elif theorem_name == "isosceles_triangle_property_angle_equal":
+            version = args[0]
 
+            if version != "1":
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem isosceles_triangle_property_angle_equal"
+                ))
             # Expected theorem call: isosceles_triangle_property_angle_equal(1, T)
 
             # where T is a triangle name (e.g., "JPN").
@@ -6414,15 +6433,6 @@ class GeometricTheorem:
                 ))
 
             return True, None
-
-
-
-
-
-
-
-
-
 
         elif theorem_name == "isosceles_triangle_judgment_line_equal":
 
@@ -6503,7 +6513,14 @@ class GeometricTheorem:
 
 
         elif theorem_name == "rectangle_property_diagonal_equal":
+            version = args[0]
 
+            if version != "1":  # Updated to include version "2"
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem rectangle_property_diagonal_equal"
+                ))
             # Expected theorem call: rectangle_property_diagonal_equal(1, PNML)
 
             # And the premise should include a clause like "Rectangle(PNML)".
@@ -7282,10 +7299,6 @@ class GeometricTheorem:
 
             return True, None
 
-
-
-
-
         elif theorem_name == "arc_length_formula":
             version = args[0]
 
@@ -7763,7 +7776,14 @@ class GeometricTheorem:
 
 
         elif theorem_name == "arc_property_center_angle":
+            version = args[0]
 
+            if version != "1":
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem arc_property_center_angle"
+                ))
             # Expected premise: e.g. "Arc(OMN)&Angle(NOM)&IsCentreOfCircle(O,O)"
 
             # Extract the arc fact.
@@ -7858,7 +7878,14 @@ class GeometricTheorem:
 
 
         elif theorem_name == "arc_property_circumference_angle_external":
+            version = args[0]
 
+            if version != "1":
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem arc_property_circumference_angle_external"
+                ))
             # Expected premise: e.g. "Cocircular(O,MNB)&Angle(NBM)"
 
             # Extract the cocircular fact.
@@ -8879,11 +8906,12 @@ class GeometricTheorem:
                         details="Required for angle addition"
                     ))
                 return True, None
-            return return_error(GeometricError(
-                tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                message=f"no such version for the theorem angle_addition",
-                details="no such version for the theorem angle_addition"
-            ))
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"no such version for the theorem angle_addition",
+                    details="no such version for the theorem angle_addition"
+                ))
 
 
         elif theorem_name == "quadrilateral_property_angle_sum":
