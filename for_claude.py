@@ -2472,7 +2472,79 @@ class GeometricTheorem:
                     message="these is no such version for the theorem",
                     details="these is no such version for the theorem adjacent_complementary_angle"
                 ))
+        elif theorem_name == "diameter_of_circle_judgment_right_angle":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for diameter_of_circle_judgment_right_angle",
+                        details="Expected: diameter_of_circle_judgment_right_angle(1, angle, circle)"
+                    ))
 
+                angle_token = args[1].strip()  # e.g., "BCA"
+                circle_token = args[2].strip()  # e.g., "O"
+
+                # Check for the cocircular fact
+                cocircular_pattern = r'Cocircular\(' + re.escape(circle_token) + r',.*' + re.escape(
+                    angle_token) + r'.*\)'
+                alt_pattern = r'Cocircular\(' + re.escape(circle_token) + r',.*[' + ''.join(angle_token) + r'].*\)'
+
+                cocircular_match = re.search(cocircular_pattern, premise) or re.search(alt_pattern, premise)
+                if not cocircular_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Cocircular({circle_token},...) fact including points in {angle_token}",
+                        details="diameter_of_circle_judgment_right_angle requires points to lie on the circle"
+                    ))
+
+                # Check if the cocircular fact is established in the system
+                cocircular_found = False
+                for fact in self.cocircular_facts:
+                    if fact[0] == circle_token and all(point in ''.join(fact[1:]) for point in angle_token):
+                        cocircular_found = True
+                        break
+
+                if not cocircular_found:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Points in {angle_token} not proven to lie on circle {circle_token}",
+                        details=f"Known cocircular facts: {self.cocircular_facts}"
+                    ))
+
+                # Check for the 90-degree angle fact
+                angle_pattern = r'Equal\(MeasureOfAngle\(' + re.escape(angle_token) + r'\),90\)'
+                angle_match = re.search(angle_pattern, premise)
+                if not angle_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Equal(MeasureOfAngle({angle_token}),90) fact",
+                        details="diameter_of_circle_judgment_right_angle requires a 90-degree angle"
+                    ))
+
+                # Check if the 90-degree angle is established in the solver
+                angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
+
+                # Create temporary solver to check if angle must be 90
+                temp_solver = Solver()
+                for c in self.solver.assertions():
+                    temp_solver.add(c)
+
+                temp_solver.add(angle_var != 90)
+                if temp_solver.check() != unsat:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Angle {angle_token} is not proven to be 90 degrees",
+                        details="The solver constraints do not force this angle to be 90 degrees"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for diameter_of_circle_judgment_right_angle",
+                    details="Only version 1 is supported"
+                ))
 
         elif theorem_name == "right_triangle_judgment_angle":
             # Expecting something like: "Polygon(GHE)&Equal(MeasureOfAngle(GHE),90)"
@@ -6126,6 +6198,92 @@ class GeometricTheorem:
                 return GeometricError(
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
                     message=f"Unsupported version {version} for bisector_of_angle_judgment_angle_equal",
+                    details="Only version 1 is supported"
+                )
+
+        elif theorem_name == "diameter_of_circle_judgment_right_angle":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for diameter_of_circle_judgment_right_angle",
+                        details="Expected: diameter_of_circle_judgment_right_angle(1, angle, circle)"
+                    )
+
+                angle_token = args[1].strip()  # e.g., "BCA"
+                circle_token = args[2].strip()  # e.g., "O"
+
+                # Parse the conclusion to extract the diameter line
+                diameter_match = re.search(r'IsDiameterOfCircle\((\w+),(\w+)\)', conclusions[0])
+                if not diameter_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for diameter_of_circle_judgment_right_angle",
+                        details=f"Expected IsDiameterOfCircle(...) pattern but got {conclusions[0]}"
+                    )
+
+                diameter_line, conclusion_circle = diameter_match.groups()
+
+                # Verify the circle in the conclusion matches the one in the arguments
+                if conclusion_circle != circle_token:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message=f"Circle mismatch: argument has {circle_token} but conclusion has {conclusion_circle}",
+                        details="The circle in the conclusion must match the one in the arguments"
+                    )
+
+                # Extract the endpoints of the diameter (the non-vertex points of the angle)
+                # For angle BCA, the diameter is AB
+                vertex = angle_token[1]  # Middle letter is the vertex (e.g., "C")
+                endpoints = [p for p in angle_token if p != vertex]  # e.g., ["B", "A"]
+                expected_diameter = ''.join(endpoints)  # e.g., "BA"
+
+                # Check if the diameter in the conclusion matches the expected one (considering both orders)
+                if diameter_line != expected_diameter and diameter_line != expected_diameter[::-1]:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message=f"Diameter mismatch: expected {expected_diameter} or {expected_diameter[::-1]} but got {diameter_line}",
+                        details="The diameter in the conclusion must connect the non-vertex points of the angle"
+                    )
+
+                # Record the diameter fact
+                if not hasattr(self, "is_diameter_of_circle"):
+                    self.is_diameter_of_circle = []
+
+                # Add both the original and reversed diameter lines
+                if (diameter_line, circle_token) not in self.is_diameter_of_circle:
+                    self.is_diameter_of_circle.append((diameter_line, circle_token))
+
+                if (diameter_line[::-1], circle_token) not in self.is_diameter_of_circle:
+                    self.is_diameter_of_circle.append((diameter_line[::-1], circle_token))
+
+                # If you have diameter and radius variables, establish the relationship
+                if hasattr(self, "circle_radii") and hasattr(self, "circle_diameters"):
+                    if circle_token in self.circle_radii:
+                        # Create diameter variable if it doesn't exist
+                        diam_name = f"diameter_{circle_token}"
+                        if diam_name not in self.circle_diameters:
+                            self.circle_diameters[diam_name] = Real(diam_name)
+                            self.solver.add(self.circle_diameters[diam_name] >= 0)
+
+                        # Create length variable for the diameter
+                        diam_length = self.add_length(diameter_line[0], diameter_line[1])
+
+                        # Set diameter length = diameter variable
+                        self.solver.add(diam_length == self.circle_diameters[diam_name])
+
+                        # Set diameter = 2 * radius
+                        radius_var = self.circle_radii[circle_token]
+                        self.solver.add(self.circle_diameters[diam_name] == 2 * radius_var)
+
+                print(
+                    f"Added diameter fact: {diameter_line} is a diameter of circle {circle_token} (by right angle inscribed in semicircle)")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for diameter_of_circle_judgment_right_angle",
                     details="Only version 1 is supported"
                 )
 

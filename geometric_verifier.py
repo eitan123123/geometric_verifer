@@ -20,10 +20,12 @@ PLEASE_FIX_PROOF = "\nPlease fix the proof."
 GOAL_ANGLE = "- Goal: measure of angle {0}\n"
 GOAL_LENGTH = "- Goal: length of line {0}\n"
 GOAL_ARC_MEASURE = "- Goal: measure of arc {0}\n"
+GOAL_RADIUS = "- Goal: radius of circle {0}\n"
 GOAL_ARC_LENGTH = "- Goal: length of arc {0}\n"
 GOAL_COSINE = "- Goal: cosine of angle {0}\n"
 GOAL_SINE = "- Goal: sine of angle {0}\n"
 GOAL_SUM = "- Goal: sum of lines {0} + {1}\n"
+GOAL_RADIUS = "- Goal: radius of circle {0}\n"
 GOAL_RATIO = "- Goal: ratio of lines {0} / {1}\n"
 GOAL_PERIMETER = "- Goal: perimeter of triangle {0}\n"
 GOAL_QUAD_AREA = "- Goal: area of quadrilateral {0}\n"
@@ -256,6 +258,8 @@ class GeometricTheorem:
                 report += GOAL_PERIMETER.format(goal_token)
             elif goal_type == "quad_area":
                 report += GOAL_QUAD_AREA.format(goal_token)
+            elif goal_type == "radius":
+                report += GOAL_RADIUS.format(goal_token)
             elif goal_type == "general":
                 report += GOAL_GENERAL.format(goal_token)
             else:
@@ -2707,6 +2711,81 @@ class GeometricTheorem:
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
                     message="these is no such version for the theorem",
                     details="these is no such version for the theorem circle_property_angle_of_osculation"
+                ))
+
+
+        elif theorem_name == "diameter_of_circle_judgment_right_angle":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for diameter_of_circle_judgment_right_angle",
+                        details="Expected: diameter_of_circle_judgment_right_angle(1, angle, circle)"
+                    ))
+
+                angle_token = args[1].strip()  # e.g., "BCA"
+                circle_token = args[2].strip()  # e.g., "O"
+
+                # Check for the cocircular fact
+                cocircular_pattern = r'Cocircular\(' + re.escape(circle_token) + r',.*' + re.escape(
+                    angle_token) + r'.*\)'
+                alt_pattern = r'Cocircular\(' + re.escape(circle_token) + r',.*[' + ''.join(angle_token) + r'].*\)'
+
+                cocircular_match = re.search(cocircular_pattern, premise) or re.search(alt_pattern, premise)
+                if not cocircular_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Cocircular({circle_token},...) fact including points in {angle_token}",
+                        details="diameter_of_circle_judgment_right_angle requires points to lie on the circle"
+                    ))
+
+                # Check if the cocircular fact is established in the system
+                cocircular_found = False
+                for fact in self.cocircular_facts:
+                    if fact[0] == circle_token and all(point in ''.join(fact[1:]) for point in angle_token):
+                        cocircular_found = True
+                        break
+
+                if not cocircular_found:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Points in {angle_token} not proven to lie on circle {circle_token}",
+                        details=f"Known cocircular facts: {self.cocircular_facts}"
+                    ))
+
+                # Check for the 90-degree angle fact
+                angle_pattern = r'Equal\(MeasureOfAngle\(' + re.escape(angle_token) + r'\),90\)'
+                angle_match = re.search(angle_pattern, premise)
+                if not angle_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing Equal(MeasureOfAngle({angle_token}),90) fact",
+                        details="diameter_of_circle_judgment_right_angle requires a 90-degree angle"
+                    ))
+
+                # Check if the 90-degree angle is established in the solver
+                angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
+
+                # Create temporary solver to check if angle must be 90
+                temp_solver = Solver()
+                for c in self.solver.assertions():
+                    temp_solver.add(c)
+
+                temp_solver.add(angle_var != 90)
+                if temp_solver.check() != unsat:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Angle {angle_token} is not proven to be 90 degrees",
+                        details="The solver constraints do not force this angle to be 90 degrees"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message="these is no such version for the theorem",
+                    details="these is no such version for the theorem diameter_of_circle_judgment_right_angle"
                 ))
 
         elif theorem_name == "bisector_of_angle_judgment_angle_equal":
@@ -10502,7 +10581,7 @@ class GeometricTheorem:
                 goal_line = sections[GOAL_CDL][0]
 
                 def parse_special_answer(answer_str):
-                    """Parse answer strings including those with square root symbol."""
+                    """Parse answer strings including complex trigonometric expressions."""
                     import math
                     import re
 
@@ -10511,6 +10590,27 @@ class GeometricTheorem:
 
                     # Remove whitespace
                     answer_str = answer_str.strip()
+
+                    # Handle trig expressions with pi/180 conversion
+                    if 'sin(' in answer_str.lower() or 'cos(' in answer_str.lower() or 'tan(' in answer_str.lower():
+                        try:
+                            # Replace pi with math.pi
+                            modified_str = answer_str.replace('pi', 'math.pi')
+
+                            # Create a safe environment with only math functions
+                            safe_globals = {
+                                'math': math,
+                                'sin': math.sin,
+                                'cos': math.cos,
+                                'tan': math.tan,
+                                'sqrt': math.sqrt
+                            }
+
+                            # Try direct evaluation with math functions
+                            return float(eval(modified_str, {"__builtins__": {}}, safe_globals)), original_symbolic
+                        except Exception as e:
+                            print(f"Error evaluating trig expression: {e}")
+                            # Continue to other methods if this fails
 
                     # Handle √ symbol format: 6(√6-1)
                     if '√' in answer_str:
@@ -10551,16 +10651,37 @@ class GeometricTheorem:
 
                     # Standard eval with math functions
                     try:
-                        return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt})), original_symbolic
-                    except Exception:
+                        safe_globals = {
+                            "pi": math.pi,
+                            "sqrt": math.sqrt,
+                            "sin": math.sin,
+                            "cos": math.cos,
+                            "tan": math.tan
+                        }
+                        return float(eval(answer_str, {"__builtins__": {}}, safe_globals)), original_symbolic
+                    except Exception as e:
+                        print(f"Error in standard eval: {e}")
                         # Fall back to Fraction
                         from fractions import Fraction
                         try:
                             return float(Fraction(answer_str)), original_symbolic
                         except Exception as e:
                             print(f"Error with Fraction conversion: {e}")
-                            # As a last resort, return a default value or raise an exception
-                            raise ValueError(f"Could not parse: {answer_str}")
+                            # Try numerical approximation for complex expressions
+                            try:
+                                # Replace mathematical functions with their math module equivalents
+                                answer_str = answer_str.replace('sin', 'math.sin')
+                                answer_str = answer_str.replace('cos', 'math.cos')
+                                answer_str = answer_str.replace('tan', 'math.tan')
+                                answer_str = answer_str.replace('pi', 'math.pi')
+
+                                # Evaluate with a safe environment
+                                result = eval(answer_str, {"__builtins__": {}}, {"math": math})
+                                return float(result), original_symbolic
+                            except Exception as e:
+                                print(f"Error with numerical approximation: {e}")
+                                # As a last resort, return a default value or raise an exception
+                                raise ValueError(f"Could not parse: {answer_str}")
 
                 answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
                 if answer_str is None:
@@ -10633,6 +10754,157 @@ class GeometricTheorem:
                         )
                         print(f"Detailed feedback generated for arc length goal.")
                         return False, detailed_feedback
+
+                radius_match = re.search(r'Value\(RadiusOfCircle\((\w+)\)\)', goal_line)
+                if radius_match:
+                    circle_token = radius_match.group(1)
+                    print(f"\nGoal radius of circle: {circle_token}")
+
+                    # Check if the circle has been defined
+                    if not hasattr(self, 'circle_radii'):
+                        self.circle_radii = {}
+
+                    # Get or create the radius variable
+                    if circle_token not in self.circle_radii:
+                        radius_var = Real(f"radius_{circle_token}")
+                        self.circle_radii[circle_token] = radius_var
+                        self.solver.add(radius_var > 0)  # Radius must be positive
+                    else:
+                        radius_var = self.circle_radii[circle_token]
+
+                    # Check if the value matches the expected answer
+                    success, value, status = self.check_value_constraint(radius_var, model_answer_numeric)
+
+                    if success:
+                        print(
+                            f"Success: Radius of circle {circle_token} is uniquely determined to be {model_answer_numeric}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="radius",
+                            goal_token=circle_token,
+                            model_answer=model_answer_symbolic,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for circle radius goal.")
+                        return False, detailed_feedback
+
+                # Add this new goal handler in the parse_and_verify_proof method
+                # (place it before the general_match block, after the radius_match handler we just added)
+
+                # Reciprocal sum goal: Value(Add(Div(1,LengthOfLine(X)),Div(1,LengthOfLine(Y))))
+                reciprocal_sum_match = re.search(
+                    r'Value\(Add\(Div\(1,LengthOfLine\((\w+)\)\),Div\(1,LengthOfLine\((\w+)\)\)\)\)', goal_line)
+                if reciprocal_sum_match:
+                    line1 = reciprocal_sum_match.group(1)  # First line (e.g., "AM")
+                    line2 = reciprocal_sum_match.group(2)  # Second line (e.g., "AN")
+
+                    print(f"\nGoal reciprocal sum: 1/LengthOfLine({line1}) + 1/LengthOfLine({line2})")
+                    goal_token = f"1/{line1}+1/{line2}"  # For feedback reporting
+
+                    # Get the length variables for both lines
+                    len1 = self.add_length(line1[0], line1[1])
+                    len2 = self.add_length(line2[0], line2[1])
+
+                    if self.solver.check() == sat:
+                        model = self.solver.model()
+                        try:
+                            # Evaluate the lengths
+                            len1_val = float(model.eval(len1).as_decimal(10).rstrip('?'))
+                            len2_val = float(model.eval(len2).as_decimal(10).rstrip('?'))
+
+                            # Check for division by zero
+                            if abs(len1_val) < epsilon or abs(len2_val) < epsilon:
+                                error_msg = "Division by zero in reciprocal sum"
+                                print(f"Error: {error_msg}")
+                                detailed_feedback = self.generate_detailed_feedback(
+                                    goal_type="general",
+                                    goal_token=goal_token,
+                                    model_answer=model_answer_symbolic,
+                                    status="insufficient_info",
+                                    additional_info=f"Error: {error_msg}. Your proof constrains {line1} = {len1_val} or {line2} = {len2_val}, which would cause division by zero."
+                                )
+                                return False, detailed_feedback
+
+                            # Calculate the expected answer: 1/len1 + 1/len2
+                            verifier_expected_answer = (1.0 / len1_val) + (1.0 / len2_val)
+
+                            # Check if the lengths are uniquely determined
+                            temp_solver = Solver()
+                            for c in self.solver.assertions():
+                                temp_solver.add(c)
+
+                            # Try to find alternative values for the lengths
+                            temp_solver.add(Or(
+                                len1 < len1_val - epsilon,
+                                len1 > len1_val + epsilon,
+                                len2 < len2_val - epsilon,
+                                len2 > len2_val + epsilon
+                            ))
+
+                            if temp_solver.check() == sat:
+                                # Multiple values possible
+                                alt_model = temp_solver.model()
+                                alt_len1_val = float(alt_model.eval(len1).as_decimal(10).rstrip('?'))
+                                alt_len2_val = float(alt_model.eval(len2).as_decimal(10).rstrip('?'))
+
+                                # Check for division by zero in the alternative solution
+                                if abs(alt_len1_val) < epsilon or abs(alt_len2_val) < epsilon:
+                                    print("Alternative solution involves division by zero, ignoring")
+                                else:
+                                    alt_sum = (1.0 / alt_len1_val) + (1.0 / alt_len2_val)
+
+                                    # If the alternative sum is very close to the expected sum,
+                                    # then the reciprocal sum might still be uniquely determined
+                                    if abs(alt_sum - verifier_expected_answer) < epsilon:
+                                        print(f"Alternative lengths give the same sum, continuing validation")
+                                    else:
+                                        # Generate detailed feedback for multiple values
+                                        detailed_feedback = self.generate_detailed_feedback(
+                                            goal_type="general",
+                                            goal_token=goal_token,
+                                            model_answer=model_answer_symbolic,
+                                            verifier_expected_answer=None,
+                                            status="multiple_values",
+                                            additional_info=f"Your proof doesn't uniquely determine the value. Alternative values:\n" +
+                                                            f"  When {line1} = {alt_len1_val} and {line2} = {alt_len2_val}, the sum is {alt_sum}.\n" +
+                                                            f"  When {line1} = {len1_val} and {line2} = {len2_val}, the sum is {verifier_expected_answer}."
+                                        )
+                                        return False, detailed_feedback
+
+                            # Check if the computed value matches the expected answer
+                            if abs(verifier_expected_answer - model_answer_numeric) < epsilon:
+                                return True, ""
+                            else:
+                                # Generate detailed feedback for incompatible values
+                                detailed_feedback = self.generate_detailed_feedback(
+                                    goal_type="general",
+                                    goal_token=goal_token,
+                                    model_answer=model_answer_symbolic,
+                                    verifier_expected_answer=verifier_expected_answer,
+                                    status="incompatible",
+                                    additional_info=f"Your proof constrains the lengths to {line1} = {len1_val} and {line2} = {len2_val},\n" +
+                                                    f"which gives 1/{line1} + 1/{line2} = {verifier_expected_answer}, not {model_answer_numeric}."
+                                )
+                                return False, detailed_feedback
+
+                        except Exception as e:
+                            error_msg = f"Error calculating reciprocal sum: {str(e)}"
+                            print(f"Error: {error_msg}")
+                            return False, error_msg
+                    else:
+                        # Generate detailed feedback for unsatisfiable system
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="general",
+                            goal_token=goal_token,
+                            model_answer=model_answer_symbolic,
+                            status="unsatisfiable"
+                        )
+                        return False, detailed_feedback
+
+
 
                 triangle_area_match = re.search(r'Value\(AreaOfTriangle\((\w+)\)\)', goal_line)
                 if triangle_area_match:
@@ -11755,7 +12027,8 @@ class GeometricTheorem:
             "rectangle_judgment_right_angle",
             "circle_property_angle_of_osculation",
             "bisector_of_angle_judgment_angle_equal",
-            "bisector_of_angle_property_line_ratio"
+            "bisector_of_angle_property_line_ratio",
+            "diameter_of_circle_judgment_right_angle"
         ]
 
         if theorem_name not in valid_theorems:
@@ -11929,6 +12202,94 @@ class GeometricTheorem:
                     message=f"Unsupported version {version} for bisector_of_angle_property_line_ratio",
                     details="Only version 1 is supported"
                 )
+
+
+        elif theorem_name == "diameter_of_circle_judgment_right_angle":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for diameter_of_circle_judgment_right_angle",
+                        details="Expected: diameter_of_circle_judgment_right_angle(1, angle, circle)"
+                    )
+
+                angle_token = args[1].strip()  # e.g., "BCA"
+                circle_token = args[2].strip()  # e.g., "O"
+
+                # Parse the conclusion to extract the diameter line
+                diameter_match = re.search(r'IsDiameterOfCircle\((\w+),(\w+)\)', conclusions[0])
+                if not diameter_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for diameter_of_circle_judgment_right_angle",
+                        details=f"Expected IsDiameterOfCircle(...) pattern but got {conclusions[0]}"
+                    )
+
+                diameter_line, conclusion_circle = diameter_match.groups()
+
+                # Verify the circle in the conclusion matches the one in the arguments
+                if conclusion_circle != circle_token:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message=f"Circle mismatch: argument has {circle_token} but conclusion has {conclusion_circle}",
+                        details="The circle in the conclusion must match the one in the arguments"
+                    )
+
+                # Extract the endpoints of the diameter (the non-vertex points of the angle)
+                # For angle BCA, the diameter is AB
+                vertex = angle_token[1]  # Middle letter is the vertex (e.g., "C")
+                endpoints = [p for p in angle_token if p != vertex]  # e.g., ["B", "A"]
+                expected_diameter = ''.join(endpoints)  # e.g., "BA"
+
+                # Check if the diameter in the conclusion matches the expected one (considering both orders)
+                if diameter_line != expected_diameter and diameter_line != expected_diameter[::-1]:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message=f"Diameter mismatch: expected {expected_diameter} or {expected_diameter[::-1]} but got {diameter_line}",
+                        details="The diameter in the conclusion must connect the non-vertex points of the angle"
+                    )
+
+                # Record the diameter fact
+                if not hasattr(self, "is_diameter_of_circle"):
+                    self.is_diameter_of_circle = []
+
+                # Add both the original and reversed diameter lines
+                if (diameter_line, circle_token) not in self.is_diameter_of_circle:
+                    self.is_diameter_of_circle.append((diameter_line, circle_token))
+
+                if (diameter_line[::-1], circle_token) not in self.is_diameter_of_circle:
+                    self.is_diameter_of_circle.append((diameter_line[::-1], circle_token))
+
+                # If you have diameter and radius variables, establish the relationship
+                if hasattr(self, "circle_radii") and hasattr(self, "circle_diameters"):
+                    if circle_token in self.circle_radii:
+                        # Create diameter variable if it doesn't exist
+                        diam_name = f"diameter_{circle_token}"
+                        if diam_name not in self.circle_diameters:
+                            self.circle_diameters[diam_name] = Real(diam_name)
+                            self.solver.add(self.circle_diameters[diam_name] >= 0)
+
+                        # Create length variable for the diameter
+                        diam_length = self.add_length(diameter_line[0], diameter_line[1])
+
+                        # Set diameter length = diameter variable
+                        self.solver.add(diam_length == self.circle_diameters[diam_name])
+
+                        # Set diameter = 2 * radius
+                        radius_var = self.circle_radii[circle_token]
+                        self.solver.add(self.circle_diameters[diam_name] == 2 * radius_var)
+
+                print(
+                    f"Added diameter fact: {diameter_line} is a diameter of circle {circle_token} (by right angle inscribed in semicircle)")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for diameter_of_circle_judgment_right_angle",
+                    details="Only version 1 is supported"
+                )
+
 
         elif theorem_name == "rectangle_judgment_right_angle":
             version = args[0]
@@ -15455,7 +15816,7 @@ class GeometricTheorem:
 
                         print(f"Added cosine theorem constraint for triangle with angle {angle_str}")
 
-                        return None
+
 
                     else:
 
