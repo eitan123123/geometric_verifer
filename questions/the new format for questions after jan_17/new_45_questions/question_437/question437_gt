@@ -546,11 +546,10 @@ dc_b-20
 dc_c-14
 GOAL_SYMBOL:
 ll_by
-ANSWER:
+GT_ANSWER:
 3
-THEOREM_SEQUENCE:
+GT_THEOREM_SEQUENCE:
 1;line_addition(1,BY,YC);Collinear(BYC);["Equal(LengthOfLine(BC),Add(LengthOfLine(BY),LengthOfLine(YC)))"]
-
 2;radius_of_circle_property_length_equal(1,BC,B);Cocircular(B,C)&Line(BC)&IsCentreOfCircle(B,B);["Equal(LengthOfLine(BC),RadiusOfCircle(B))"]
 3;radius_of_circle_property_length_equal(1,CY,C);Cocircular(C,Y)&Line(CY)&IsCentreOfCircle(C,C);["Equal(LengthOfLine(CY),RadiusOfCircle(C))"]
 4;circle_property_length_of_radius_and_diameter(1,B);Circle(B);["Equal(DiameterOfCircle(B),Mul(RadiusOfCircle(B),2))"]

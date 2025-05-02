@@ -68,3 +68,4 @@ ANSWER:
 THEOREM_SEQUENCE:
 1;parallel_property_ipsilateral_internal_angle(1,AB,DC);ParallelBetweenLine(AB,DC)&Line(AD);["Equal(Add(MeasureOfAngle(BAD),MeasureOfAngle(ADC)),180)"]
 ***MODEL_RESPONSE_END***
+

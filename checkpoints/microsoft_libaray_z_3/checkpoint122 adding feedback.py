@@ -9264,13 +9264,12 @@ class GeometricTheorem:
                             # Handle lines starting with ".."
                             last_prefix = 'Collinear('
                     if line.startswith('..'):
-                        print(f"Found dotted line, current_type is: {current_type}")  # Debug
                         if current_type is not None:
                             # Extract content inside the parentheses after ".."
+                            # For example, from "..(C,Y)" we want to extract "C,Y"
                             match = re.search(r'\(\s*(.+?)\s*\)', line)
                             if match:
                                 content = match.group(1)
-                                print(f"Extracted content from dotted line: {content}")  # Debug
 
                                 # Process based on current_type
                                 if current_type == "Cocircular":
@@ -9295,7 +9294,6 @@ class GeometricTheorem:
 
                                     self.cocircular_facts.append(canonical)
                                     print(f"Added cocircular fact from '..' line (canonical): {canonical}")
-                                # Add other type handlers here
                             else:
                                 print(f"Warning: Could not extract content from '..' line: {line}")
                         else:
@@ -9328,6 +9326,7 @@ class GeometricTheorem:
                         # Skip SYMBOLS_AND_VALUES, EQUATIONS
                     if line.startswith('SYMBOLS_AND_VALUES:') or line.startswith('EQUATIONS:'):
                         continue
+
                     if line.startswith('Parallelogram('):
                         match = re.match(r'Parallelogram\((\w+)\)', line)
                         if match:
@@ -9337,6 +9336,8 @@ class GeometricTheorem:
                             print(f"Added parallelogram variations: {self.parallelograms}")
                             last_prefix = 'Parallelogram('
                             current_type = "Parallelogram"
+
+
                     elif line.startswith('PerpendicularBetweenLine('):
 
                         match = re.match(r'PerpendicularBetweenLine\((\w+),\s*(\w+)\)', line)
@@ -9376,11 +9377,14 @@ class GeometricTheorem:
 
                             print(f"Added 90° perpendicular angle constraint: {normalized_angle}")
                             last_prefix = 'PerpendicularBetweenLine('
+
+
                     elif line.startswith("Arc("):
                         # Extract the arc name from e.g. "Arc(OBM)"
                         arc_name = line[4:-1].strip()
                         self.add_arc(arc_name)
                         last_prefix = 'Arc('
+
                     if line.startswith('Polygon('):
                         # Extract the polygon name; for instance, "ABC" from "Polygon(ABC)"
                         poly_match = re.match(r'Polygon\((\w+)\)', line)
@@ -9391,6 +9395,10 @@ class GeometricTheorem:
                             self.polygons.add(normalized_poly)
                             print(f"Added polygon: {normalized_poly}")
                             last_prefix = 'Polygon('
+
+
+
+
                     elif line.startswith("Circle("):
                         # e.g. "Circle(D)" means we have a circle named D
                         circle_name = line[7:-1]  # get whatever is inside Circle(...)
@@ -9406,6 +9414,8 @@ class GeometricTheorem:
                             self.circle_areas[circle_name] = Real(f"area_{circle_name}")
                             self.solver.add(self.circle_areas[circle_name] >= 0)
                         last_prefix = 'Circle('
+
+
                     elif line.startswith("Rhombus("):
 
                         match = re.match(r"Rhombus\((\w+)\)", line)
@@ -9444,32 +9454,60 @@ class GeometricTheorem:
                                     self.solver.add(side_vars[0] == side_vars[i])
 
                                 print(f"Added rhombus side equality constraints for {shape_name}: {' = '.join(sides)}")
-                    elif line.startswith('Cocircular('):
-                        # Process normal Cocircular line
-                        inside = line[11:-1]  # This will be "B,UVTS" from "Cocircular(B,UVTS)"
+
+
+
+
+
+                    elif line.startswith("Cocircular("):
+
+                        # e.g. line = "Cocircular(B,UVTS)"
+
+                        inside = line[11:-1]  # This will be "B,UVTS"
+
                         raw_fields = inside.split(',')
+
                         points = []
+
                         for token in raw_fields:
+
                             token = token.strip()
-                            # If token length > 1, expand into individual letters
+
+                            # If token length > 1, expand into individual letters.
+
                             if len(token) > 1:
+
                                 points.extend(list(token))
+
                             else:
+
                                 points.append(token)
 
-                        # Create canonical representation
+                        # Now create a canonical representation.
+
+                        # For example, assume the first letter is fixed and sort the rest.
+
                         if points:
+
                             fixed = points[0]
+
                             others = sorted(points[1:])
+
                             canonical = (fixed,) + tuple(others)
+
                         else:
+
                             canonical = tuple(points)
 
                         self.cocircular_facts.append(canonical)
+                        last_prefix = 'Cocircular('
+                        current_type == 'Cocircular'
                         print(f"Added cocircular fact (canonical): {canonical}")
-                        # Update current_type for potential ".." lines that follow
-                        current_type = "Cocircular"
-                        print(f"Set current_type to: {current_type}")  # Debug
+
+
+
+
+
                     elif line.startswith("Kite("):
                         match = re.match(r"Kite\((\w+)\)", line)
                         if match:
@@ -17442,7 +17480,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/oren_random/1490_random",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/question_437/question437_gt",print_output=False)
 
     if not result:
         print(feedback)
