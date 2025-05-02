@@ -6861,32 +6861,138 @@ class GeometricTheorem:
 
 
 
+
         elif theorem_name == "radius_of_circle_property_length_equal":
-            # Check that the premise includes a centre fact.
-            # Suppose args[2] holds the circle token, e.g. "O".
+
+            # Check that the premise includes a centre fact and cocircularity.
+
             version = args[0]
 
-            if version !="1":
+            if version != "1":
                 return return_error(GeometricError(
+
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+
                     message="these is no such version for the theorem",
+
                     details="these is no such version for the theorem radius_of_circle_property_length_equal"
-                ))
-            circle_token = args[2].strip()
-            if circle_token not in self.circle_centers:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                    message=f"Centre for circle {circle_token} not recorded.",
-                    details=f"Accumulated centres: {self.circle_centers}"
+
                 ))
 
-            # Optionally, you can also check that a Line fact for the given line is present.
-            if "Line(" not in premise:
+            if len(args) < 3:
                 return return_error(GeometricError(
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                    message="Premise for radius_of_circle_property_length_equal must include a Line fact.",
-                    details=f"Premise provided: {premise}"
+
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+
+                    message="Insufficient arguments for radius_of_circle_property_length_equal",
+
+                    details="Expected: radius_of_circle_property_length_equal(1, line, circle)"
+
                 ))
+
+            line_token = args[1].strip()  # e.g., "BY"
+
+            circle_token = args[2].strip()  # e.g., "B"
+
+            # Check circle center
+
+            if circle_token not in self.circle_centers:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+
+                    message=f"Centre for circle {circle_token} not recorded.",
+
+                    details=f"Accumulated centres: {self.circle_centers}"
+
+                ))
+
+            # Check that IsCentreOfCircle fact is present
+
+            center_match = re.search(
+                r'IsCentreOfCircle\(' + re.escape(circle_token) + r',' + re.escape(circle_token) + r'\)', premise)
+
+            if not center_match:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+
+                    message=f"Missing IsCentreOfCircle({circle_token},{circle_token}) in premise",
+
+                    details="radius_of_circle_property_length_equal requires center to be defined"
+
+                ))
+
+            # Check Line fact
+
+            line_match = re.search(r'Line\(' + re.escape(line_token) + r'\)', premise)
+
+            if not line_match:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+
+                    message=f"Missing Line({line_token}) in premise",
+
+                    details="radius_of_circle_property_length_equal requires line to be defined"
+
+                ))
+
+            # Check Cocircular fact - ensure the endpoint of the line is on the circle
+
+            # For a line BY and circle B, we need Cocircular(B,Y)
+
+            endpoint = line_token[1] if line_token[0] == circle_token else line_token[0]
+
+            cocircular_match = re.search(
+                r'Cocircular\(' + re.escape(circle_token) + r',.*' + re.escape(endpoint) + r'.*\)', premise)
+
+            if not cocircular_match:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+
+                    message=f"Missing Cocircular({circle_token},...) containing point {endpoint} in premise",
+
+                    details="radius_of_circle_property_length_equal requires line endpoint to be on the circle"
+
+                ))
+
+            # Also check stored cocircular facts
+
+            cocircular_found = False
+
+            for fact in self.cocircular_facts:
+
+                if fact[0] == circle_token and endpoint in fact[1:]:
+                    cocircular_found = True
+
+                    break
+
+            if not cocircular_found:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+
+                    message=f"Point {endpoint} not proven to be on circle {circle_token}",
+
+                    details=f"Known cocircular facts: {self.cocircular_facts}"
+
+                ))
+
+            # Check that one endpoint of the line is the center of the circle
+
+            if circle_token not in line_token:
+                return return_error(GeometricError(
+
+                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+
+                    message=f"Line {line_token} does not start or end at circle center {circle_token}",
+
+                    details="For a radius, the line must connect the center to a point on the circle"
+
+                ))
+
             return True, None
 
 
@@ -17290,7 +17396,7 @@ def verify_geometric_proof(filename: str, print_output=True) -> tuple:
 # Modified main section
 if __name__ == "__main__":
     result, feedback, error_tier = verify_geometric_proof(
-        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/oren_random/1490_random",print_output=False)
+        "/Users/eitanstern/Desktop/orens_code/geometric_verifer/questions/the new format for questions after jan_17/new_45_questions/oren_random/358",print_output=False)
 
     if not result:
         print(feedback)
