@@ -2636,7 +2636,61 @@ class GeometricTheorem:
                     message="these is no such version for the theorem",
                     details="these is no such version for the theorem perpendicular_judgment_angle"
                 ))
+        elif theorem_name == "mirror_similar_triangle_property_ratio":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for mirror_similar_triangle_property_ratio",
+                        details="Expected: mirror_similar_triangle_property_ratio(1, triangle1, triangle2)"
+                    ))
 
+                tri1, tri2 = args[1].strip(), args[2].strip()
+
+                # Check if the premise states that the triangles are mirror similar
+                mirror_similar_match = re.search(r'MirrorSimilarBetweenTriangle\((\w+),(\w+)\)', premise)
+                if not mirror_similar_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing mirror similar triangles relationship in premise",
+                        details="mirror_similar_triangle_property_ratio requires MirrorSimilarBetweenTriangle(...) in premise"
+                    ))
+
+                premise_tri1, premise_tri2 = mirror_similar_match.groups()
+
+                # Check if the triangles in the premise match those in the function call
+                if not ((tri1 == premise_tri1 and tri2 == premise_tri2) or
+                        (tri1 == premise_tri2 and tri2 == premise_tri1)):
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangle mismatch: call uses {tri1},{tri2} but premise has {premise_tri1},{premise_tri2}",
+                        details="Triangles in the theorem call must match those in the premise"
+                    ))
+
+                # Check if the triangles are recorded as mirror similar in the system
+                canonical_pair = self.canonicalize_mirror_triangle_pair(tri1, tri2)
+                if not canonical_pair:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Failed to create canonical representation for {tri1} and {tri2}",
+                        details="Could not normalize triangle pair"
+                    ))
+
+                if canonical_pair not in self.mirror_similar_triangles:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangles {tri1} and {tri2} not proven mirror similar",
+                        details=f"Known mirror similar triangles: {self.mirror_similar_triangles}"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"these is no such version for the theorem mirror_similar_triangle_property_ratio",
+                    details="Only version 1 is supported"
+                ))
         elif theorem_name == "circle_property_angle_of_osculation":
             version = args[0]
             if version in {"1", "2"}:
@@ -2713,7 +2767,108 @@ class GeometricTheorem:
                     details="these is no such version for the theorem circle_property_angle_of_osculation"
                 ))
 
+        elif theorem_name == "mirror_congruent_triangle_judgment_sss":
+            version = args[0]
+            if version == "1":
+                if len(args) < 3:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Insufficient arguments for mirror_congruent_triangle_judgment_sss",
+                        details="Expected: mirror_congruent_triangle_judgment_sss(1, triangle1, triangle2)"
+                    ))
 
+                tri1, tri2 = args[1].strip(), args[2].strip()
+
+                # Check if both triangles exist as polygons
+                if self.normalize_triangle(tri1) not in self.polygons:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangle {tri1} not defined",
+                        details=f"Known polygons: {self.polygons}"
+                    ))
+
+                if self.normalize_triangle(tri2) not in self.polygons:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangle {tri2} not defined",
+                        details=f"Known polygons: {self.polygons}"
+                    ))
+
+                # Check for polygon definitions in premise
+                polygon_matches = re.findall(r'Polygon\((\w+)\)', premise)
+                if len(polygon_matches) < 2:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing polygon definitions in premise",
+                        details="mirror_congruent_triangle_judgment_sss requires both triangles to be defined"
+                    ))
+
+                if tri1 not in polygon_matches or tri2 not in polygon_matches:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Triangle mismatch: expected {tri1} and {tri2} in premise",
+                        details=f"Found triangles in premise: {polygon_matches}"
+                    ))
+
+                # Check for the three side equalities
+                # First side: AB = FD
+                side1_pattern = r'Equal\(LengthOfLine\(' + re.escape(
+                    tri1[0] + tri1[1]) + r'\),LengthOfLine\(' + re.escape(tri2[2] + tri2[0]) + r'\)\)'
+                side1_match = re.search(side1_pattern, premise)
+                # Also check reverse order
+                if not side1_match:
+                    side1_pattern_rev = r'Equal\(LengthOfLine\(' + re.escape(
+                        tri2[2] + tri2[0]) + r'\),LengthOfLine\(' + re.escape(tri1[0] + tri1[1]) + r'\)\)'
+                    side1_match = re.search(side1_pattern_rev, premise)
+
+                # Second side: BC = EF
+                side2_pattern = r'Equal\(LengthOfLine\(' + re.escape(
+                    tri1[1] + tri1[2]) + r'\),LengthOfLine\(' + re.escape(tri2[1] + tri2[2]) + r'\)\)'
+                side2_match = re.search(side2_pattern, premise)
+                # Also check reverse order
+                if not side2_match:
+                    side2_pattern_rev = r'Equal\(LengthOfLine\(' + re.escape(
+                        tri2[1] + tri2[2]) + r'\),LengthOfLine\(' + re.escape(tri1[1] + tri1[2]) + r'\)\)'
+                    side2_match = re.search(side2_pattern_rev, premise)
+
+                # Third side: CA = DE
+                side3_pattern = r'Equal\(LengthOfLine\(' + re.escape(
+                    tri1[2] + tri1[0]) + r'\),LengthOfLine\(' + re.escape(tri2[0] + tri2[1]) + r'\)\)'
+                side3_match = re.search(side3_pattern, premise)
+                # Also check reverse order
+                if not side3_match:
+                    side3_pattern_rev = r'Equal\(LengthOfLine\(' + re.escape(
+                        tri2[0] + tri2[1]) + r'\),LengthOfLine\(' + re.escape(tri1[2] + tri1[0]) + r'\)\)'
+                    side3_match = re.search(side3_pattern_rev, premise)
+
+                if not side1_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing first side equality in premise",
+                        details=f"Expected Equal(LengthOfLine({tri1[0] + tri1[1]}),LengthOfLine({tri2[2] + tri2[0]}))"
+                    ))
+
+                if not side2_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing second side equality in premise",
+                        details=f"Expected Equal(LengthOfLine({tri1[1] + tri1[2]}),LengthOfLine({tri2[1] + tri2[2]}))"
+                    ))
+
+                if not side3_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Missing third side equality in premise",
+                        details=f"Expected Equal(LengthOfLine({tri1[2] + tri1[0]}),LengthOfLine({tri2[0] + tri2[1]}))"
+                    ))
+
+                return True, None
+            else:
+                return return_error(GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"these is no such version for the theorem mirror_congruent_triangle_judgment_sss",
+                    details="Only version 1 is supported"
+                ))
         elif theorem_name == "diameter_of_circle_judgment_right_angle":
             version = args[0]
             if version == "1":
@@ -12253,7 +12408,9 @@ class GeometricTheorem:
             "circle_property_angle_of_osculation",
             "bisector_of_angle_judgment_angle_equal",
             "bisector_of_angle_property_line_ratio",
-            "diameter_of_circle_judgment_right_angle"
+            "diameter_of_circle_judgment_right_angle",
+            "mirror_similar_triangle_property_ratio",
+            "mirror_congruent_triangle_judgment_sss"
         ]
 
         if theorem_name not in valid_theorems:
@@ -12391,7 +12548,79 @@ class GeometricTheorem:
                     message=f"Unsupported version {version} for circle_property_angle_of_osculation",
                     details="Supported versions are 1 and 2"
                 )
+        elif theorem_name == "mirror_similar_triangle_property_ratio":
+            version = args[0]
+            if version == "1":
+                # First conclusion - symmetry of mirror similarity
+                symmetry_match = re.search(r'MirrorSimilarBetweenTriangle\((\w+),(\w+)\)', conclusions[0])
+                if not symmetry_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="First conclusion format error for mirror_similar_triangle_property_ratio",
+                        details=f"Expected MirrorSimilarBetweenTriangle(...) pattern but got {conclusions[0]}"
+                    )
 
+                tri2, tri1 = symmetry_match.groups()  # Note: reversed order from premise
+
+                # Add the symmetric relationship (already should be handled by canonicalization)
+                canonical_pair = self.canonicalize_mirror_triangle_pair(tri1, tri2)
+                if canonical_pair not in self.mirror_similar_triangles:
+                    self.mirror_similar_triangles.append(canonical_pair)
+                    print(f"Added mirror similar triangles: {tri1} and {tri2} (canonical: {canonical_pair})")
+
+                # Second conclusion - product of ratios equals 1
+                ratio_match = re.search(
+                    r'Equal\(Mul\(RatioOfMirrorSimilarTriangle\((\w+),(\w+)\),RatioOfMirrorSimilarTriangle\((\w+),(\w+)\)\),1\)',
+                    conclusions[1]
+                )
+
+                if not ratio_match:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Second conclusion format error for mirror_similar_triangle_property_ratio",
+                        details=f"Expected ratio product pattern but got {conclusions[1]}"
+                    )
+
+                direct_tri1, direct_tri2, inverse_tri1, inverse_tri2 = ratio_match.groups()
+
+                # Verify that the triangles match the expected pattern (ABC,DEF and DEF,ABC)
+                if not (direct_tri1 == tri1 and direct_tri2 == tri2 and
+                        inverse_tri1 == tri2 and inverse_tri2 == tri1):
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Inconsistent triangle names in conclusion",
+                        details=f"Expected {tri1},{tri2} and {tri2},{tri1} but got {direct_tri1},{direct_tri2} and {inverse_tri1},{inverse_tri2}"
+                    )
+
+                # Create or get the ratio variables
+                direct_pair = self.canonicalize_mirror_triangle_pair(direct_tri1, direct_tri2)
+                inverse_pair = self.canonicalize_mirror_triangle_pair(inverse_tri1, inverse_tri2)
+
+                if direct_pair not in self.mirror_triangle_ratios:
+                    direct_ratio_name = f"ratio_mirror_{direct_pair[0]}_{direct_pair[1]}"
+                    self.mirror_triangle_ratios[direct_pair] = Real(direct_ratio_name)
+                    self.solver.add(self.mirror_triangle_ratios[direct_pair] > 0)  # Ratio should be positive
+
+                if inverse_pair not in self.mirror_triangle_ratios:
+                    inverse_ratio_name = f"ratio_mirror_{inverse_pair[0]}_{inverse_pair[1]}"
+                    self.mirror_triangle_ratios[inverse_pair] = Real(inverse_ratio_name)
+                    self.solver.add(self.mirror_triangle_ratios[inverse_pair] > 0)  # Ratio should be positive
+
+                direct_ratio = self.mirror_triangle_ratios[direct_pair]
+                inverse_ratio = self.mirror_triangle_ratios[inverse_pair]
+
+                # Add the constraint that the product of ratios equals 1
+                self.solver.add(direct_ratio * inverse_ratio == 1)
+
+                print(
+                    f"Added mirror similar triangle ratio constraint: RatioOfMirrorSimilarTriangle({tri1},{tri2}) * RatioOfMirrorSimilarTriangle({tri2},{tri1}) = 1")
+                return None
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for mirror_similar_triangle_property_ratio",
+                    details="Only version 1 is supported"
+                )
         elif theorem_name == "bisector_of_angle_property_line_ratio":
             version = args[0]
             if version == "1":
@@ -12427,7 +12656,28 @@ class GeometricTheorem:
                     message=f"Unsupported version {version} for bisector_of_angle_property_line_ratio",
                     details="Only version 1 is supported"
                 )
-
+        elif theorem_name == "mirror_congruent_triangle_judgment_sss":
+            version = args[0]
+            if version == "1":
+                match = re.search(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', conclusions[0])
+                if match:
+                    tri1, tri2 = match.groups()
+                    canonical_pair = self.canonicalize_mirror_congruent_triangle_pair(tri1, tri2)
+                    if canonical_pair not in self.mirror_congruent_triangles:
+                        self.mirror_congruent_triangles.append(canonical_pair)
+                    print(f"Added mirror congruent triangles via SSS: {tri1} and {tri2} (canonical: {canonical_pair})")
+                else:
+                    return GeometricError(
+                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                        message="Conclusion format error for mirror_congruent_triangle_judgment_sss",
+                        details=f"Expected MirrorCongruentBetweenTriangle(...) but got {conclusions[0]}"
+                    )
+            else:
+                return GeometricError(
+                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
+                    message=f"Unsupported version {version} for mirror_congruent_triangle_judgment_sss",
+                    details="Only version 1 is supported"
+                )
 
         elif theorem_name == "diameter_of_circle_judgment_right_angle":
             version = args[0]

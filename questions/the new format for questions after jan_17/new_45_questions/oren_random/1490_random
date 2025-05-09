@@ -1,227 +1,323 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, RT=15, ∠RPS=130°, ∠TPQ=112°, the center of circle P is P, the diameter of circle P is TR. Find the length of arc PSR.
+As shown in the diagram, AC=2*x+9, BD=4*x-5, ∠CAE=42°, ∠DCE=4*y°, ∠EAB=23°, ∠EBD=83°, AC and BD are opposite sides of the parallelogram ABDC. Find the value of y.
 CONSTRUCTION_CDL:
-Shape(PR,PRQ,QP)
-Shape(PQ,PQT,TP)
-Shape(PT,PTS,SP)
-Shape(PS,PSR,RP)
-Collinear(RPT)
-Cocircular(P,QTSR)
+Shape(CE,ED,DC)
+Shape(AE,EC,CA)
+Shape(EA,AB,BE)
+Shape(EB,BD,DE)
+Collinear(CEB)
+Collinear(AED)
 TEXT_CDL:
-Equal(LengthOfLine(RT),15)
-Equal(MeasureOfAngle(RPS),130)
-Equal(MeasureOfAngle(TPQ),112)
-IsCentreOfCircle(P,P)
-IsDiameterOfCircle(TR,P)
+Equal(LengthOfLine(AC),2*x+9)
+Equal(LengthOfLine(BD),4*x-5)
+Equal(MeasureOfAngle(CAE),42)
+Equal(MeasureOfAngle(DCE),4*y)
+Equal(MeasureOfAngle(EAB),23)
+Equal(MeasureOfAngle(EBD),83)
+Parallelogram(ABDC)
 GOAL_CDL:
-Value(LengthOfArc(PSR))
+Value(y)
 CONSTRUCTION_CDL_EXTENDED:
-Shape(PRQ,QP,PR)
-Shape(QP,PR,PRQ)
-Shape(PQT,TP,PQ)
-Shape(TP,PQ,PQT)
-Shape(PTS,SP,PT)
-Shape(SP,PT,PTS)
-Shape(PSR,RP,PS)
-Shape(RP,PS,PSR)
-Shape(PR,PRQ,PQT,TP)
-Shape(PRQ,PQT,TP,PR)
-Shape(PQT,TP,PR,PRQ)
-Shape(TP,PR,PRQ,PQT)
-Shape(PRQ,QP,PS,PSR)
-Shape(QP,PS,PSR,PRQ)
-Shape(PS,PSR,PRQ,QP)
-Shape(PSR,PRQ,QP,PS)
-Shape(PQ,PQT,PTS,SP)
-Shape(PQT,PTS,SP,PQ)
-Shape(PTS,SP,PQ,PQT)
-Shape(SP,PQ,PQT,PTS)
-Shape(PT,PTS,PSR,RP)
-Shape(PTS,PSR,RP,PT)
-Shape(PSR,RP,PT,PTS)
-Shape(RP,PT,PTS,PSR)
-Shape(PR,PRQ,PQT,PTS,SP)
-Shape(PRQ,PQT,PTS,SP,PR)
-Shape(PQT,PTS,SP,PR,PRQ)
-Shape(PTS,SP,PR,PRQ,PQT)
-Shape(SP,PR,PRQ,PQT,PTS)
-Shape(PRQ,QP,PT,PTS,PSR)
-Shape(QP,PT,PTS,PSR,PRQ)
-Shape(PT,PTS,PSR,PRQ,QP)
-Shape(PTS,PSR,PRQ,QP,PT)
-Shape(PSR,PRQ,QP,PT,PTS)
-Shape(PQ,PQT,PTS,PSR,RP)
-Shape(PQT,PTS,PSR,RP,PQ)
-Shape(PTS,PSR,RP,PQ,PQT)
-Shape(PSR,RP,PQ,PQT,PTS)
-Shape(RP,PQ,PQT,PTS,PSR)
-Shape(PQT,TP,PS,PSR,PRQ)
-Shape(TP,PS,PSR,PRQ,PQT)
-Shape(PS,PSR,PRQ,PQT,TP)
-Shape(PSR,PRQ,PQT,TP,PS)
-Shape(PRQ,PQT,TP,PS,PSR)
-Shape(PRQ,PQT,PTS,PSR)
-Shape(PQT,PTS,PSR,PRQ)
-Shape(PTS,PSR,PRQ,PQT)
-Shape(PSR,PRQ,PQT,PTS)
-Collinear(TPR)
-Cocircular(P,Q)
-Cocircular(P,T)
-Cocircular(P,S)
-Cocircular(P,R)
-Cocircular(P,QT)
-Cocircular(P,TQ)
-Cocircular(P,QS)
-Cocircular(P,SQ)
-Cocircular(P,QR)
-Cocircular(P,RQ)
-Cocircular(P,TS)
-Cocircular(P,ST)
-Cocircular(P,TR)
-Cocircular(P,RT)
-Cocircular(P,SR)
-Cocircular(P,RS)
-Cocircular(P,QTS)
-Cocircular(P,STQ)
-Cocircular(P,TSQ)
-Cocircular(P,QST)
-Cocircular(P,SQT)
-Cocircular(P,TQS)
-Cocircular(P,QTR)
-Cocircular(P,RTQ)
-Cocircular(P,TRQ)
-Cocircular(P,QRT)
-Cocircular(P,RQT)
-Cocircular(P,TQR)
-Cocircular(P,QSR)
-Cocircular(P,RSQ)
-Cocircular(P,SRQ)
-Cocircular(P,QRS)
-Cocircular(P,RQS)
-Cocircular(P,SQR)
-Cocircular(P,TSR)
-Cocircular(P,RST)
-Cocircular(P,SRT)
-Cocircular(P,TRS)
-Cocircular(P,RTS)
-Cocircular(P,STR)
-Cocircular(P,RSTQ)
-Cocircular(P,TSRQ)
-Cocircular(P,QRST)
-Cocircular(P,SRQT)
-Cocircular(P,TQRS)
-Cocircular(P,RQTS)
-Cocircular(P,STQR)
-Point(R)
-Point(T)
-Point(P)
-Point(Q)
-Point(S)
-Line(RT)
-Line(TR)
-Line(RP)
-Line(PR)
-Line(PT)
-Line(TP)
-Line(QP)
-Line(PQ)
-Line(SP)
-Line(PS)
-Arc(PQT)
-Arc(PTQ)
-Arc(PQS)
-Arc(PSQ)
-Arc(PQR)
-Arc(PRQ)
-Arc(PTS)
-Arc(PST)
-Arc(PTR)
-Arc(PRT)
-Arc(PSR)
-Arc(PRS)
-Angle(RPT)
-Angle(TPR)
-Angle(QPR)
-Angle(TPQ)
-Angle(SPT)
-Angle(RPS)
-Angle(QPS)
-Angle(SPQ)
-Angle(SPR)
-Angle(QPT)
-Angle(RPQ)
-Angle(TPS)
-Circle(P)
-IsDiameterOfCircle(RT,P)
+Shape(ED,DC,CE)
+Shape(DC,CE,ED)
+Shape(EC,CA,AE)
+Shape(CA,AE,EC)
+Shape(AB,BE,EA)
+Shape(BE,EA,AB)
+Shape(BD,DE,EB)
+Shape(DE,EB,BD)
+Shape(ED,DC,CA,AE)
+Shape(DC,CA,AE,ED)
+Shape(CA,AE,ED,DC)
+Shape(AE,ED,DC,CA)
+Shape(DC,CE,EB,BD)
+Shape(CE,EB,BD,DC)
+Shape(EB,BD,DC,CE)
+Shape(BD,DC,CE,EB)
+Shape(EC,CA,AB,BE)
+Shape(CA,AB,BE,EC)
+Shape(AB,BE,EC,CA)
+Shape(BE,EC,CA,AB)
+Shape(EA,AB,BD,DE)
+Shape(AB,BD,DE,EA)
+Shape(BD,DE,EA,AB)
+Shape(DE,EA,AB,BD)
+Shape(ED,DC,CA,AB,BE)
+Shape(DC,CA,AB,BE,ED)
+Shape(CA,AB,BE,ED,DC)
+Shape(AB,BE,ED,DC,CA)
+Shape(BE,ED,DC,CA,AB)
+Shape(DC,CE,EA,AB,BD)
+Shape(CE,EA,AB,BD,DC)
+Shape(EA,AB,BD,DC,CE)
+Shape(AB,BD,DC,CE,EA)
+Shape(BD,DC,CE,EA,AB)
+Shape(EC,CA,AB,BD,DE)
+Shape(CA,AB,BD,DE,EC)
+Shape(AB,BD,DE,EC,CA)
+Shape(BD,DE,EC,CA,AB)
+Shape(DE,EC,CA,AB,BD)
+Shape(CA,AE,EB,BD,DC)
+Shape(AE,EB,BD,DC,CA)
+Shape(EB,BD,DC,CA,AE)
+Shape(BD,DC,CA,AE,EB)
+Shape(DC,CA,AE,EB,BD)
+Shape(DC,CA,AB,BD)
+Shape(CA,AB,BD,DC)
+Shape(AB,BD,DC,CA)
+Shape(BD,DC,CA,AB)
+Collinear(BEC)
+Collinear(DEA)
+Point(C)
+Point(B)
+Point(E)
+Point(A)
+Point(D)
+Line(CB)
+Line(BC)
+Line(CE)
+Line(EC)
+Line(EB)
+Line(BE)
+Line(AD)
+Line(DA)
+Line(AE)
+Line(EA)
+Line(ED)
+Line(DE)
+Line(DC)
+Line(CD)
+Line(CA)
+Line(AC)
+Line(AB)
+Line(BA)
+Line(BD)
+Line(DB)
+Angle(CEB)
+Angle(BEC)
+Angle(AED)
+Angle(DEA)
+Angle(CED)
+Angle(EDC)
+Angle(DCE)
+Angle(AEC)
+Angle(ECA)
+Angle(CAE)
+Angle(EAB)
+Angle(ABE)
+Angle(BEA)
+Angle(EBD)
+Angle(BDE)
+Angle(DEB)
+Angle(DCA)
+Angle(CBD)
+Angle(BDC)
+Angle(CAB)
+Angle(ABD)
+Angle(BED)
+Angle(CEA)
+Angle(DEC)
+Angle(AEB)
+Angle(ADC)
+Angle(DCB)
+Angle(BCA)
+Angle(CAD)
+Angle(DAB)
+Angle(ABC)
+Angle(BDA)
+Angle(CDE)
+Angle(ECD)
+Angle(ACE)
+Angle(EAC)
+Angle(BAE)
+Angle(EBA)
+Angle(DBE)
+Angle(EDB)
+Angle(ACD)
+Angle(DBC)
+Angle(CDB)
+Angle(BAC)
+Angle(DBA)
+Angle(CDA)
+Angle(BCD)
+Angle(ACB)
+Angle(DAC)
+Angle(BAD)
+Angle(CBA)
+Angle(ADB)
+Polygon(CED)
+Polygon(CDE)
+Polygon(ECD)
+Polygon(EDC)
+Polygon(DCE)
+Polygon(DEC)
+Polygon(AEC)
+Polygon(ACE)
+Polygon(EAC)
+Polygon(ECA)
+Polygon(CAE)
+Polygon(CEA)
+Polygon(EAB)
+Polygon(EBA)
+Polygon(AEB)
+Polygon(ABE)
+Polygon(BEA)
+Polygon(BAE)
+Polygon(EBD)
+Polygon(EDB)
+Polygon(BED)
+Polygon(BDE)
+Polygon(DEB)
+Polygon(DBE)
+Polygon(DCA)
+Polygon(DAC)
+Polygon(CDA)
+Polygon(CAD)
+Polygon(ADC)
+Polygon(ACD)
+Polygon(DCB)
+Polygon(DBC)
+Polygon(CDB)
+Polygon(CBD)
+Polygon(BDC)
+Polygon(BCD)
+Polygon(CAB)
+Polygon(CBA)
+Polygon(ACB)
+Polygon(ABC)
+Polygon(BCA)
+Polygon(BAC)
+Polygon(ABD)
+Polygon(ADB)
+Polygon(BAD)
+Polygon(BDA)
+Polygon(DAB)
+Polygon(DBA)
+Polygon(EDCAB)
+Polygon(DCABE)
+Polygon(CABED)
+Polygon(ABEDC)
+Polygon(BEDCA)
+Polygon(DCEAB)
+Polygon(CEABD)
+Polygon(EABDC)
+Polygon(ABDCE)
+Polygon(BDCEA)
+Polygon(ECABD)
+Polygon(CABDE)
+Polygon(ABDEC)
+Polygon(BDECA)
+Polygon(DECAB)
+Polygon(CAEBD)
+Polygon(AEBDC)
+Polygon(EBDCA)
+Polygon(BDCAE)
+Polygon(DCAEB)
+Polygon(DCAB)
+Polygon(CABD)
+Polygon(ABDC)
+Polygon(BDCA)
+Parallelogram(BDCA)
+Parallelogram(DCAB)
+Parallelogram(CABD)
+ParallelBetweenLine(AC,BD)
+ParallelBetweenLine(DB,CA)
+ParallelBetweenLine(BA,DC)
+ParallelBetweenLine(CD,AB)
 SYMBOLS_AND_VALUES:
-MeasureOfAngle(ABC);ma_obc;50
-MeasureOfAngle(EBC);ma_obc;50
-MeasureOfAngle(OBC);ma_obc;50
-MeasureOfAngle(CDB);ma_edb;None
-MeasureOfAngle(EDB);ma_edb;None
+LengthOfLine(PR);ll_pr;None
+LengthOfLine(RP);ll_pr;None
+Free(x);x;None
+LengthOfLine(PS);ll_ps;None
+LengthOfLine(SP);ll_ps;None
+Free(y);y;None
+LengthOfLine(QP);ll_qp;None
+LengthOfLine(PQ);ll_qp;None
+LengthOfLine(TP);ll_tp;None
+LengthOfLine(PT);ll_tp;None
 
 Outputs:
 Outputs for Problem B:
 
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-rt-15
-ma_rps-130
-ma_tpq-112
+ll_ac-2*x-9
+ll_bd-4*x+5
+ma_cae-42
+ma_dce-4*y
+ma_eab-23
+ma_ebd-83
 
 GOAL_SYMBOL:
-LengthOfArc(PSR)
+y
 
-ANSWER:
-(65π)/12
-
-THEOREM_SEQUENCE:
-1; arc_property_center_angle(1,PSR,P); Arc(PSR)&Angle(RPS)&IsCentreOfCircle(P,P); ["Equal(MeasureOfArc(PSR),MeasureOfAngle(RPS))"]
-2; diameter_of_circle_property_length_equal(1,TR,P); IsDiameterOfCircle(TR,P); ["Equal(LengthOfLine(TR),DiameterOfCircle(P))"]
-3; circle_property_length_of_radius_and_diameter(1,P); Circle(P); ["Equal(DiameterOfCircle(P),Mul(RadiusOfCircle(P),2))"]
-4; arc_length_formula(1,PSR); Arc(PSR); ["Equal(LengthOfArc(PSR),Mul(MeasureOfArc(PSR),1/180*pi,RadiusOfCircle(P)))"]
+RETRY_ANSWER:
+23/4
+RETRY_THEOREM_SEQUENCE:
+1; mirror_congruent_triangle_judgment_sss(1,AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(DC))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(CE)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
+2; mirror_congruent_triangle_property_angle_equal(1,AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
-#run: 0; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Failure: Theorem <circle_property_length_of_radius_and_diameter> variation id is not supplied. Expected dict_keys(['1']) but got None.
-Your call: circle_property_length_of_radius_and_diameter(P)
-Please rewrite your response by adding the variation id as the first argument. For example: For variation 1: circle_property_length_of_radius_and_diameter(1,P)
+#run: 2; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Failure: Theorem <mirror_congruent_triangle_judgment_sss> variation id is not supplied. Expected dict_keys(['1']) but got None.
+Your call: mirror_congruent_triangle_judgment_sss(A,E,B,C,E,D)
+Please rewrite your response by adding the variation id as the first argument. For example: For variation 1: mirror_congruent_triangle_judgment_sss(1,A,E,B,C,E,D)
 
 Model Answer:
 RETRY_ANSWER:
-(65π)/12
+23/4
 RETRY_THEOREM_SEQUENCE:
-1; arc_property_center_angle(1,PSR,P); Arc(PSR)&Angle(RPS)&IsCentreOfCircle(P,P); ["Equal(MeasureOfArc(PSR),MeasureOfAngle(RPS))"]
-2; diameter_of_circle_property_length_equal(1,TR,P); IsDiameterOfCircle(TR,P); ["Equal(LengthOfLine(TR),DiameterOfCircle(P))"]
-3; circle_property_length_of_radius_and_diameter(P); Circle(P); ["Equal(DiameterOfCircle(P),Mul(RadiusOfCircle(P),2))"]
-4; arc_length_formula(1,PSR); Arc(PSR); ["Equal(LengthOfArc(PSR),Mul(MeasureOfArc(PSR),1/180*pi,RadiusOfCircle(P)))"]
-#run: 0; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error parsing answer '(65π)/12': Could not parse: (65π)/12
+1; mirror_congruent_triangle_judgment_sss(AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(CE))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(DC)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
+2; mirror_congruent_triangle_property_angle_equal(AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))"]
+#run: 2; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: mirror_congruent_triangle_judgment_sss(1,AEB,CED)
+You output the following premises: Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(CE))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(DC))
+But the correct premises: Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(DC))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(CE))
+
 Model Answer:
 RETRY_ANSWER:
-(65π)/12
+23/4
 RETRY_THEOREM_SEQUENCE:
-1; arc_property_center_angle(1,PSR,P); Arc(PSR)&Angle(RPS)&IsCentreOfCircle(P,P); ["Equal(MeasureOfArc(PSR),MeasureOfAngle(RPS))"]
-2; diameter_of_circle_property_length_equal(1,TR,P); IsDiameterOfCircle(TR,P); ["Equal(LengthOfLine(TR),DiameterOfCircle(P))"]
-3; circle_property_length_of_radius_and_diameter(1,P); Circle(P); ["Equal(DiameterOfCircle(P),Mul(RadiusOfCircle(P),2))"]
-4; arc_length_formula(1,PSR); Arc(PSR); ["Equal(LengthOfArc(PSR),Mul(MeasureOfArc(PSR),1/180*pi,RadiusOfCircle(P)))"]
+1; mirror_congruent_triangle_judgment_sss(1,AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(CE))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(DC)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
+2; mirror_congruent_triangle_property_angle_equal(1,AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))"]
+#run: 2; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: mirror_congruent_triangle_property_angle_equal(1,AEB,CED)
+You output the following conclusions: Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))
+But the correct conclusions: Equal(MeasureOfAngle(BAE),MeasureOfAngle(DCE))
+
+Model Answer:
+
+#run: 2; #retry: 4; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Error in TIER1_THEOREM_CALL_SYNTAX_VIOLATION: Theorem 'mirror_congruent_triangle_judgment_sss' is not recognized or its premise validation is not supported by the current verifier version.
+Model Answer:
+RETRY_ANSWER:
+23/4
+RETRY_THEOREM_SEQUENCE:
+1; mirror_congruent_triangle_judgment_sss(1,AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(DC))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(CE)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
+2; mirror_congruent_triangle_property_angle_equal(1,AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(BAE),MeasureOfAngle(DCE))"]
+#run: 2; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: parallelogram_property_opposite_line_equal(1,ABDC)
+You output the following conclusions: Equal(LengthOfLine(AC),LengthOfLine(BD))
+But the correct conclusions: Equal(LengthOfLine(BA),LengthOfLine(DC))
+
+Model Answer:
+RETRY_ANSWER:
+23/4
+RETRY_THEOREM_SEQUENCE:
+1; parallelogram_property_opposite_line_equal(1,ABDC); Parallelogram(ABDC); ["Equal(LengthOfLine(AC),LengthOfLine(BD))"]
 #RETRIES:
-2
+5
 #RUNS:
-0
+2
 
 
 GT_EQUATIONS:
-ll_rt-15
-ma_rps-130
-ma_tpq-112
+ll_ac-2*x-9
+ll_bd-4*x+5
+ma_cae-42
+ma_dce-4*y
+ma_eab-23
+ma_ebd-83
 GT_GOAL_SYMBOL:
-la_psr
-GT_ANSWER:
-65*pi/12
-GT_THEOREM_SEQUENCE:
-1;diameter_of_circle_property_length_equal(1,TR,P);IsDiameterOfCircle(TR,P);["Equal(LengthOfLine(TR),DiameterOfCircle(P))"]
-2;circle_property_length_of_radius_and_diameter(1,P);Circle(P);["Equal(DiameterOfCircle(P),Mul(RadiusOfCircle(P),2))"]
-3;arc_property_center_angle(1,PSR,P);Arc(PSR)&Angle(RPS)&IsCentreOfCircle(P,P);["Equal(MeasureOfArc(PSR),MeasureOfAngle(RPS))"]
-4;arc_length_formula(1,PSR);Arc(PSR);["Equal(LengthOfArc(PSR),Mul(MeasureOfArc(PSR),1/180*pi,RadiusOfCircle(P)))"]
+y
