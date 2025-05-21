@@ -263,6 +263,5 @@ ANSWER:
 42
 THEOREM_SEQUENCE:
 1;parallel_property_collinear_extend(1,GA,HD,J);ParallelBetweenLine(GA,HD)&Collinear(JGA);["ParallelBetweenLine(JG,HD)", "ParallelBetweenLine(JA,HD)"]
-
 2;parallel_property_alternate_interior_angle(2,DH,GJ);ParallelBetweenLine(DH,GJ)&Line(HG);["Equal(MeasureOfAngle(GHD),MeasureOfAngle(HGJ))"]
 ***MODEL_RESPONSE_END***

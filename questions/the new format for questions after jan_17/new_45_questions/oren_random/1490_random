@@ -1,323 +1,307 @@
 Inputs for Problem B:
 DESCRIPTION:
-As shown in the diagram, AC=2*x+9, BD=4*x-5, ∠CAE=42°, ∠DCE=4*y°, ∠EAB=23°, ∠EBD=83°, AC and BD are opposite sides of the parallelogram ABDC. Find the value of y.
+As shown in the diagram, ∠BCD=110°, O is the center of circle O. Find the measure of ∠DOB.
 CONSTRUCTION_CDL:
-Shape(CE,ED,DC)
-Shape(AE,EC,CA)
-Shape(EA,AB,BE)
-Shape(EB,BD,DE)
-Collinear(CEB)
-Collinear(AED)
+Shape(OAB,BA)
+Shape(AB,BO,OD,DA)
+Shape(ODA,AD)
+Shape(OB,BC,CD,DO)
+Shape(OBC,CB)
+Shape(OCD,DC)
+Cocircular(O,ABCD)
 TEXT_CDL:
-Equal(LengthOfLine(AC),2*x+9)
-Equal(LengthOfLine(BD),4*x-5)
-Equal(MeasureOfAngle(CAE),42)
-Equal(MeasureOfAngle(DCE),4*y)
-Equal(MeasureOfAngle(EAB),23)
-Equal(MeasureOfAngle(EBD),83)
-Parallelogram(ABDC)
+Equal(MeasureOfAngle(BCD),110)
+IsCentreOfCircle(O,O)
 GOAL_CDL:
-Value(y)
+Value(MeasureOfAngle(DOB))
 CONSTRUCTION_CDL_EXTENDED:
-Shape(ED,DC,CE)
-Shape(DC,CE,ED)
-Shape(EC,CA,AE)
-Shape(CA,AE,EC)
-Shape(AB,BE,EA)
-Shape(BE,EA,AB)
-Shape(BD,DE,EB)
-Shape(DE,EB,BD)
-Shape(ED,DC,CA,AE)
-Shape(DC,CA,AE,ED)
-Shape(CA,AE,ED,DC)
-Shape(AE,ED,DC,CA)
-Shape(DC,CE,EB,BD)
-Shape(CE,EB,BD,DC)
-Shape(EB,BD,DC,CE)
-Shape(BD,DC,CE,EB)
-Shape(EC,CA,AB,BE)
-Shape(CA,AB,BE,EC)
-Shape(AB,BE,EC,CA)
-Shape(BE,EC,CA,AB)
-Shape(EA,AB,BD,DE)
-Shape(AB,BD,DE,EA)
-Shape(BD,DE,EA,AB)
-Shape(DE,EA,AB,BD)
-Shape(ED,DC,CA,AB,BE)
-Shape(DC,CA,AB,BE,ED)
-Shape(CA,AB,BE,ED,DC)
-Shape(AB,BE,ED,DC,CA)
-Shape(BE,ED,DC,CA,AB)
-Shape(DC,CE,EA,AB,BD)
-Shape(CE,EA,AB,BD,DC)
-Shape(EA,AB,BD,DC,CE)
-Shape(AB,BD,DC,CE,EA)
-Shape(BD,DC,CE,EA,AB)
-Shape(EC,CA,AB,BD,DE)
-Shape(CA,AB,BD,DE,EC)
-Shape(AB,BD,DE,EC,CA)
-Shape(BD,DE,EC,CA,AB)
-Shape(DE,EC,CA,AB,BD)
-Shape(CA,AE,EB,BD,DC)
-Shape(AE,EB,BD,DC,CA)
-Shape(EB,BD,DC,CA,AE)
-Shape(BD,DC,CA,AE,EB)
-Shape(DC,CA,AE,EB,BD)
-Shape(DC,CA,AB,BD)
-Shape(CA,AB,BD,DC)
-Shape(AB,BD,DC,CA)
-Shape(BD,DC,CA,AB)
-Collinear(BEC)
-Collinear(DEA)
-Point(C)
+Shape(BA,OAB)
+Shape(BO,OD,DA,AB)
+Shape(OD,DA,AB,BO)
+Shape(DA,AB,BO,OD)
+Shape(AD,ODA)
+Shape(BC,CD,DO,OB)
+Shape(CD,DO,OB,BC)
+Shape(DO,OB,BC,CD)
+Shape(CB,OBC)
+Shape(DC,OCD)
+Shape(OAB,BO,OD,DA)
+Shape(BO,OD,DA,OAB)
+Shape(OD,DA,OAB,BO)
+Shape(DA,OAB,BO,OD)
+Shape(DA,AB,BC,CD)
+Shape(AB,BC,CD,DA)
+Shape(BC,CD,DA,AB)
+Shape(CD,DA,AB,BC)
+Shape(AB,BO,OD,ODA)
+Shape(BO,OD,ODA,AB)
+Shape(OD,ODA,AB,BO)
+Shape(ODA,AB,BO,OD)
+Shape(DO,OB,BC,OCD)
+Shape(OB,BC,OCD,DO)
+Shape(BC,OCD,DO,OB)
+Shape(OCD,DO,OB,BC)
+Shape(CD,DO,OB,OBC)
+Shape(DO,OB,OBC,CD)
+Shape(OB,OBC,CD,DO)
+Shape(OBC,CD,DO,OB)
+Shape(OAB,BC,CD,DA)
+Shape(BC,CD,DA,OAB)
+Shape(CD,DA,OAB,BC)
+Shape(DA,OAB,BC,CD)
+Shape(OAB,BO,OD,ODA)
+Shape(BO,OD,ODA,OAB)
+Shape(OD,ODA,OAB,BO)
+Shape(ODA,OAB,BO,OD)
+Shape(DA,AB,BC,OCD)
+Shape(AB,BC,OCD,DA)
+Shape(BC,OCD,DA,AB)
+Shape(OCD,DA,AB,BC)
+Shape(DA,AB,OBC,CD)
+Shape(AB,OBC,CD,DA)
+Shape(OBC,CD,DA,AB)
+Shape(CD,DA,AB,OBC)
+Shape(ODA,AB,BC,CD)
+Shape(AB,BC,CD,ODA)
+Shape(BC,CD,ODA,AB)
+Shape(CD,ODA,AB,BC)
+Shape(OBC,OCD,DO,OB)
+Shape(OCD,DO,OB,OBC)
+Shape(DO,OB,OBC,OCD)
+Shape(OB,OBC,OCD,DO)
+Shape(OAB,BC,OCD,DA)
+Shape(BC,OCD,DA,OAB)
+Shape(OCD,DA,OAB,BC)
+Shape(DA,OAB,BC,OCD)
+Shape(OAB,OBC,CD,DA)
+Shape(OBC,CD,DA,OAB)
+Shape(CD,DA,OAB,OBC)
+Shape(DA,OAB,OBC,CD)
+Shape(OAB,BC,CD,ODA)
+Shape(BC,CD,ODA,OAB)
+Shape(CD,ODA,OAB,BC)
+Shape(ODA,OAB,BC,CD)
+Shape(DA,AB,OBC,OCD)
+Shape(AB,OBC,OCD,DA)
+Shape(OBC,OCD,DA,AB)
+Shape(OCD,DA,AB,OBC)
+Shape(ODA,AB,BC,OCD)
+Shape(AB,BC,OCD,ODA)
+Shape(BC,OCD,ODA,AB)
+Shape(OCD,ODA,AB,BC)
+Shape(ODA,AB,OBC,CD)
+Shape(AB,OBC,CD,ODA)
+Shape(OBC,CD,ODA,AB)
+Shape(CD,ODA,AB,OBC)
+Shape(OAB,OBC,OCD,DA)
+Shape(OBC,OCD,DA,OAB)
+Shape(OCD,DA,OAB,OBC)
+Shape(DA,OAB,OBC,OCD)
+Shape(OAB,BC,OCD,ODA)
+Shape(BC,OCD,ODA,OAB)
+Shape(OCD,ODA,OAB,BC)
+Shape(ODA,OAB,BC,OCD)
+Shape(OAB,OBC,CD,ODA)
+Shape(OBC,CD,ODA,OAB)
+Shape(CD,ODA,OAB,OBC)
+Shape(ODA,OAB,OBC,CD)
+Shape(ODA,AB,OBC,OCD)
+Shape(AB,OBC,OCD,ODA)
+Shape(OBC,OCD,ODA,AB)
+Shape(OCD,ODA,AB,OBC)
+Shape(OAB,OBC,OCD,ODA)
+Shape(OBC,OCD,ODA,OAB)
+Shape(OCD,ODA,OAB,OBC)
+Shape(ODA,OAB,OBC,OCD)
+Cocircular(O,A)
+Cocircular(O,B)
+Cocircular(O,C)
+Cocircular(O,D)
+Cocircular(O,AB)
+Cocircular(O,BA)
+Cocircular(O,AC)
+Cocircular(O,CA)
+Cocircular(O,AD)
+Cocircular(O,DA)
+Cocircular(O,BC)
+Cocircular(O,CB)
+Cocircular(O,BD)
+Cocircular(O,DB)
+Cocircular(O,CD)
+Cocircular(O,DC)
+Cocircular(O,ABC)
+Cocircular(O,CBA)
+Cocircular(O,BCA)
+Cocircular(O,ACB)
+Cocircular(O,CAB)
+Cocircular(O,BAC)
+Cocircular(O,ABD)
+Cocircular(O,DBA)
+Cocircular(O,BDA)
+Cocircular(O,ADB)
+Cocircular(O,DAB)
+Cocircular(O,BAD)
+Cocircular(O,ACD)
+Cocircular(O,DCA)
+Cocircular(O,CDA)
+Cocircular(O,ADC)
+Cocircular(O,DAC)
+Cocircular(O,CAD)
+Cocircular(O,BCD)
+Cocircular(O,DCB)
+Cocircular(O,CDB)
+Cocircular(O,BDC)
+Cocircular(O,DBC)
+Cocircular(O,CBD)
+Cocircular(O,DCBA)
+Cocircular(O,BCDA)
+Cocircular(O,ADCB)
+Cocircular(O,CDAB)
+Cocircular(O,BADC)
+Cocircular(O,DABC)
+Cocircular(O,CBAD)
 Point(B)
-Point(E)
 Point(A)
+Point(O)
 Point(D)
-Line(CB)
-Line(BC)
-Line(CE)
-Line(EC)
-Line(EB)
-Line(BE)
-Line(AD)
-Line(DA)
-Line(AE)
-Line(EA)
-Line(ED)
-Line(DE)
-Line(DC)
-Line(CD)
-Line(CA)
-Line(AC)
-Line(AB)
+Point(C)
 Line(BA)
-Line(BD)
-Line(DB)
-Angle(CEB)
-Angle(BEC)
-Angle(AED)
-Angle(DEA)
-Angle(CED)
-Angle(EDC)
-Angle(DCE)
-Angle(AEC)
-Angle(ECA)
-Angle(CAE)
-Angle(EAB)
-Angle(ABE)
-Angle(BEA)
-Angle(EBD)
-Angle(BDE)
-Angle(DEB)
-Angle(DCA)
-Angle(CBD)
-Angle(BDC)
-Angle(CAB)
-Angle(ABD)
-Angle(BED)
-Angle(CEA)
-Angle(DEC)
-Angle(AEB)
-Angle(ADC)
-Angle(DCB)
-Angle(BCA)
-Angle(CAD)
+Line(AB)
+Line(BO)
+Line(OB)
+Line(OD)
+Line(DO)
+Line(DA)
+Line(AD)
+Line(BC)
+Line(CB)
+Line(CD)
+Line(DC)
+Arc(OAB)
+Arc(OBA)
+Arc(OAC)
+Arc(OCA)
+Arc(OAD)
+Arc(ODA)
+Arc(OBC)
+Arc(OCB)
+Arc(OBD)
+Arc(ODB)
+Arc(OCD)
+Arc(ODC)
+Angle(ABO)
+Angle(BOD)
+Angle(ODA)
 Angle(DAB)
-Angle(ABC)
-Angle(BDA)
-Angle(CDE)
-Angle(ECD)
-Angle(ACE)
-Angle(EAC)
-Angle(BAE)
-Angle(EBA)
-Angle(DBE)
-Angle(EDB)
-Angle(ACD)
-Angle(DBC)
-Angle(CDB)
-Angle(BAC)
-Angle(DBA)
-Angle(CDA)
+Angle(OBC)
 Angle(BCD)
-Angle(ACB)
-Angle(DAC)
+Angle(CDO)
+Angle(DOB)
+Angle(ABC)
+Angle(CDA)
+Angle(OBA)
+Angle(ADO)
 Angle(BAD)
+Angle(CBO)
+Angle(DCB)
+Angle(ODC)
 Angle(CBA)
-Angle(ADB)
-Polygon(CED)
-Polygon(CDE)
-Polygon(ECD)
-Polygon(EDC)
-Polygon(DCE)
-Polygon(DEC)
-Polygon(AEC)
-Polygon(ACE)
-Polygon(EAC)
-Polygon(ECA)
-Polygon(CAE)
-Polygon(CEA)
-Polygon(EAB)
-Polygon(EBA)
-Polygon(AEB)
-Polygon(ABE)
-Polygon(BEA)
-Polygon(BAE)
-Polygon(EBD)
-Polygon(EDB)
-Polygon(BED)
-Polygon(BDE)
-Polygon(DEB)
-Polygon(DBE)
-Polygon(DCA)
-Polygon(DAC)
-Polygon(CDA)
-Polygon(CAD)
-Polygon(ADC)
-Polygon(ACD)
-Polygon(DCB)
-Polygon(DBC)
-Polygon(CDB)
-Polygon(CBD)
-Polygon(BDC)
-Polygon(BCD)
-Polygon(CAB)
-Polygon(CBA)
-Polygon(ACB)
-Polygon(ABC)
-Polygon(BCA)
-Polygon(BAC)
-Polygon(ABD)
-Polygon(ADB)
-Polygon(BAD)
-Polygon(BDA)
-Polygon(DAB)
-Polygon(DBA)
-Polygon(EDCAB)
-Polygon(DCABE)
-Polygon(CABED)
-Polygon(ABEDC)
-Polygon(BEDCA)
-Polygon(DCEAB)
-Polygon(CEABD)
-Polygon(EABDC)
-Polygon(ABDCE)
-Polygon(BDCEA)
-Polygon(ECABD)
-Polygon(CABDE)
-Polygon(ABDEC)
-Polygon(BDECA)
-Polygon(DECAB)
-Polygon(CAEBD)
-Polygon(AEBDC)
-Polygon(EBDCA)
-Polygon(BDCAE)
-Polygon(DCAEB)
-Polygon(DCAB)
-Polygon(CABD)
-Polygon(ABDC)
-Polygon(BDCA)
-Parallelogram(BDCA)
-Parallelogram(DCAB)
-Parallelogram(CABD)
-ParallelBetweenLine(AC,BD)
-ParallelBetweenLine(DB,CA)
-ParallelBetweenLine(BA,DC)
-ParallelBetweenLine(CD,AB)
+Angle(ADC)
+Polygon(ABOD)
+Polygon(BODA)
+Polygon(ODAB)
+Polygon(DABO)
+Polygon(OBCD)
+Polygon(BCDO)
+Polygon(CDOB)
+Polygon(DOBC)
+Polygon(DABC)
+Polygon(ABCD)
+Polygon(BCDA)
+Polygon(CDAB)
+Circle(O)
 SYMBOLS_AND_VALUES:
-LengthOfLine(PR);ll_pr;None
-LengthOfLine(RP);ll_pr;None
-Free(x);x;None
-LengthOfLine(PS);ll_ps;None
-LengthOfLine(SP);ll_ps;None
-Free(y);y;None
-LengthOfLine(QP);ll_qp;None
-LengthOfLine(PQ);ll_qp;None
-LengthOfLine(TP);ll_tp;None
-LengthOfLine(PT);ll_tp;None
+MeasureOfAngle(ABC);ma_obc;50
+MeasureOfAngle(EBC);ma_obc;50
+MeasureOfAngle(OBC);ma_obc;50
+MeasureOfAngle(CDB);ma_edb;None
+MeasureOfAngle(EDB);ma_edb;None
 
 Outputs:
 Outputs for Problem B:
 
 ***MODEL_RESPONSE_BEGIN***
 EQUATIONS:
-ll_ac-2*x-9
-ll_bd-4*x+5
-ma_cae-42
-ma_dce-4*y
-ma_eab-23
-ma_ebd-83
-
+ma_bcd-110
 GOAL_SYMBOL:
-y
-
-RETRY_ANSWER:
-23/4
+ma_dob
+ANSWER:
+140
 RETRY_THEOREM_SEQUENCE:
-1; mirror_congruent_triangle_judgment_sss(1,AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(DC))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(CE)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
-2; mirror_congruent_triangle_property_angle_equal(1,AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))"]
+1; arc_property_circumference_angle_external(1,OBD,C); Cocircular(O,BCD)&Angle(BCD); ["Equal(MeasureOfAngle(BCD),Mul(MeasureOfArc(OBD),1/2))"]
+2; arc_property_center_angle(1,OBD,O); Arc(OBD)&Angle(DOB)&IsCentreOfCircle(O,O); ["Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))"]
 ***MODEL_RESPONSE_END***
 RETRIES_MESSAGES:
-#run: 2; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Failure: Theorem <mirror_congruent_triangle_judgment_sss> variation id is not supplied. Expected dict_keys(['1']) but got None.
-Your call: mirror_congruent_triangle_judgment_sss(A,E,B,C,E,D)
-Please rewrite your response by adding the variation id as the first argument. For example: For variation 1: mirror_congruent_triangle_judgment_sss(1,A,E,B,C,E,D)
+#run: 1; #retry: 1; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: arc_property_circumference_angle_external(1,OBD,C)
+You output the following premises: Cocircular(O,BCD)&Angle(BCD)
+But the correct premises: Cocircular(O,BDC)&Angle(DCB)
+You output the following conclusions: Equal(MeasureOfAngle(BCD),Mul(MeasureOfArc(OBD),1/2))
+But the correct conclusions: Equal(MeasureOfAngle(DCB),Mul(MeasureOfArc(OBD),1/2))
 
 Model Answer:
 RETRY_ANSWER:
-23/4
+220
 RETRY_THEOREM_SEQUENCE:
-1; mirror_congruent_triangle_judgment_sss(AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(CE))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(DC)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
-2; mirror_congruent_triangle_property_angle_equal(AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))"]
-#run: 2; #retry: 2; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Theorem: mirror_congruent_triangle_judgment_sss(1,AEB,CED)
-You output the following premises: Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(CE))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(DC))
-But the correct premises: Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(DC))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(CE))
+1; arc_property_circumference_angle_external(1,OBD,C); Cocircular(O,BCD)&Angle(BCD); ["Equal(MeasureOfAngle(BCD),Mul(MeasureOfArc(OBD),1/2))"]
+2; arc_property_center_angle(1,OBD,O); Arc(OBD)&Angle(DOB)&IsCentreOfCircle(O,O); ["Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))"]
+#run: 1; #retry: 2; message: ERROR_TIER: TIER3_GOAL_NOT_REACHED
+verification failed.
+
+- Goal: measure of angle DOB
+- Model answer: 220.0
+- Error: Your proof contains contradictory constraints. Check for incorrect values in premises, improper theorem application, or conclusions that contradict earlier assertions.
+- Available premises:
+  Cocircular Points: A on circle O, AB on circle O, ABC on circle O, ABCD on circle O, ABD on circle O, AC on circle O, ACD on circle O, AD on circle O, B on circle O, BC on circle O, BCD on circle O, BD on circle O, C on circle O, CD on circle O, D on circle O
+  Circles: O center: O
+  Polygons: ABCD, ABOD, BCDA, BCDO, BODA, CDAB, CDOB, DABC, DABO, DOBC, OBCD, ODAB
+- Theorems related to the goal:
+  Step 2 - arc_property_center_angle(1, OBD, O): Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))
+- Solver constraints directly related to this goal:
+  arc(OBD) = ∠BOD
+  ∠BOD <= 180
+  ∠BOD > 0
+
+Please fix the proof.
+Model Answer:
+RETRY_ANSWER:
+220
+RETRY_THEOREM_SEQUENCE:
+1; arc_property_circumference_angle_external(1,OBD,C); Cocircular(O,BDC)&Angle(DCB); ["Equal(MeasureOfAngle(DCB),Mul(MeasureOfArc(OBD),1/2))"]
+2; arc_property_center_angle(1,OBD,O); Arc(OBD)&Angle(DOB)&IsCentreOfCircle(O,O); ["Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))"]
+#run: 1; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
+Theorem: arc_property_circumference_angle_internal(1,OBD,C)
+You output the following premises: Cocircular(O,BDC)&Angle(BCD)
+But the correct premises: Cocircular(O,BCD)&Angle(BCD)
 
 Model Answer:
 RETRY_ANSWER:
-23/4
+140
 RETRY_THEOREM_SEQUENCE:
-1; mirror_congruent_triangle_judgment_sss(1,AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(CE))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(DC)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
-2; mirror_congruent_triangle_property_angle_equal(1,AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))"]
-#run: 2; #retry: 3; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Theorem: mirror_congruent_triangle_property_angle_equal(1,AEB,CED)
-You output the following conclusions: Equal(MeasureOfAngle(EAB),MeasureOfAngle(DCE))
-But the correct conclusions: Equal(MeasureOfAngle(BAE),MeasureOfAngle(DCE))
-
-Model Answer:
-
-#run: 2; #retry: 4; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Error in TIER1_THEOREM_CALL_SYNTAX_VIOLATION: Theorem 'mirror_congruent_triangle_judgment_sss' is not recognized or its premise validation is not supported by the current verifier version.
-Model Answer:
-RETRY_ANSWER:
-23/4
-RETRY_THEOREM_SEQUENCE:
-1; mirror_congruent_triangle_judgment_sss(1,AEB,CED); Polygon(AEB)&Polygon(CED)&Equal(LengthOfLine(AE),LengthOfLine(DC))&Equal(LengthOfLine(EB),LengthOfLine(ED))&Equal(LengthOfLine(BA),LengthOfLine(CE)); ["MirrorCongruentBetweenTriangle(AEB,CED)"]
-2; mirror_congruent_triangle_property_angle_equal(1,AEB,CED); MirrorCongruentBetweenTriangle(AEB,CED); ["Equal(MeasureOfAngle(BAE),MeasureOfAngle(DCE))"]
-#run: 2; #retry: 5; message: ERROR_TIER: TIER1_THEOREM_CALL_SYNTAX_VIOLATION
-Theorem: parallelogram_property_opposite_line_equal(1,ABDC)
-You output the following conclusions: Equal(LengthOfLine(AC),LengthOfLine(BD))
-But the correct conclusions: Equal(LengthOfLine(BA),LengthOfLine(DC))
-
-Model Answer:
-RETRY_ANSWER:
-23/4
-RETRY_THEOREM_SEQUENCE:
-1; parallelogram_property_opposite_line_equal(1,ABDC); Parallelogram(ABDC); ["Equal(LengthOfLine(AC),LengthOfLine(BD))"]
+1; arc_property_circumference_angle_internal(1,OBD,C); Cocircular(O,BDC)&Angle(BCD); ["Equal(MeasureOfAngle(BCD),Sub(180,Mul(MeasureOfArc(OBD),1/2)))"]
+2; arc_property_center_angle(1,OBD,O); Arc(OBD)&Angle(DOB)&IsCentreOfCircle(O,O); ["Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))"]
 #RETRIES:
-5
+3
 #RUNS:
-2
+1
 
 
 GT_EQUATIONS:
-ll_ac-2*x-9
-ll_bd-4*x+5
-ma_cae-42
-ma_dce-4*y
-ma_eab-23
-ma_ebd-83
+ma_bcd-110
 GT_GOAL_SYMBOL:
-y
+ma_dob
+GT_ANSWER:
+140
+GT_THEOREM_SEQUENCE:
+1;arc_property_circumference_angle_internal(1,OBD,C);Cocircular(O,BCD)&Angle(BCD);["Equal(MeasureOfAngle(BCD),Sub(180,Mul(MeasureOfArc(OBD),1/2)))"]
+2;arc_property_center_angle(1,OBD,O);Arc(OBD)&Angle(DOB)&IsCentreOfCircle(O,O);["Equal(MeasureOfArc(OBD),MeasureOfAngle(DOB))"]

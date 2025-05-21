@@ -20,10 +20,12 @@ PLEASE_FIX_PROOF = "\nPlease fix the proof."
 GOAL_ANGLE = "- Goal: measure of angle {0}\n"
 GOAL_LENGTH = "- Goal: length of line {0}\n"
 GOAL_ARC_MEASURE = "- Goal: measure of arc {0}\n"
+GOAL_RADIUS = "- Goal: radius of circle {0}\n"
 GOAL_ARC_LENGTH = "- Goal: length of arc {0}\n"
 GOAL_COSINE = "- Goal: cosine of angle {0}\n"
 GOAL_SINE = "- Goal: sine of angle {0}\n"
 GOAL_SUM = "- Goal: sum of lines {0} + {1}\n"
+GOAL_RADIUS = "- Goal: radius of circle {0}\n"
 GOAL_RATIO = "- Goal: ratio of lines {0} / {1}\n"
 GOAL_PERIMETER = "- Goal: perimeter of triangle {0}\n"
 GOAL_QUAD_AREA = "- Goal: area of quadrilateral {0}\n"
@@ -256,6 +258,8 @@ class GeometricTheorem:
                 report += GOAL_PERIMETER.format(goal_token)
             elif goal_type == "quad_area":
                 report += GOAL_QUAD_AREA.format(goal_token)
+            elif goal_type == "radius":
+                report += GOAL_RADIUS.format(goal_token)
             elif goal_type == "general":
                 report += GOAL_GENERAL.format(goal_token)
             else:
@@ -2472,826 +2476,133 @@ class GeometricTheorem:
                     message="these is no such version for the theorem",
                     details="these is no such version for the theorem adjacent_complementary_angle"
                 ))
-        elif theorem_name == "diameter_of_circle_judgment_right_angle":
+        elif theorem_name == "bisector_of_angle_property_line_ratio":
             version = args[0]
             if version == "1":
                 if len(args) < 3:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message="Insufficient arguments for diameter_of_circle_judgment_right_angle",
-                        details="Expected: diameter_of_circle_judgment_right_angle(1, angle, circle)"
+                        message="Insufficient arguments for bisector_of_angle_property_line_ratio",
+                        details="Expected: bisector_of_angle_property_line_ratio(1, bisector, angle)"
                     ))
 
-                angle_token = args[1].strip()  # e.g., "BCA"
-                circle_token = args[2].strip()  # e.g., "O"
+                bisector = args[1].strip()  # e.g., "BD"
+                angle = args[2].strip()  # e.g., "ABC"
 
-                # Check for the cocircular fact
-                cocircular_pattern = r'Cocircular\(' + re.escape(circle_token) + r',.*' + re.escape(
-                    angle_token) + r'.*\)'
-                alt_pattern = r'Cocircular\(' + re.escape(circle_token) + r',.*[' + ''.join(angle_token) + r'].*\)'
-
-                cocircular_match = re.search(cocircular_pattern, premise) or re.search(alt_pattern, premise)
-                if not cocircular_match:
+                # Check for angle bisector fact in premise
+                bisector_match = re.search(
+                    r'IsBisectorOfAngle\(' + re.escape(bisector) + r',' + re.escape(angle) + r'\)', premise)
+                if not bisector_match:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Missing Cocircular({circle_token},...) fact including points in {angle_token}",
-                        details="diameter_of_circle_judgment_right_angle requires points to lie on the circle"
+                        message=f"Missing IsBisectorOfAngle({bisector},{angle}) in premise",
+                        details="bisector_of_angle_property_line_ratio requires angle bisector fact"
                     ))
 
-                # Check if the cocircular fact is established in the system
-                cocircular_found = False
-                for fact in self.cocircular_facts:
-                    if fact[0] == circle_token and all(point in ''.join(fact[1:]) for point in angle_token):
-                        cocircular_found = True
+                # Check if angle bisector is stored in the system
+                if hasattr(self, "angle_bisectors") and (bisector, angle) not in self.angle_bisectors:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message=f"Angle bisector {bisector} for angle {angle} not established",
+                        details=f"Known angle bisectors: {self.angle_bisectors}"
+                    ))
+
+                # Check for collinearity fact in premise
+                collinear_match = re.search(r'Collinear\((\w+)\)', premise)
+                if not collinear_match:
+                    return return_error(GeometricError(
+                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
+                        message="Missing Collinear(...) fact in premise",
+                        details="bisector_of_angle_property_line_ratio requires collinearity relationship"
+                    ))
+
+                collinear_points = collinear_match.group(1)
+
+                # Check if this collinearity is stored in the system
+                collinear_normalized = self.normalize_collinear_points(collinear_points)
+                collinear_found = False
+                for fact in self.collinear_facts:
+                    fact_normalized = self.normalize_collinear_points(''.join(fact))
+                    if fact_normalized == collinear_normalized:
+                        collinear_found = True
                         break
 
-                if not cocircular_found:
+                if not collinear_found:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Points in {angle_token} not proven to lie on circle {circle_token}",
-                        details=f"Known cocircular facts: {self.cocircular_facts}"
+                        message=f"Collinearity {collinear_points} not established",
+                        details=f"Known collinear facts: {[''.join(fact) for fact in self.collinear_facts]}"
                     ))
 
-                # Check for the 90-degree angle fact
-                angle_pattern = r'Equal\(MeasureOfAngle\(' + re.escape(angle_token) + r'\),90\)'
-                angle_match = re.search(angle_pattern, premise)
-                if not angle_match:
+                # Verify that the geometric setup is correct for the theorem
+                # The bisector must connect a vertex of the angle to a point on the opposite side
+                # The collinear points must include the endpoint of the bisector and the other two points
+
+                # The angle vertex is the middle letter of the angle
+                vertex = angle[1]
+
+                # The bisector should start at the vertex
+                if bisector[0] != vertex:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Missing Equal(MeasureOfAngle({angle_token}),90) fact",
-                        details="diameter_of_circle_judgment_right_angle requires a 90-degree angle"
+                        message=f"Bisector {bisector} doesn't start at angle vertex {vertex}",
+                        details="The angle bisector must start at the angle's vertex"
                     ))
 
-                # Check if the 90-degree angle is established in the solver
-                angle_var = self.add_angle(angle_token[0], angle_token[1], angle_token[2])
-
-                # Create temporary solver to check if angle must be 90
-                temp_solver = Solver()
-                for c in self.solver.assertions():
-                    temp_solver.add(c)
-
-                temp_solver.add(angle_var != 90)
-                if temp_solver.check() != unsat:
+                # The collinear points should include the endpoint of the bisector
+                # and the other two points of the triangle
+                if bisector[1] not in collinear_points:
                     return return_error(GeometricError(
                         tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Angle {angle_token} is not proven to be 90 degrees",
-                        details="The solver constraints do not force this angle to be 90 degrees"
+                        message=f"Collinear points {collinear_points} don't include bisector endpoint {bisector[1]}",
+                        details="The collinear points must include the endpoint of the bisector"
                     ))
 
                 return True, None
             else:
                 return return_error(GeometricError(
                     tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message=f"Unsupported version {version} for diameter_of_circle_judgment_right_angle",
-                    details="Only version 1 is supported"
-                ))
-
-        elif theorem_name == "right_triangle_judgment_angle":
-            # Expecting something like: "Polygon(GHE)&Equal(MeasureOfAngle(GHE),90)"
-            version = args[0]
-            if version == "1":
-                if len(args) < 2:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message="Missing triangle argument for right_triangle_judgment_angle",
-                        details="Expected right_triangle_judgment_angle(1, triangle)"
-                    ))
-                triangle = args[1].strip()
-                # Check that a Polygon fact exists for this triangle.
-                polygon_found = False
-                # Also check that an angle measure equality specifying 90° is present.
-                angle_90_found = False
-                # Split the premise on '&' to get the individual facts.
-                for conj in premise.split('&'):
-                    conj = conj.strip()
-                    # Check for the polygon fact:
-                    if conj.startswith("Polygon("):
-                        m_poly = re.match(r'Polygon\((\w+)\)', conj)
-                        if m_poly:
-                            poly_name = m_poly.group(1)
-                            # Normalize both names so that e.g. "GHE" and "HEG" are equivalent.
-                            if self.normalize_triangle(poly_name) in self.polygons:
-                                polygon_found = True
-                    # Check for the angle equality specifying 90°
-                    elif conj.startswith("Equal(MeasureOfAngle("):
-                        m_angle = re.match(r'Equal\(MeasureOfAngle\((\w+)\),\s*(\d+)\)', conj)
-                        if m_angle:
-                            angle_str = m_angle.group(1)
-                            angle_val = int(m_angle.group(2))
-
-                            # Check if this angle is related to the triangle
-                            if any(p in angle_str for p in triangle):
-                                # Get or create the angle variable
-                                angle_var = self.add_angle(angle_str[0], angle_str[1], angle_str[2])
-
-                                # Check if angle is constrained to be 90 in the Z3 model
-                                if self.solver.check() == sat:
-                                    temp_solver = Solver()
-                                    for c in self.solver.assertions():
-                                        temp_solver.add(c)
-
-                                    # Try to find a solution where the angle is not 90
-                                    temp_solver.add(angle_var != 90)
-
-                                    if temp_solver.check() == unsat:
-                                        # If unsatisfiable, the angle must be exactly 90
-                                        angle_90_found = True
-                                        print(
-                                            f"Verified angle {angle_str} is constrained to be 90 degrees in the model.")
-                                    else:
-                                        # The angle could be something other than 90
-                                        alt_model = temp_solver.model()
-                                        alt_val = float(alt_model.eval(angle_var).as_decimal(10).rstrip('?'))
-                                        print(
-                                            f"Warning: Angle {angle_str} is not constrained to be 90 degrees. Could also be {alt_val}.")
-                                else:
-                                    print(f"Warning: Solver is unsatisfiable when checking angle {angle_str}.")
-                # if not polygon_found:
-                #     return return_error(GeometricError(
-                #         tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                #         message=f"Polygon fact for triangle {triangle} is missing in the premise.",
-                #         details=f"Premise provided: {premise}"
-                #     ))
-                if not angle_90_found:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Angle measure 90° for triangle {triangle} is not established in the premise.",
-                        details=f"Premise provided: {premise}"
-                    ))
-                return True, None
-            else:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
                     message="these is no such version for the theorem",
-                    details="these is no such version for the theorem right_triangle_judgment_angle"
+                    details="these is no such version for the theorem bisector_of_angle_property_line_ratio"
                 ))
 
-
-
-        elif theorem_name == "triangle_property_angle_sum":
-            # Check that the premise contains a valid Polygon fact.
-            version = args[0]
-            if version == "1":
-                poly_match = re.search(r'Polygon\((\w+)\)', premise)
-                if not poly_match:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message="Missing or invalid Polygon() in premise for triangle_property_angle_sum"
-                    ))
-                triangle_points = poly_match.group(1)
-                if len(triangle_points) != 3:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Polygon({triangle_points}) does not represent a triangle (3 vertices expected)"
-                    ))
-                # Optionally, check that the triangle provided in the theorem call (e.g., args[1]) matches the Polygon.
-                if len(args) >= 2 and args[1].strip() != triangle_points:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Polygon in premise ({triangle_points}) does not match the triangle in theorem call ({args[1].strip()})"
-                    ))
-                # Premise is valid.
-                return True, None
-            else:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message="these is no such version for the theorem",
-                    details="these is no such version for the theorem triangle_property_angle_sum"
-                ))
-
-
-
-
-
-
-        elif theorem_name == "mirror_similar_triangle_judgment_aa":
-            version = args[0]
-            if version != "1":
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message="these is no such version for the theorem",
-                    details="these is no such version for the theorem mirror_similar_triangle_judgment_aa"
-                ))
-            if len(args) < 3:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                    message="Insufficient arguments for mirror_similar_triangle_judgment_aa",
-
-                    details="Expected mirror_similar_triangle_judgment_aa(1, triangle1, triangle2)"
-
-                ))
-
-            triangle1 = args[1].strip()
-
-            triangle2 = args[2].strip()
-
-            if self.normalize_triangle(triangle1) not in self.polygons:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                    message=f"Polygon for triangle {triangle1} is missing",
-
-                    details="The construction data did not define this polygon."
-
-                ))
-
-            if self.normalize_triangle(triangle2) not in self.polygons:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                    message=f"Polygon for triangle {triangle2} is missing",
-
-                    details="The construction data did not define this polygon."
-
-                ))
-
-            # Check that the premise includes the required angle equalities.
-
-            # For example, in the given premise:
-
-            #   "Polygon(EGH)&Polygon(FEG)&Equal(MeasureOfAngle(EGH),MeasureOfAngle(EGF))&Equal(MeasureOfAngle(GHE),MeasureOfAngle(FEG))"
-
-            # we want to check that the angle equalities hold.
-
-            conjuncts = [p.strip() for p in premise.split('&')]
-
-            for conj in conjuncts:
-
-                if conj.startswith("Equal(MeasureOfAngle("):
-
-                    m = re.match(r'Equal\(MeasureOfAngle\((\w{3})\),\s*MeasureOfAngle\((\w{3})\)\)', conj)
-
-                    if m:
-
-                        ang1 = m.group(1)
-
-                        ang2 = m.group(2)
-
-                        # Use your existing helper to check that these angles are forced equal.
-
-                        if not self.check_angle_equality(ang1, ang2):
-                            return return_error(GeometricError(
-
-                                tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                                message=f"Premise angle equality {ang1} = {ang2} does not hold.",
-
-                                details="The constraints do not force these two angles to be equal."
-
-                            ))
-
-                    else:
-
-                        return return_error(GeometricError(
-
-                            tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                            message=f"Angle equality clause '{conj}' is not in the expected format.",
-
-                            details="Expected format: Equal(MeasureOfAngle(XXX),MeasureOfAngle(YYY))"
-
-                        ))
-
-            return True, None
-
-
-        elif theorem_name == "mirror_similar_triangle_property_line_ratio":
-            version = args[0]
-            if version != "1":
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message="these is no such version for the theorem",
-                    details="these is no such version for the theorem mirror_similar_triangle_property_line_ratio"
-                ))
-            similar_match = re.search(r'MirrorSimilarBetweenTriangle\((\w+),(\w+)\)', premise)
-            if not similar_match:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                    message="Missing MirrorSimilarBetweenTriangle(...) in premise",
-                    details="mirror_similar_triangle_property_line_ratio requires mirror similar triangles"
-                ))
-            tri1, tri2 = similar_match.groups()
-            canonical_pair = self.canonicalize_mirror_triangle_pair(tri1, tri2)
-            if canonical_pair not in self.mirror_similar_triangles:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                    message=f"Triangles {tri1} and {tri2} are not proven mirror similar",
-                    details=f"Known mirror similar triangles: {self.mirror_similar_triangles}"
-                ))
-            return True, None
-
-
-
-
-        elif theorem_name == "parallel_property_corresponding_angle":
-
-            version = args[0]
-
-            # Common check: the premise must include a ParallelBetweenLine fact.
-            if version not in ["1","2"]:
-                return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message=f"no such version for the theorem",
-                    details=f"no such version for the theorem parallel_property_corresponding_angle"
-                ))
-            if "ParallelBetweenLine" not in premise:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                    message="Missing parallel lines in premise",
-
-                    details="parallel_property_corresponding_angle theorem requires ParallelBetweenLine(...)"
-
-                ))
-
-            line_match = re.search(r'ParallelBetweenLine\(\s*(\w+)\s*,\s*(\w+)\s*\)', premise)
-
-            if not line_match:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                    message="Invalid parallel lines format in premise"
-
-                ))
-
-            line1, line2 = line_match.group(1), line_match.group(2)
-
-            # Check that these lines are recorded as parallel
-
-            possible_pairs = [
-
-                (line1, line2),
-
-                (line2, line1),
-
-                (line1[::-1], line2),
-
-                (line1, line2[::-1]),
-
-                (line2[::-1], line1),
-
-                (line2, line1[::-1])
-
-            ]
-
-            if not any((pair in self.parallel_pairs or pair[::-1] in self.parallel_pairs)
-
-                       for pair in possible_pairs):
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                    message=f"Lines {line1} and {line2} not proven parallel",
-
-                    details=f"Available parallel pairs: {self.parallel_pairs}"
-
-                ))
-
-            # For version 2 we require an additional collinearity fact.
-
-            if version == "2":
-
-                # In our sample for version 2, the theorem call is parallel_property_corresponding_angle(2,HD,FB,A)
-
-                # and the premise includes a Collinear fact—for instance, "Collinear(HFA)".
-
-                token4 = args[3]  # e.g. "A"
-
-                collinear_match = re.search(r'Collinear\(\s*(\w+)\s*\)', premise)
-
-                if collinear_match:
-
-                    points = collinear_match.group(1)
-
-                    if token4 not in points:
-                        return return_error(GeometricError(
-
-                            tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                            message=f"Premise for version 2 must include a Collinear fact containing '{token4}'",
-
-                            details=f"Premise provided: {premise}"
-
-                        ))
-
-                else:
-
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message="Premise for version 2 must include a Collinear fact.",
-
-                        details=f"Premise provided: {premise}"
-
-                    ))
-
-            return True, None
-
-
-
-
-
-        elif theorem_name == "similar_triangle_property_line_ratio":
-
-            version = args[0]
-
-            if version == "1":
-
-                similar_match = re.search(r'SimilarBetweenTriangle\((\w+),(\w+)\)', premise)
-
-                if not similar_match:
-                    # Add return here
-
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message="Missing similar triangles in premise",
-
-                        details="similar_triangle_property_line_ratio requires similar triangles"
-
-                    ))
-
-                tri1, tri2 = similar_match.groups()
-
-                if not self.are_triangles_similar(tri1, tri2):
-                    # Add return here
-
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message=f"Triangles {tri1} and {tri2} are not proven similar",
-
-                        details=f"Known similar triangles: {self.similar_triangles}"
-
-                    ))
-
-                # If all checks pass, return success
-
-                return True, None
-
-            else:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message="these is no such version for the theorem",
-                    details="these is no such version for the theorem similar_triangle_property_line_ratio"
-                ))
-
-
-
-        elif theorem_name == "parallelogram_property_opposite_angle_equal":
-
-            version = args[0]
-            if version == "1":
-                if len(args) < 2:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                        message="Missing parallelogram argument",
-
-                        details="parallelogram_property_opposite_angle_equal requires a parallelogram name"
-
-                    ))
-
-                theorem_para = args[1]
-
-                premise_match = re.search(r'Parallelogram\((\w+)\)', premise)
-
-                if not premise_match:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message="Invalid parallelogram format in premise"
-
-                    ))
-
-                premise_para = premise_match.group(1)
-
-                # Get all valid cyclic variations of both parallelograms
-
-                theorem_variations = self.normalize_parallelogram(theorem_para)
-
-                premise_variations = self.normalize_parallelogram(premise_para)
-
-                # Check if there's any overlap between the variations
-
-                if not (theorem_variations & premise_variations):
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message=f"Theorem uses parallelogram {theorem_para} but premise specifies {premise_para}",
-
-                        details=f"No matching cyclic variation found between theorem and premise parallelograms"
-
-                    ))
-
-                # Also check if either parallelogram is defined in TEXT_CDL
-
-                if not any(var in self.parallelograms for var in theorem_variations):
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message=f"Parallelogram {theorem_para} is not defined in TEXT_CDL",
-
-                        details=f"Available parallelograms: {', '.join(self.parallelograms)}"
-
-                    ))
-                return True, None
-            else:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                    message="no such version",
-
-                    details="no such version for parallelogram_property_opposite_angle_equal"
-
-                ))
-
-
-
-
-
-        elif theorem_name == "similar_triangle_judgment_aa":
-            version = args[0]
-            if version == "1":
-                if len(args) < 3:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message="Insufficient arguments for similar_triangle_judgment_aa",
-                        details="Expected similar_triangle_judgment_aa(1, triangle1, triangle2)"
-                    ))
-                triangle1 = args[1].strip()  # e.g. "ADC"
-                triangle2 = args[2].strip()  # e.g. "AEB"
-
-                # First, check that these polygons exist in our stored polygons.
-                norm_triangle1 = self.normalize_triangle(triangle1)
-                norm_triangle2 = self.normalize_triangle(triangle2)
-                if norm_triangle1 not in self.polygons:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Polygon for triangle {triangle1} is missing from the input data.",
-                        details="The construction data did not define this polygon."
-                    ))
-                if norm_triangle2 not in self.polygons:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Polygon for triangle {triangle2} is missing from the input data.",
-                        details="The construction data did not define this polygon."
-                    ))
-                # Next, check that the premise includes a polygon fact for each triangle.
-                poly_matches = re.findall(r'Polygon\((\w+)\)', premise)
-                if not any(triangle1 == poly or set(triangle1) == set(poly) for poly in poly_matches):
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Polygon for triangle {triangle1} is missing in the premise",
-                        details="similar_triangle_judgment_aa requires a Polygon fact for the triangle"
-                    ))
-                if not any(triangle2 == poly or set(triangle2) == set(poly) for poly in poly_matches):
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Polygon for triangle {triangle2} is missing in the premise",
-                        details="similar_triangle_judgment_aa requires a Polygon fact for the triangle"
-                    ))
-                # Now check that all angle equalities in the premise hold.
-                # (For example, the premise may be:
-                #  "Polygon(ADC)&Polygon(AEB)&Equal(MeasureOfAngle(ADC),MeasureOfAngle(AEB))&
-                #   Equal(MeasureOfAngle(DCA),MeasureOfAngle(EBA))"
-                # )
-                # We split on '&' and for every clause that begins with "Equal(MeasureOfAngle(" we check the equality.
-                conjuncts = [p.strip() for p in premise.split('&')]
-                for conj in conjuncts:
-                    # If this conjunct is an angle equality, it should match the pattern:
-                    # Equal(MeasureOfAngle(XXX),MeasureOfAngle(YYY))
-                    if conj.startswith("Equal(MeasureOfAngle("):
-                        m = re.match(r'Equal\(MeasureOfAngle\((\w{3})\),\s*MeasureOfAngle\((\w{3})\)\)', conj)
-                        if m:
-                            ang1 = m.group(1)
-                            ang2 = m.group(2)
-                            # Use the solver to check that these two angles are forced equal.
-                            if not self.check_angle_equality(ang1, ang2):
-                                return return_error(GeometricError(
-                                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                                    message=f"Premise angle equality {ang1} = {ang2} does not hold.",
-                                    details="The constraints do not force these two angles to be equal."
-                                ))
-                        else:
-                            # If the pattern does not match, you might choose to ignore or return an error.
-                            return return_error(GeometricError(
-                                tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                                message=f"Angle equality clause '{conj}' is not in the expected format.",
-                                details="Expected format: Equal(MeasureOfAngle(XXX),MeasureOfAngle(YYY))"
-                            ))
-                # If we got here, all parts of the premise are valid.
-                return True, None
-            else:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message="these is no such version for the theorem",
-                    details="these is no such version for the theorem similar_triangle_judgment_aa"
-                ))
-
-
-
-
-
-
-        elif theorem_name == "parallel_property_alternate_interior_angle":
-
-            version = args[0]
-
-            if version == "1":
-
-                # Version 1: we require that a ParallelBetweenLine fact is present.
-
-                if "ParallelBetweenLine" not in premise:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message="Missing parallel lines in premise (version 1)",
-
-                        details="parallel_property_alternate_interior_angle requires ParallelBetweenLine(...)"
-
-                    ))
-
-                line_match = re.search(r'ParallelBetweenLine\((\w+),\s*(\w+)\)', premise)
-
-                if not line_match:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message="Invalid parallel lines format in premise (version 1)"
-
-                    ))
-
-                # (Optionally, you can check that these lines are already recorded as parallel.)
-
-                line1, line2 = line_match.group(1), line_match.group(2)
-
-                possible_pairs = [
-
-                    (line1, line2),
-
-                    (line2, line1),
-
-                    (line1[::-1], line2),
-
-                    (line1, line2[::-1]),
-
-                    (line2[::-1], line1),
-
-                    (line2, line1[::-1])
-
-                ]
-
-                if not any(
-                        (pair in self.parallel_pairs or pair[::-1] in self.parallel_pairs) for pair in possible_pairs):
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message=f"Lines {line1} and {line2} not proven parallel (version 1)",
-
-                        details=f"Available parallel pairs: {self.parallel_pairs}"
-
-                    ))
-
-                # Premise is valid for version 1.
-
-                return True, None
-
-            elif version == "2":
-
-                # Version 2: we require both a ParallelBetweenLine fact and an additional Line fact.
-
-                if "ParallelBetweenLine" not in premise:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message="Missing parallel lines in premise (version 2)",
-
-                        details=f"Premise provided: {premise}"
-
-                    ))
-
-                if "Line(" not in premise:
-                    return return_error(GeometricError(
-
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                        message="Missing Line fact in premise (version 2)",
-
-                        details=f"Premise provided: {premise}"
-
-                    ))
-
-                # (Optionally, further checks can be added here.)
-
-                return True, None
-            else:
-                return return_error(GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message=f"no such version for the theorem",
-                    details="no such version for the theorem parallel_property_alternate_interior_angle"
-                ))
-
-
-        elif theorem_name == "angle_addition":
-            version = args[0]
-
-            if version == "1":
-                if len(args) < 3:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message="Missing angle arguments",
-                        details="angle_addition requires at least two angles"
-                    ))
-
-                angle1 = args[1] if len(args) > 1 else ""
-                angle2 = args[2] if len(args) > 2 else ""
-
-                if len(angle1) != 3 or len(angle2) != 3:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message="Invalid angle format",
-                        details="Each angle must be specified by exactly 3 points"
-                    ))
-
-                if angle1[1] != angle2[1]:
-                    return return_error(GeometricError(
-                        tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-                        message=f"Angles {angle1} and {angle2} must share a vertex",
-                        details="Required for angle addition"
-                    ))
-                return True, None
-            return return_error(GeometricError(
-                tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                message=f"no such version for the theorem angle_addition",
-                details="no such version for the theorem angle_addition"
-            ))
-
-
-        elif theorem_name == "quadrilateral_property_angle_sum":
-            version = args[0]
-            if version != "1":
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message="these is no such version for the theorem",
-                    details="these is no such version for the theorem for quadrilateral_property_angle_sum"
-
-                ))
-            if len(args) < 2:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                    message="Missing quadrilateral name"
-
-                ))
-
-            quad_name = args[1].strip()
-
-            if quad_name not in self.polygons:
-                return return_error(GeometricError(
-
-                    tier=ErrorTier.TIER2_PREMISE_VIOLATION,
-
-                    message=f"Quadrilateral {quad_name} not defined",
-
-                    details=f"Known polygons: {self.polygons}"
-
-                ))
-
-            return True, None
-
-        else:
-            # Theorem name did not match any implemented validation checks
-            error_message = f"Theorem '{theorem_name}' premise validation is not implemented in the verifier."
-            error_details = f"Theorem '{theorem_name}' is not recognized or its premise validation is not supported by the current verifier version."
-            # Use return_error to set the flag and return correctly formatted error
-            return return_error(GeometricError(
-                tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                message=error_message,
-                details=error_details
-            ))
 
     def parse_and_verify_proof(self, content: str) -> bool:
+        def check_gt_answer(model_answer_numeric, model_answer_symbolic):
+            """Check if GT_ANSWER exists and matches the model answer"""
+            if not model_response_content:
+                return True, ""
+
+            end_idx = content.find("***MODEL_RESPONSE_END***")
+            if end_idx == -1:
+                return True, ""
+
+            post_model_content = content[end_idx + len("***MODEL_RESPONSE_END***"):]
+            gt_match = re.search(r'GT_ANSWER:\s*([^\s\n]+)', post_model_content)
+            if not gt_match:
+                return True, ""
+
+            try:
+                gt_answer_str = gt_match.group(1).strip()
+                gt_answer_numeric, gt_answer_symbolic = parse_special_answer(gt_answer_str)
+
+                if abs(gt_answer_numeric - model_answer_numeric) > epsilon:
+                    # Create a more specific feedback message with clear "MODEL vs GROUND TRUTH" format
+                    detailed_feedback = "verification failed.\n\n"
+                    detailed_feedback += f"- Goal: value determination\n"
+                    detailed_feedback += f"- Model answer: {model_answer_symbolic}\n"
+                    detailed_feedback += f"- Verifier expected answer: {gt_answer_str}\n"
+                    detailed_feedback += f"- Error: THE MODEL DETERMINED THE ANSWER TO BE {model_answer_symbolic} BUT IN THE GROUND TRUTH SOLUTION TO THE PROBLEM THE ANSWER IS {gt_answer_str}.\n"
+                    detailed_feedback += f"  Please review your theorem sequence and ensure it correctly establishes the expected answer.\n\n"
+                    detailed_feedback += "Please fix the proof."
+
+                    print(
+                        f"Model answer {model_answer_symbolic} ({model_answer_numeric}) differs from GT answer {gt_answer_str} ({gt_answer_numeric})")
+                    return False, detailed_feedback
+                return True, ""
+            except Exception as e:
+                print(f"Error comparing with GT_ANSWER: {e}")
+                return True, ""  # Continue with regular verification on error
         try:
 
             feedback = ""
@@ -3323,6 +2634,7 @@ class GeometricTheorem:
 
             # Extract content between MODEL_RESPONSE_BEGIN and MODEL_RESPONSE_END if present
             model_response_content = None
+            gt_answer = None
             if len(content) > 0:
                 start_marker = "***MODEL_RESPONSE_BEGIN***"
                 end_marker = "***MODEL_RESPONSE_END***"
@@ -3344,10 +2656,12 @@ class GeometricTheorem:
                             if not line:
                                 continue
 
-                            if line == "ANSWER:":
+                            # Match any string ending with "ANSWER:" including "RETRY_ANSWER:"
+                            if line.endswith("ANSWER:") or "_ANSWER:" in line:
                                 current_model_section = ANSWER
                                 model_sections[current_model_section] = []
-                            elif line == "THEOREM_SEQUENCE:":
+                            # Match any string ending with "THEOREM_SEQUENCE:" including "RETRY_THEOREM_SEQUENCE:"
+                            elif line.endswith("THEOREM_SEQUENCE:")or "_THEOREM_SEQUENCE:" in line:
                                 current_model_section = THEOREM_SEQUENCE
                                 model_sections[current_model_section] = []
                             elif current_model_section and line.endswith(':'):
@@ -3361,8 +2675,6 @@ class GeometricTheorem:
                             sections[ANSWER] = model_sections[ANSWER]
                         if THEOREM_SEQUENCE in model_sections:
                             sections[THEOREM_SEQUENCE] = model_sections[THEOREM_SEQUENCE]
-
-                        print("Successfully extracted content from between model response markers")
                     else:
                         # --- ADDED ELSE BLOCK for missing END marker ---
                         # Start marker found, but end marker was NOT found after it
@@ -3417,6 +2729,8 @@ class GeometricTheorem:
             # Process CONSTRUCTION_CDL_EXTENDED first
 
             if CONSTRUCTION_CDL_EXTENDED in sections:
+                last_prefix = None
+                current_type = None
                 print("\nProcessing CONSTRUCTION_CDL_EXTENDED section...")
                 for line in sections[CONSTRUCTION_CDL_EXTENDED]:
                     print(f"Processing line: {line}")
@@ -3449,6 +2763,45 @@ class GeometricTheorem:
                             self.collinear_facts.append(list(normalized_points))
                             self.add_collinear_fact(list(normalized_points))
                             print(f"Added normalized collinear points (extended): {normalized_points}")
+                            # Handle lines starting with ".."
+                            last_prefix = 'Collinear('
+                    if line.startswith('..'):
+                        print(f"Found dotted line, current_type is: {current_type}")  # Debug
+                        if current_type is not None:
+                            # Extract content inside the parentheses after ".."
+                            match = re.search(r'\(\s*(.+?)\s*\)', line)
+                            if match:
+                                content = match.group(1)
+                                print(f"Extracted content from dotted line: {content}")  # Debug
+
+                                # Process based on current_type
+                                if current_type == "Cocircular":
+                                    # Process content as Cocircular data
+                                    raw_fields = content.split(',')
+                                    points = []
+                                    for token in raw_fields:
+                                        token = token.strip()
+                                        # If token length > 1, expand into individual letters
+                                        if len(token) > 1:
+                                            points.extend(list(token))
+                                        else:
+                                            points.append(token)
+
+                                    # Create canonical representation
+                                    if points:
+                                        fixed = points[0]
+                                        others = sorted(points[1:])
+                                        canonical = (fixed,) + tuple(others)
+                                    else:
+                                        canonical = tuple(points)
+
+                                    self.cocircular_facts.append(canonical)
+                                    print(f"Added cocircular fact from '..' line (canonical): {canonical}")
+                                # Add other type handlers here
+                            else:
+                                print(f"Warning: Could not extract content from '..' line: {line}")
+                        else:
+                            print(f"Warning: Found '..' line without context: {line}")
                     if line.startswith('ParallelBetweenLine('):
                         match = re.search(r'ParallelBetweenLine\((\w+),\s*(\w+)\)', line)
                         if match:
@@ -3460,6 +2813,7 @@ class GeometricTheorem:
                             self.parallel_pairs.add((line1[::-1], line2))
                             self.parallel_pairs.add((line1, line2[::-1]))
                             print(f"Added parallel pairs: {line1} || {line2} and variations")
+                            last_prefix = 'ParallelBetweenLine('
                     if line.startswith('Line('):
                         match = re.match(r'Line\((\w+)\)', line)
                         if match:
@@ -3468,6 +2822,7 @@ class GeometricTheorem:
                                 normalized_line = self.normalize_line_name(line_name)
                                 self.defined_lines.add(normalized_line)
                                 print(f"Added defined line: {normalized_line}")
+                                last_prefix = 'Line('
                             else:
                                 print(f"Warning: Skipping invalid Line format: {line}")
                     if line.startswith('Shape('):
@@ -3475,7 +2830,6 @@ class GeometricTheorem:
                         # Skip SYMBOLS_AND_VALUES, EQUATIONS
                     if line.startswith('SYMBOLS_AND_VALUES:') or line.startswith('EQUATIONS:'):
                         continue
-
                     if line.startswith('Parallelogram('):
                         match = re.match(r'Parallelogram\((\w+)\)', line)
                         if match:
@@ -3483,10 +2837,8 @@ class GeometricTheorem:
                             print(f"Found parallelogram in TEXT_CDL: {para_name}")
                             self.parallelograms.update(get_cyclic_variations(para_name))
                             print(f"Added parallelogram variations: {self.parallelograms}")
-
-
-
-
+                            last_prefix = 'Parallelogram('
+                            current_type = "Parallelogram"
                     elif line.startswith('PerpendicularBetweenLine('):
 
                         match = re.match(r'PerpendicularBetweenLine\((\w+),\s*(\w+)\)', line)
@@ -3525,13 +2877,12 @@ class GeometricTheorem:
                             self.solver.add(angle_var == 90)
 
                             print(f"Added 90° perpendicular angle constraint: {normalized_angle}")
-
-
+                            last_prefix = 'PerpendicularBetweenLine('
                     elif line.startswith("Arc("):
                         # Extract the arc name from e.g. "Arc(OBM)"
                         arc_name = line[4:-1].strip()
                         self.add_arc(arc_name)
-
+                        last_prefix = 'Arc('
                     if line.startswith('Polygon('):
                         # Extract the polygon name; for instance, "ABC" from "Polygon(ABC)"
                         poly_match = re.match(r'Polygon\((\w+)\)', line)
@@ -3541,11 +2892,7 @@ class GeometricTheorem:
                             normalized_poly = self.normalize_triangle(poly) if len(poly) == 3 else poly
                             self.polygons.add(normalized_poly)
                             print(f"Added polygon: {normalized_poly}")
-
-
-
-
-
+                            last_prefix = 'Polygon('
                     elif line.startswith("Circle("):
                         # e.g. "Circle(D)" means we have a circle named D
                         circle_name = line[7:-1]  # get whatever is inside Circle(...)
@@ -3560,15 +2907,13 @@ class GeometricTheorem:
                         if circle_name not in self.circle_areas:
                             self.circle_areas[circle_name] = Real(f"area_{circle_name}")
                             self.solver.add(self.circle_areas[circle_name] >= 0)
-
-
-
+                        last_prefix = 'Circle('
                     elif line.startswith("Rhombus("):
 
                         match = re.match(r"Rhombus\((\w+)\)", line)
 
                         if match:
-
+                            last_prefix = 'Rhombus('
                             shape_name = match.group(1)
 
                             self.rhombi.add(shape_name)
@@ -3601,59 +2946,32 @@ class GeometricTheorem:
                                     self.solver.add(side_vars[0] == side_vars[i])
 
                                 print(f"Added rhombus side equality constraints for {shape_name}: {' = '.join(sides)}")
-
-
-
-
-
-                    elif line.startswith("Cocircular("):
-
-                        # e.g. line = "Cocircular(B,UVTS)"
-
-                        inside = line[11:-1]  # This will be "B,UVTS"
-
+                    elif line.startswith('Cocircular('):
+                        # Process normal Cocircular line
+                        inside = line[11:-1]  # This will be "B,UVTS" from "Cocircular(B,UVTS)"
                         raw_fields = inside.split(',')
-
                         points = []
-
                         for token in raw_fields:
-
                             token = token.strip()
-
-                            # If token length > 1, expand into individual letters.
-
+                            # If token length > 1, expand into individual letters
                             if len(token) > 1:
-
                                 points.extend(list(token))
-
                             else:
-
                                 points.append(token)
 
-                        # Now create a canonical representation.
-
-                        # For example, assume the first letter is fixed and sort the rest.
-
+                        # Create canonical representation
                         if points:
-
                             fixed = points[0]
-
                             others = sorted(points[1:])
-
                             canonical = (fixed,) + tuple(others)
-
                         else:
-
                             canonical = tuple(points)
 
                         self.cocircular_facts.append(canonical)
-
                         print(f"Added cocircular fact (canonical): {canonical}")
-
-
-
-
-
+                        # Update current_type for potential ".." lines that follow
+                        current_type = "Cocircular"
+                        print(f"Set current_type to: {current_type}")  # Debug
                     elif line.startswith("Kite("):
                         match = re.match(r"Kite\((\w+)\)", line)
                         if match:
@@ -3760,6 +3078,49 @@ class GeometricTheorem:
 
                             print(
                                 f"Added equilateral triangle: {triangle} with all sides equal and all angles = 60°")
+                    elif line.startswith('IsoscelesTriangle('):
+                        match = re.match(r'IsoscelesTriangle\((\w+)\)', line)
+                        if match:
+                            triangle = match.group(1)
+                            print(f"Found isosceles triangle in TEXT_CDL: {triangle}")
+
+                            # Initialize isosceles_triangles if needed
+                            if not hasattr(self, 'isosceles_triangles'):
+                                self.isosceles_triangles = set()
+
+                            # Add all rotations to handle different triangle representations
+                            for i in range(len(triangle)):
+                                rotation = triangle[i:] + triangle[:i]
+                                self.isosceles_triangles.add(rotation)
+
+                            # For a triangle ABC, assuming the pattern is:
+                            # - Equal angles at B and C (second and third vertices)
+                            # - Equal sides AB and AC (connecting first vertex to others)
+
+                            # Add angle equality constraint
+                            # For LNK, this would be angles LNK and NKL
+                            angle1 = self.add_angle(triangle[0], triangle[1], triangle[2])  # LNK
+                            angle2 = self.add_angle(triangle[1], triangle[2], triangle[0])  # NKL
+                            self.solver.add(angle1 == angle2)
+                            print(
+                                f"Added isosceles triangle angle constraint: ∠{triangle[0]}{triangle[1]}{triangle[2]} = ∠{triangle[1]}{triangle[2]}{triangle[0]}")
+
+                            # Add side equality constraint
+                            # For LNK, this would be sides LN and LK
+                            side1 = self.add_length(triangle[0], triangle[1])  # LN
+                            side2 = self.add_length(triangle[0], triangle[2])  # LK
+                            self.solver.add(side1 == side2)
+                            print(
+                                f"Added isosceles triangle side constraint: {triangle[0]}{triangle[1]} = {triangle[0]}{triangle[2]}")
+
+                            # Store the theorem conclusion that would be generated
+                            conclusion = f"Equal(MeasureOfAngle({triangle[0]}{triangle[1]}{triangle[2]}),MeasureOfAngle({triangle[1]}{triangle[2]}{triangle[0]}))"
+                            if not hasattr(self, 'isosceles_conclusions'):
+                                self.isosceles_conclusions = {}
+                            self.isosceles_conclusions[triangle] = [conclusion]
+                            print(f"Stored isosceles triangle conclusion: {conclusion}")
+                        else:
+                            print(f"Warning: Could not parse IsoscelesTriangle line: {line}")
                     elif line.startswith('MirrorCongruentBetweenTriangle('):
                         match = re.match(r'MirrorCongruentBetweenTriangle\((\w+),(\w+)\)', line)
                         if match:
@@ -4087,6 +3448,23 @@ class GeometricTheorem:
                             # Store the altitude fact if needed
                             if not hasattr(self, 'triangle_altitudes'): self.triangle_altitudes = []
                             self.triangle_altitudes.append((altitude_line, triangle))
+                            if not hasattr(self, 'triangle_heights'):
+                                self.triangle_heights = {}
+
+                            # Get the length of the altitude line
+                            altitude_length_var = self.add_length(altitude_line[0], altitude_line[1])
+
+                            # Store this length as the height of the triangle
+                            self.triangle_heights[triangle] = altitude_length_var
+                            print(f"Connected altitude {altitude_line} as the height of triangle {triangle}")
+
+                            # Also store for possible permutations of the triangle name
+                            normalized_triangle = self.normalize_triangle(triangle)
+                            for i in range(3):
+                                variant = normalized_triangle[i:] + normalized_triangle[:i]
+                                if variant != triangle:
+                                    self.triangle_heights[variant] = altitude_length_var
+                                    print(f"Also connected height to triangle variant {variant}")
                     elif line.startswith("IsPerpendicularBisectorOfLine("):
                         # Match a statement like: IsPerpendicularBisectorOfLine(EF,AC)
                         match = re.match(r'IsPerpendicularBisectorOfLine\((\w+),(\w+)\)', line)
@@ -4880,7 +4258,7 @@ class GeometricTheorem:
                 goal_line = sections[GOAL_CDL][0]
 
                 def parse_special_answer(answer_str):
-                    """Parse answer strings including those with square root symbol."""
+                    """Parse answer strings including complex trigonometric expressions."""
                     import math
                     import re
 
@@ -4889,6 +4267,27 @@ class GeometricTheorem:
 
                     # Remove whitespace
                     answer_str = answer_str.strip()
+
+                    # Handle trig expressions with pi/180 conversion
+                    if 'sin(' in answer_str.lower() or 'cos(' in answer_str.lower() or 'tan(' in answer_str.lower():
+                        try:
+                            # Replace pi with math.pi
+                            modified_str = answer_str.replace('pi', 'math.pi')
+
+                            # Create a safe environment with only math functions
+                            safe_globals = {
+                                'math': math,
+                                'sin': math.sin,
+                                'cos': math.cos,
+                                'tan': math.tan,
+                                'sqrt': math.sqrt
+                            }
+
+                            # Try direct evaluation with math functions
+                            return float(eval(modified_str, {"__builtins__": {}}, safe_globals)), original_symbolic
+                        except Exception as e:
+                            print(f"Error evaluating trig expression: {e}")
+                            # Continue to other methods if this fails
 
                     # Handle √ symbol format: 6(√6-1)
                     if '√' in answer_str:
@@ -4926,19 +4325,87 @@ class GeometricTheorem:
                         except Exception as e:
                             print(f"Error evaluating modified string '{modified_str}': {e}")
                             pass
+                    if 'π' in answer_str:
+                        # Pattern for (aπ)/b format
+                        pattern = r'\((\d+)π\)/(\d+)'
+                        match = re.match(pattern, answer_str)
+                        if match:
+                            a, b = match.groups()
+                            a, b = float(a), float(b)
+                            return (a * math.pi) / b, original_symbolic
 
+                        # Pattern for aπ/b format (without parentheses)
+                        pattern = r'(\d+)π/(\d+)'
+                        match = re.match(pattern, answer_str)
+                        if match:
+                            a, b = match.groups()
+                            a, b = float(a), float(b)
+                            return (a * math.pi) / b, original_symbolic
+
+                        # Handle other π expressions with general replacement
+                        try:
+                            # Replace π with math.pi for evaluation
+                            modified_str = answer_str.replace('π', '*math.pi')
+                            # Handle implicit multiplication and edge cases
+                            modified_str = re.sub(r'(\d+)\(', r'\1*(', modified_str)
+                            return float(eval(modified_str, {"math": math})), original_symbolic
+                        except Exception as e:
+                            print(f"Error evaluating π expression '{modified_str}': {e}")
+                            pass
                     # Standard eval with math functions
                     try:
-                        return float(eval(answer_str, {"pi": math.pi, "sqrt": math.sqrt})), original_symbolic
-                    except Exception:
+                        safe_globals = {
+                            "pi": math.pi,
+                            "sqrt": math.sqrt,
+                            "sin": math.sin,
+                            "cos": math.cos,
+                            "tan": math.tan
+                        }
+                        return float(eval(answer_str, {"__builtins__": {}}, safe_globals)), original_symbolic
+                    except Exception as e:
+                        print(f"Error in standard eval: {e}")
                         # Fall back to Fraction
                         from fractions import Fraction
                         try:
                             return float(Fraction(answer_str)), original_symbolic
                         except Exception as e:
                             print(f"Error with Fraction conversion: {e}")
-                            # As a last resort, return a default value or raise an exception
-                            raise ValueError(f"Could not parse: {answer_str}")
+                            # Try numerical approximation for complex expressions
+                            try:
+                                # Replace mathematical functions with their math module equivalents
+                                answer_str = answer_str.replace('sin', 'math.sin')
+                                answer_str = answer_str.replace('cos', 'math.cos')
+                                answer_str = answer_str.replace('tan', 'math.tan')
+                                answer_str = answer_str.replace('pi', 'math.pi')
+
+                                # Evaluate with a safe environment
+                                result = eval(answer_str, {"__builtins__": {}}, {"math": math})
+                                return float(result), original_symbolic
+                            except Exception as e:
+                                print(f"Error with numerical approximation: {e}")
+
+                                # NEW CODE: Add SymPy as the last resort fallback method
+                                try:
+                                    # Import sympy only when needed
+                                    from sympy import symbols, sympify, pi, N
+
+                                    # Replace symbols with SymPy-compatible notation
+                                    sympy_compatible = answer_str
+                                    sympy_compatible = sympy_compatible.replace('π', 'pi')
+                                    sympy_compatible = sympy_compatible.replace('√', 'sqrt')
+
+                                    # Parse with SymPy's powerful expression parser
+                                    expr = sympify(sympy_compatible)
+
+                                    # Convert to floating point
+                                    numeric_value = float(N(expr))
+
+                                    print(f"Successfully parsed with SymPy: {numeric_value}")
+                                    return numeric_value, original_symbolic
+                                except Exception as e:
+                                    print(f"Error parsing with SymPy: {e}")
+                                    # If SymPy also fails, give up and raise the exception
+                                    raise ValueError(f"Could not parse: {answer_str}")
 
                 answer_str = sections[ANSWER][0].strip() if (ANSWER in sections and sections[ANSWER]) else None
                 if answer_str is None:
@@ -4954,6 +4421,10 @@ class GeometricTheorem:
                     return False, f"Error parsing answer '{answer_str}': {str(e)}"
                     # Arc measure goal: Value(MeasureOfArc(X))
                 epsilon = 1e-8  # Common epsilon value for all goals
+                # Check against GT_ANSWER - if this fails, return early
+                gt_check_result, gt_check_feedback = check_gt_answer(model_answer_numeric, model_answer_symbolic)
+                if not gt_check_result:
+                    return gt_check_result, gt_check_feedback
                 arc_measure_match = re.search(r'Value\(MeasureOfArc\((\w+)\)\)', goal_line)
                 if arc_measure_match:
                     arc_token = arc_measure_match.group(1)
@@ -5012,6 +4483,155 @@ class GeometricTheorem:
                         print(f"Detailed feedback generated for arc length goal.")
                         return False, detailed_feedback
 
+                radius_match = re.search(r'Value\(RadiusOfCircle\((\w+)\)\)', goal_line)
+                if radius_match:
+                    circle_token = radius_match.group(1)
+                    print(f"\nGoal radius of circle: {circle_token}")
+
+                    # Check if the circle has been defined
+                    if not hasattr(self, 'circle_radii'):
+                        self.circle_radii = {}
+
+                    # Get or create the radius variable
+                    if circle_token not in self.circle_radii:
+                        radius_var = Real(f"radius_{circle_token}")
+                        self.circle_radii[circle_token] = radius_var
+                        self.solver.add(radius_var > 0)  # Radius must be positive
+                    else:
+                        radius_var = self.circle_radii[circle_token]
+
+                    # Check if the value matches the expected answer
+                    success, value, status = self.check_value_constraint(radius_var, model_answer_numeric)
+
+                    if success:
+                        print(
+                            f"Success: Radius of circle {circle_token} is uniquely determined to be {model_answer_numeric}.")
+                        return True, ""
+                    else:
+                        # Generate detailed feedback
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="radius",
+                            goal_token=circle_token,
+                            model_answer=model_answer_symbolic,
+                            verifier_expected_answer=value,
+                            status=status
+                        )
+                        print(f"Detailed feedback generated for circle radius goal.")
+                        return False, detailed_feedback
+
+                # Add this new goal handler in the parse_and_verify_proof method
+                # (place it before the general_match block, after the radius_match handler we just added)
+
+                # Reciprocal sum goal: Value(Add(Div(1,LengthOfLine(X)),Div(1,LengthOfLine(Y))))
+                reciprocal_sum_match = re.search(
+                    r'Value\(Add\(Div\(1,LengthOfLine\((\w+)\)\),Div\(1,LengthOfLine\((\w+)\)\)\)\)', goal_line)
+                if reciprocal_sum_match:
+                    line1 = reciprocal_sum_match.group(1)  # First line (e.g., "AM")
+                    line2 = reciprocal_sum_match.group(2)  # Second line (e.g., "AN")
+
+                    print(f"\nGoal reciprocal sum: 1/LengthOfLine({line1}) + 1/LengthOfLine({line2})")
+                    goal_token = f"1/{line1}+1/{line2}"  # For feedback reporting
+
+                    # Get the length variables for both lines
+                    len1 = self.add_length(line1[0], line1[1])
+                    len2 = self.add_length(line2[0], line2[1])
+
+                    if self.solver.check() == sat:
+                        model = self.solver.model()
+                        try:
+                            # Evaluate the lengths
+                            len1_val = float(model.eval(len1).as_decimal(10).rstrip('?'))
+                            len2_val = float(model.eval(len2).as_decimal(10).rstrip('?'))
+
+                            # Check for division by zero
+                            if abs(len1_val) < epsilon or abs(len2_val) < epsilon:
+                                error_msg = "Division by zero in reciprocal sum"
+                                print(f"Error: {error_msg}")
+                                detailed_feedback = self.generate_detailed_feedback(
+                                    goal_type="general",
+                                    goal_token=goal_token,
+                                    model_answer=model_answer_symbolic,
+                                    status="insufficient_info",
+                                    additional_info=f"Error: {error_msg}. Your proof constrains {line1} = {len1_val} or {line2} = {len2_val}, which would cause division by zero."
+                                )
+                                return False, detailed_feedback
+
+                            # Calculate the expected answer: 1/len1 + 1/len2
+                            verifier_expected_answer = (1.0 / len1_val) + (1.0 / len2_val)
+
+                            # Check if the lengths are uniquely determined
+                            temp_solver = Solver()
+                            for c in self.solver.assertions():
+                                temp_solver.add(c)
+
+                            # Try to find alternative values for the lengths
+                            temp_solver.add(Or(
+                                len1 < len1_val - epsilon,
+                                len1 > len1_val + epsilon,
+                                len2 < len2_val - epsilon,
+                                len2 > len2_val + epsilon
+                            ))
+
+                            if temp_solver.check() == sat:
+                                # Multiple values possible
+                                alt_model = temp_solver.model()
+                                alt_len1_val = float(alt_model.eval(len1).as_decimal(10).rstrip('?'))
+                                alt_len2_val = float(alt_model.eval(len2).as_decimal(10).rstrip('?'))
+
+                                # Check for division by zero in the alternative solution
+                                if abs(alt_len1_val) < epsilon or abs(alt_len2_val) < epsilon:
+                                    print("Alternative solution involves division by zero, ignoring")
+                                else:
+                                    alt_sum = (1.0 / alt_len1_val) + (1.0 / alt_len2_val)
+
+                                    # If the alternative sum is very close to the expected sum,
+                                    # then the reciprocal sum might still be uniquely determined
+                                    if abs(alt_sum - verifier_expected_answer) < epsilon:
+                                        print(f"Alternative lengths give the same sum, continuing validation")
+                                    else:
+                                        # Generate detailed feedback for multiple values
+                                        detailed_feedback = self.generate_detailed_feedback(
+                                            goal_type="general",
+                                            goal_token=goal_token,
+                                            model_answer=model_answer_symbolic,
+                                            verifier_expected_answer=None,
+                                            status="multiple_values",
+                                            additional_info=f"Your proof doesn't uniquely determine the value.\n"
+                                        )
+                                        return False, detailed_feedback
+
+                            # Check if the computed value matches the expected answer
+                            if abs(verifier_expected_answer - model_answer_numeric) < epsilon:
+                                return True, ""
+                            else:
+                                # Generate detailed feedback for incompatible values
+                                detailed_feedback = self.generate_detailed_feedback(
+                                    goal_type="general",
+                                    goal_token=goal_token,
+                                    model_answer=model_answer_symbolic,
+                                    verifier_expected_answer=verifier_expected_answer,
+                                    status="incompatible",
+                                    additional_info=f"Your proof constrains the lengths to {line1} = {len1_val} and {line2} = {len2_val},\n" +
+                                                    f"which gives 1/{line1} + 1/{line2} = {verifier_expected_answer}, not {model_answer_numeric}."
+                                )
+                                return False, detailed_feedback
+
+                        except Exception as e:
+                            error_msg = f"Error calculating reciprocal sum: {str(e)}"
+                            print(f"Error: {error_msg}")
+                            return False, error_msg
+                    else:
+                        # Generate detailed feedback for unsatisfiable system
+                        detailed_feedback = self.generate_detailed_feedback(
+                            goal_type="general",
+                            goal_token=goal_token,
+                            model_answer=model_answer_symbolic,
+                            status="unsatisfiable"
+                        )
+                        return False, detailed_feedback
+
+
+
                 triangle_area_match = re.search(r'Value\(AreaOfTriangle\((\w+)\)\)', goal_line)
                 if triangle_area_match:
                     triangle_name = triangle_area_match.group(1)  # e.g., "CDB"
@@ -5028,8 +4648,10 @@ class GeometricTheorem:
                         # Known areas for debugging:
                         known_areas = list(getattr(self, 'triangle_areas', {}).keys())
                         print(f"Known triangle areas: {known_areas}")
-                        return False, self.generate_detailed_feedback("triangle_area", triangle_name, model_answer_symbolic,
-                                                                      status="insufficient_info", error_message=error_msg)
+                        return False, self.generate_detailed_feedback("triangle_area", triangle_name,
+                                                                      model_answer_symbolic,
+                                                                      status="insufficient_info",
+                                                                      additional_info=error_msg)
 
                     triangle_area_var = self.triangle_areas[normalized_triangle]
                     self.solver.add(triangle_area_var>0)
@@ -5554,6 +5176,7 @@ class GeometricTheorem:
                 if error.details:
                     print("Details:", error.details)
                 return False, feedback
+
 
             return True, ""
         except Exception as e:
@@ -6130,7 +5753,11 @@ class GeometricTheorem:
             "perpendicular_judgment_angle",
             "rectangle_judgment_right_angle",
             "circle_property_angle_of_osculation",
-            "bisector_of_angle_judgment_angle_equal"
+            "bisector_of_angle_judgment_angle_equal",
+            "bisector_of_angle_property_line_ratio",
+            "diameter_of_circle_judgment_right_angle",
+            "mirror_similar_triangle_property_ratio",
+            "mirror_congruent_triangle_judgment_sss"
         ]
 
         if theorem_name not in valid_theorems:
@@ -6200,298 +5827,6 @@ class GeometricTheorem:
                     message=f"Unsupported version {version} for bisector_of_angle_judgment_angle_equal",
                     details="Only version 1 is supported"
                 )
-
-        elif theorem_name == "diameter_of_circle_judgment_right_angle":
-            version = args[0]
-            if version == "1":
-                if len(args) < 3:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message="Insufficient arguments for diameter_of_circle_judgment_right_angle",
-                        details="Expected: diameter_of_circle_judgment_right_angle(1, angle, circle)"
-                    )
-
-                angle_token = args[1].strip()  # e.g., "BCA"
-                circle_token = args[2].strip()  # e.g., "O"
-
-                # Parse the conclusion to extract the diameter line
-                diameter_match = re.search(r'IsDiameterOfCircle\((\w+),(\w+)\)', conclusions[0])
-                if not diameter_match:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message="Conclusion format error for diameter_of_circle_judgment_right_angle",
-                        details=f"Expected IsDiameterOfCircle(...) pattern but got {conclusions[0]}"
-                    )
-
-                diameter_line, conclusion_circle = diameter_match.groups()
-
-                # Verify the circle in the conclusion matches the one in the arguments
-                if conclusion_circle != circle_token:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message=f"Circle mismatch: argument has {circle_token} but conclusion has {conclusion_circle}",
-                        details="The circle in the conclusion must match the one in the arguments"
-                    )
-
-                # Extract the endpoints of the diameter (the non-vertex points of the angle)
-                # For angle BCA, the diameter is AB
-                vertex = angle_token[1]  # Middle letter is the vertex (e.g., "C")
-                endpoints = [p for p in angle_token if p != vertex]  # e.g., ["B", "A"]
-                expected_diameter = ''.join(endpoints)  # e.g., "BA"
-
-                # Check if the diameter in the conclusion matches the expected one (considering both orders)
-                if diameter_line != expected_diameter and diameter_line != expected_diameter[::-1]:
-                    return GeometricError(
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                        message=f"Diameter mismatch: expected {expected_diameter} or {expected_diameter[::-1]} but got {diameter_line}",
-                        details="The diameter in the conclusion must connect the non-vertex points of the angle"
-                    )
-
-                # Record the diameter fact
-                if not hasattr(self, "is_diameter_of_circle"):
-                    self.is_diameter_of_circle = []
-
-                # Add both the original and reversed diameter lines
-                if (diameter_line, circle_token) not in self.is_diameter_of_circle:
-                    self.is_diameter_of_circle.append((diameter_line, circle_token))
-
-                if (diameter_line[::-1], circle_token) not in self.is_diameter_of_circle:
-                    self.is_diameter_of_circle.append((diameter_line[::-1], circle_token))
-
-                # If you have diameter and radius variables, establish the relationship
-                if hasattr(self, "circle_radii") and hasattr(self, "circle_diameters"):
-                    if circle_token in self.circle_radii:
-                        # Create diameter variable if it doesn't exist
-                        diam_name = f"diameter_{circle_token}"
-                        if diam_name not in self.circle_diameters:
-                            self.circle_diameters[diam_name] = Real(diam_name)
-                            self.solver.add(self.circle_diameters[diam_name] >= 0)
-
-                        # Create length variable for the diameter
-                        diam_length = self.add_length(diameter_line[0], diameter_line[1])
-
-                        # Set diameter length = diameter variable
-                        self.solver.add(diam_length == self.circle_diameters[diam_name])
-
-                        # Set diameter = 2 * radius
-                        radius_var = self.circle_radii[circle_token]
-                        self.solver.add(self.circle_diameters[diam_name] == 2 * radius_var)
-
-                print(
-                    f"Added diameter fact: {diameter_line} is a diameter of circle {circle_token} (by right angle inscribed in semicircle)")
-                return None
-            else:
-                return GeometricError(
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-                    message=f"Unsupported version {version} for diameter_of_circle_judgment_right_angle",
-                    details="Only version 1 is supported"
-                )
-
-
-        elif theorem_name == "line_addition":
-
-            # Match conclusion pattern: Equal(LengthOfLine(CA),Add(LengthOfLine(CD),LengthOfLine(DA)))
-
-            match = re.search(
-
-                r'Equal\(LengthOfLine\((\w+)\),Add\(LengthOfLine\((\w+)\),LengthOfLine\((\w+)\)\)\)',
-
-                conclusions[0]
-
-            )
-
-            if not match:
-                return GeometricError(
-
-                    tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                    message="Invalid conclusion format for line_addition",
-
-                    details="Expected: Equal(LengthOfLine(total),Add(LengthOfLine(part1),LengthOfLine(part2)))"
-
-                )
-
-            total_line, part1, part2 = match.groups()
-
-            # Create or get length variables for all segments
-
-            total_var = self.add_length(total_line[0], total_line[1])
-
-            part1_var = self.add_length(part1[0], part1[1])
-
-            part2_var = self.add_length(part2[0], part2[1])
-
-            # Add the length addition constraint
-
-            self.solver.add(total_var == part1_var + part2_var)
-
-            print(f"Added line addition constraint: {total_line} = {part1} + {part2}")
-
-            return None
-
-
-
-
-        elif theorem_name == "right_triangle_property_pythagorean":
-            version = args[0]
-            if version == "1":
-                # Expecting a conclusion list like:
-
-                # ["Equal(Add(Pow(LengthOfLine(GH),2),Pow(LengthOfLine(HE),2)),Pow(LengthOfLine(GE),2))"]
-
-                match = re.search(
-
-                    r'Equal\(Add\(Pow\(LengthOfLine\((\w+)\),2\),Pow\(LengthOfLine\((\w+)\),2\)\),Pow\(LengthOfLine\((\w+)\),2\)\)',
-
-                    conclusions[0]
-
-                )
-
-                if match:
-
-                    leg1, leg2, hyp = match.group(1), match.group(2), match.group(3)
-
-                    # Retrieve or create the Z3 length variables for the sides.
-
-                    leg1_var = self.add_length(leg1[0], leg1[1])
-
-                    leg2_var = self.add_length(leg2[0], leg2[1])
-
-                    hyp_var = self.add_length(hyp[0], hyp[1])
-
-                    # Ensure the side lengths are positive.
-
-
-
-                    # Add the Pythagorean constraint.
-
-                    self.solver.add(leg1_var * leg1_var + leg2_var * leg2_var == hyp_var * hyp_var)
-
-                    # Optionally, add extra ordering constraints.
-
-                    self.solver.add(leg1_var + leg2_var > hyp_var)
-
-                    self.solver.add(hyp_var > leg1_var, hyp_var > leg2_var)
-
-                    print(f"Added Pythagorean constraint: {leg1}^2 + {leg2}^2 = {hyp}^2")
-
-                else:
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                        message="Conclusion format error for right_triangle_property_pythagorean",
-
-                        details="Expected format: Equal(Add(Pow(LengthOfLine(leg1),2),Pow(LengthOfLine(leg2),2)),Pow(LengthOfLine(hyp),2))"
-
-                    )
-            elif version == "2":
-                print("2")
-
-
-
-
-
-
-        elif theorem_name == "parallel_property_alternate_interior_angle":
-
-            version = args[0]
-
-            if version == "1":
-
-                # Version 1: Use the original behavior.
-
-                m = re.search(r'Equal\(MeasureOfAngle\((\w{3})\),\s*MeasureOfAngle\((\w{3})\)\)', conclusions[0])
-
-                if m:
-
-                    angle1, angle2 = m.group(1), m.group(2)
-
-                    a1 = self.add_angle(angle1[0], angle1[1], angle1[2])
-
-                    a2 = self.add_angle(angle2[0], angle2[1], angle2[2])
-
-                    self.solver.add(a1 == a2)
-
-                    print(f"[Version 1] Added constraint: {angle1} == {angle2}")
-
-                else:
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                        message="Conclusion format error for parallel_property_alternate_interior_angle (version 1)",
-
-                        details="Expected format: Equal(MeasureOfAngle(XXX),MeasureOfAngle(YYY))"
-
-                    )
-
-            elif version == "2":
-
-                # Version 2: For example, expect a different set of angle tokens.
-
-                # In the sample, the conclusion is:
-
-                # "Equal(MeasureOfAngle(GHD),MeasureOfAngle(HGJ))"
-
-                m = re.search(r'Equal\(MeasureOfAngle\((\w{3})\),\s*MeasureOfAngle\((\w{3})\)\)', conclusions[0])
-
-                if m:
-
-                    angle1, angle2 = m.group(1), m.group(2)
-
-                    a1 = self.add_angle(angle1[0], angle1[1], angle1[2])
-
-                    a2 = self.add_angle(angle2[0], angle2[1], angle2[2])
-
-                    self.solver.add(a1 == a2)
-
-                    print(f"[Version 2] Added alternate interior angle constraint: {angle1} == {angle2}")
-
-                else:
-
-                    return GeometricError(
-
-                        tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                        message="Conclusion format error for parallel_property_alternate_interior_angle (version 2)",
-
-                        details="Expected format: Equal(MeasureOfAngle(XXX),MeasureOfAngle(YYY))"
-
-                    )
-
-
-        elif theorem_name == "quadrilateral_property_angle_sum":
-
-            if len(args) < 2:
-                return GeometricError(tier=ErrorTier.TIER1_THEOREM_CALL_SYNTAX_VIOLATION,
-
-                                      message="Invalid number of arguments",
-
-                                      details="Expected quadrilateral name")
-
-            quad_name = args[1]
-
-            angle_vars = []
-
-            for i in range(len(quad_name)):
-                p1 = quad_name[i]
-
-                p2 = quad_name[(i + 1) % len(quad_name)]
-
-                p3 = quad_name[(i + 2) % len(quad_name)]
-
-                avar = self.add_angle(p1, p2, p3)
-
-                angle_vars.append(avar)
-
-                print(f"Angle at vertex {p2} added for quadrilateral {quad_name}")
-
-            self.solver.add(sum(angle_vars) == 360)
-
-            print("Added quadrilateral angle sum constraint: sum of angles = 360°")
 
 
 
